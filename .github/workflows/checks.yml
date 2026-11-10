@@ -1,0 +1,18 @@
+name: checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and client activation guard
+        run: node scripts/check-client.cjs
+      - name: CLI syntax
+        run: node --check scripts/bot_cli.mjs

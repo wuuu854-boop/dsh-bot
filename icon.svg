@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="DSH Bot">
+  <title>DSH Bot</title>
+  <defs>
+    <radialGradient id="bg" cx="30%" cy="24%" r="80%">
+      <stop offset="0" stop-color="#1b1d18"/>
+      <stop offset="1" stop-color="#050605"/>
+    </radialGradient>
+    <radialGradient id="sphere" cx="34%" cy="28%" r="76%">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.42" stop-color="#d9dcd2"/>
+      <stop offset="0.78" stop-color="#73776b"/>
+      <stop offset="1" stop-color="#151712"/>
+    </radialGradient>
+    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d9ff7a" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#d9ff7a" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#d9ff7a" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#bg)"/>
+  <circle cx="32" cy="32" r="21" fill="none" stroke="url(#ring)" stroke-width="1.2" opacity="0.85"/>
+  <circle cx="32" cy="32" r="15.5" fill="url(#sphere)"/>
+  <ellipse cx="32" cy="32" rx="8.2" ry="3.1" fill="#080a06" transform="rotate(-10 32 32)"/>
+  <ellipse cx="32" cy="32" rx="8.2" ry="3.1" fill="none" stroke="#d9ff7a" stroke-width="0.9" opacity="0.55" transform="rotate(-10 32 32)"/>
+  <circle cx="32" cy="32" r="2.1" fill="#e9ffb0"/>
+  <circle cx="25.5" cy="26" r="2.2" fill="#ffffff" opacity="0.35"/>
+  <path d="M47 47h9M51.5 42.5v9" stroke="#d9ff7a" stroke-width="1.4" stroke-linecap="round" opacity="0.8"/>
+</svg>

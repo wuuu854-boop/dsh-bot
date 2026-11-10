@@ -1,0 +1,52 @@
+{
+  "name": "@local/dsh-bot",
+  "version": "4.6.0",
+  "private": true,
+  "type": "module",
+  "description": "DSH Bot: a Grok-Bot-inspired local autonomous agent workbench for DeepSeek Harness, with multi-bot group chats, cross-bot dispatch and git-backed memory.",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "scripts/*.py",
+    "scripts/*.ps1",
+    "scripts/*.mjs",
+    "contain-foreign-ai.cmd",
+    "contain-foreign-browser.cmd",
+    "icon.svg",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "docs/*.svg",
+    "docs/COMPETITIVE.md",
+    "docs/TEAM.md",
+    "docs/API.md",
+    "docs/RELEASE.md",
+    "scripts/*.cjs"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-layout"
+      ]
+    }
+  },
+  "scripts": {
+    "check": "node scripts/check-client.cjs",
+    "smoke": "node scripts/smoke-team.mjs",
+    "e2e": "node scripts/e2e-team.mjs",
+    "bot": "node scripts/bot_cli.mjs"
+  }
+}
