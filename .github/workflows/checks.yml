@@ -16,3 +16,5 @@ jobs:
         run: node scripts/check-client.cjs
       - name: CLI syntax
         run: node --check scripts/bot_cli.mjs
+      - name: Python syntax
+        run: python3 -m py_compile scripts/computer.py scripts/edge.py scripts/eval_suite.py

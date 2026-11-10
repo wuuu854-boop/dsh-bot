@@ -1,4 +1,4 @@
-# DSH Bot v4.6.0
+# DSH Bot v4.7.0
 
 **An open-source GrokBot alternative that runs a real bot team on your own Windows machine, inside DeepSeek Harness.**
 
@@ -14,7 +14,7 @@ You talk to one **Boss**. It decides what to do, hires a specialist when nobody 
 - **Group chats** — 2–8 bots in one channel, `@name` routing, `bot_dispatch`, speaker-attributed replies, persisted group transcript.
 - **Git-backed memory** — each bot's memory is a Git repo with history, diff and one-click restore.
 - **Model policy** — Boss `deepseek-v4-pro` + `max`; members `deepseek-flash` + `low`; per-assignment `effort` / `model` overrides.
-- **Local execution depth** — GUI control, screenshots, app launching, Clash proxy guard, isolated Firefox, safety snapshots, budgets, QQ notifications and remote control.
+- **Local execution depth** — Edge is the default browser; multi-monitor screenshots cover the whole virtual desktop; GUI control, app launching, Clash proxy guard, isolated Firefox, safety snapshots, budgets, QQ notifications and remote control.
 - **CLI + HTTP API** — `bot_cli.mjs` and `docs/API.md` cover bots, threads, groups, team, meeting, memory, routines and skills.
 
 ## Install
@@ -38,6 +38,7 @@ Then click **团队模板** in the sidebar (or `node scripts/bot_cli.mjs team in
 - Daily stand-up: six members reported, Boss produced minutes; once per day.
 - Cleanup: three rounds freed **28.33 GB** of cache and old backups with pre-delete manifests; live data and a running WSL distro were left untouched.
 - `smoke-team.mjs` 13/13; `e2e-team.mjs --yes --delegate` passed (real model direct reply + delegation).
+- Edge helper opens/navigates; multi-monitor capture returned 4480×1600 across a 2560×1600 + 1920×1080 setup.
 
 ## Known limits
 

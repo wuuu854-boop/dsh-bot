@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.7.0 — 2026-11-10
+
+- Change: Microsoft Edge is now the default browser for every bot. New `scripts/edge.py` provides `open`, `navigate`, `activate`, `status`, `screenshot`, `monitors`, and `screen`.
+- Add: multi-monitor support in `computer.py`; default screenshots capture the whole virtual desktop, with `primary` and `monitor:N` options.
+- Add: bot runtime prompts document Edge as the default and expose monitor layout/screenshot modes.
+- Change: Firefox remains only for the isolated Grok/Copilot profiles.
+
 ## Unreleased
 
 - Fix: the only lead bot can no longer be deleted; promote another bot first.

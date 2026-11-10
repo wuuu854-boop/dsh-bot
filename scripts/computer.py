@@ -6,9 +6,10 @@ physical pixels because the process opts into per-monitor DPI awareness.
 
 Commands:
   screen
+  monitors
   windows
   active
-  screenshot [path]
+  screenshot [path] [all|primary|monitor:N]
   click X Y [left|right|double]
   move X Y
   drag X1 Y1 X2 Y2
@@ -17,6 +18,9 @@ Commands:
   key COMBO            (ctrl+s, alt+tab, enter, f5, win, ...)
   activate TITLE_SUBSTRING
   wait MS
+
+Coordinates and screenshots use the virtual desktop, so secondary monitors
+to the left/right/top of the primary are included by default.
 
 Every command prints one JSON object on stdout and exits non-zero on failure.
 """
@@ -101,6 +105,33 @@ class INPUT(ctypes.Structure):
         ('type', DWORD),
         ('u', _INPUTUNION),
     ]
+
+
+class RECT(ctypes.Structure):
+    _fields_ = [
+        ('left', LONG),
+        ('top', LONG),
+        ('right', LONG),
+        ('bottom', LONG),
+    ]
+
+
+class MONITORINFO(ctypes.Structure):
+    _fields_ = [
+        ('cbSize', DWORD),
+        ('rcMonitor', RECT),
+        ('rcWork', RECT),
+        ('dwFlags', DWORD),
+    ]
+
+
+MONITORENUMPROC = ctypes.WINFUNCTYPE(
+    wintypes.BOOL,
+    wintypes.HANDLE,
+    wintypes.HDC,
+    ctypes.POINTER(RECT),
+    wintypes.LPARAM,
+)
 
 
 INPUT_MOUSE = 0
@@ -379,17 +410,115 @@ def activate_window(needle):
     raise LookupError(f'no visible window matching {needle!r}')
 
 
-def screenshot(path=None):
+def list_monitors():
+    monitors = []
+
+    def callback(hmonitor, _hdc, lprc, _lparam):
+        info = MONITORINFO()
+        info.cbSize = ctypes.sizeof(MONITORINFO)
+        if user32.GetMonitorInfoW(hmonitor, ctypes.byref(info)):
+            rect = info.rcMonitor
+            work = info.rcWork
+            monitors.append({
+                'handle': int(hmonitor),
+                'primary': bool(info.dwFlags & 1),
+                'x': int(rect.left),
+                'y': int(rect.top),
+                'width': int(rect.right - rect.left),
+                'height': int(rect.bottom - rect.top),
+                'work': {
+                    'x': int(work.left),
+                    'y': int(work.top),
+                    'width': int(work.right - work.left),
+                    'height': int(work.bottom - work.top),
+                },
+            })
+        return True
+
+    user32.EnumDisplayMonitors(None, None, MONITORENUMPROC(callback), 0)
+    monitors.sort(key=lambda item: (not item['primary'], item['x'], item['y']))
+    return monitors
+
+
+def virtual_screen():
+    return {
+        'x': int(user32.GetSystemMetrics(76)),
+        'y': int(user32.GetSystemMetrics(77)),
+        'width': int(user32.GetSystemMetrics(78)),
+        'height': int(user32.GetSystemMetrics(79)),
+    }
+
+
+def screen_info():
+    monitors = list_monitors()
+    virtual = virtual_screen()
+    primary = next((item for item in monitors if item['primary']), None)
+    if primary is None:
+        primary = {
+            'x': 0,
+            'y': 0,
+            'width': int(user32.GetSystemMetrics(0)),
+            'height': int(user32.GetSystemMetrics(1)),
+        }
+    return {
+        'ok': True,
+        'width': virtual['width'],
+        'height': virtual['height'],
+        'virtual': virtual,
+        'primary': {
+            'x': primary['x'],
+            'y': primary['y'],
+            'width': primary['width'],
+            'height': primary['height'],
+        },
+        'monitors': monitors,
+    }
+
+
+def screenshot(path=None, target='all', monitor_index=None):
     from PIL import ImageGrab
-    target = path or os.path.join(tempfile.gettempdir(), f'dsh-bot-screen-{int(time.time())}.png')
-    os.makedirs(os.path.dirname(os.path.abspath(target)), exist_ok=True)
-    image = ImageGrab.grab()
-    image.save(target)
-    return {'ok': True, 'path': os.path.abspath(target), 'width': image.size[0], 'height': image.size[1]}
+
+    target = str(target or 'all').lower()
+    monitors = list_monitors()
+    if target == 'primary':
+        selected = next((item for item in monitors if item['primary']), None)
+    elif target.startswith('monitor'):
+        index = monitor_index
+        if index is None:
+            try:
+                index = int(target.split(':', 1)[1])
+            except Exception:
+                index = 1
+        index = max(1, int(index))
+        selected = monitors[index - 1] if len(monitors) >= index else None
+    else:
+        selected = None
+
+    if selected:
+        bbox = (selected['x'], selected['y'], selected['x'] + selected['width'], selected['y'] + selected['height'])
+        mode = 'primary' if selected['primary'] and target == 'primary' else f"monitor:{monitors.index(selected) + 1}"
+    else:
+        virtual = virtual_screen()
+        bbox = (virtual['x'], virtual['y'], virtual['x'] + virtual['width'], virtual['y'] + virtual['height'])
+        mode = 'all'
+
+    image = ImageGrab.grab(bbox=bbox, all_screens=True)
+    target_path = path or os.path.join(tempfile.gettempdir(), f'dsh-bot-screen-{int(time.time())}.png')
+    os.makedirs(os.path.dirname(os.path.abspath(target_path)), exist_ok=True)
+    image.save(target_path)
+    return {
+        'ok': True,
+        'path': os.path.abspath(target_path),
+        'width': image.size[0],
+        'height': image.size[1],
+        'mode': mode,
+        'bbox': list(bbox),
+        'monitors': monitors,
+    }
 
 
 def screen_size():
-    return {'ok': True, 'width': user32.GetSystemMetrics(0), 'height': user32.GetSystemMetrics(1)}
+    return screen_info()
 
 
 def main():
@@ -398,7 +527,9 @@ def main():
     command = sys.argv[1].lower()
     args = sys.argv[2:]
     if command == 'screen':
-        emit(screen_size())
+        emit(screen_info())
+    if command == 'monitors':
+        emit({'ok': True, 'monitors': list_monitors(), 'virtual': virtual_screen()})
     if command == 'windows':
         emit({'ok': True, 'windows': list_windows()})
     if command == 'active':
@@ -407,7 +538,16 @@ def main():
         user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
         emit({'ok': True, 'window': {'handle': int(hwnd), 'pid': int(pid.value), 'title': window_title(hwnd), 'rect': window_rect(hwnd)}})
     if command == 'screenshot':
-        emit(screenshot(args[0] if args else None))
+        path = None
+        target = 'all'
+        if args:
+            if args[0].lower() in ('all', 'primary') or args[0].lower().startswith('monitor'):
+                target = args[0]
+            else:
+                path = args[0]
+                if len(args) > 1:
+                    target = args[1]
+        emit(screenshot(path, target))
     if command == 'click':
         if len(args) < 2:
             fail('click requires X Y [left|right|double]')

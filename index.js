@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '4.6.0'
+const VERSION = '4.7.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -149,6 +149,7 @@ export function apply(ctx) {
   const notifyScript = path.join(packageDir, 'scripts', 'notify_qq.py')
   const qqUiaPy = path.join(packageDir, 'scripts', 'qq_uia.py')
   const browserScript = path.join(packageDir, 'scripts', 'browser.py')
+  const edgeScript = path.join(packageDir, 'scripts', 'edge.py')
 
   try {
     fs.mkdirSync(stateDir, { recursive: true })
@@ -3993,8 +3994,9 @@ export function apply(ctx) {
       '- 需要用户拍板时用 bot_ask；它会结束本轮，用户回答后自动继续。不要调用 ask_user_question / exit_plan_mode（Bot 页面禁用了这两个阻塞工具）。',
       `- 长期记忆文件：${botMemoryFile(bot)}。当用户给出长期偏好、项目背景、重要决定时，用 write/edit 更新它；不要覆盖无关内容。每次任务开始可先读它。`,
       '- 你能通过终端、文件和网络操作这台电脑，也能操作图形界面：先截图看坐标，再用点击/输入/按键/激活窗口。',
-      `- GUI 控制脚本：${computerScript}。常用：python "${computerScript}" screenshot <png>，再用 read_image 查看；python "${computerScript}" windows / activate <标题> / click <x> <y> / type "文字" / key ctrl+s。坐标是物理像素。`,
-      `- 打开应用先找桌面版：python "${appsScript}" find <名字>；有就 python "${appsScript}" launch <名字>。只有没有桌面版时才用浏览器。不要用浏览器打开已有桌面版的豆包、ChatGPT、Claude 等。`,
+      `- GUI 控制脚本：${computerScript}。常用：python "${computerScript}" screenshot <png>（默认全部显示器，可加 primary/monitor:N），再用 read_image 查看；python "${computerScript}" windows / screen / activate <标题> / click <x> <y> / type "文字" / key ctrl+s。坐标是虚拟桌面物理像素。`,
+      `- 默认浏览器 Edge：python "${edgeScript}" open <url> / navigate <url> / status；只有 Grok/Copilot 隔离才用 Firefox。`,
+      `- 打开应用先找桌面版：python "${appsScript}" find <名字>；有就 python "${appsScript}" launch <名字>。只有没有桌面版时才用浏览器（默认 Edge）。不要用浏览器打开已有桌面版的豆包、ChatGPT、Claude 等。`,
       `- 使用国外 AI（ChatGPT / Claude / Copilot / Gemini / Grok）前，先 python "${proxyScript}" ensure；必须看到 verified=true、purity.clean=true、chineseCountry=false、chineseOrg=false，且 country/loc 不是 CN/HK/MO/TW、三次出口稳定、directIp 为空或不同。ensure 会在异常时自动启动 Clash、写系统代理、切换非 CN 节点并重验；仍失败就停，不得用浏览器/直连/computer.py 绕过。verified=false 或 apps.py 返回 PROXY_NOT_VERIFIED 时立即停，把错误原样告诉用户。apps.py 返回 CONTAINMENT_NOT_INSTALLED / CONTAINMENT_BROKEN / CONTAINMENT_UNSUPPORTED 时同样立即停，让用户双击桌面「DSH 国外AI硬隔离」并点 UAC。用户已明确没有住宅 IP，接受低风险商业 IP：purity.residential=false/server=true 不应阻止，也不要反复提醒或为此主动切节点；只要 clean=true 且上述国家/org/黑名单/稳定性都过关就放行。国内 AI（豆包 / Kimi / WorkBuddy / 天禧AI / DeepSeek）不强制开代理。`,
       '- 需要结构化选择或确认时，调用 bot_ask（question/options/detail）；它会结束本轮，用户回答后自动继续。不要用 ask_user_question。',
       '- 一套操作可能复用时，完成后把步骤写进长期记忆，标题用「流程：…」；下次先读记忆，按流程执行。长期记忆就是例程库。',
@@ -4057,7 +4059,9 @@ export function apply(ctx) {
       `- 记忆文件：${botMemoryFile(bot)}`,
       `- GUI 控制脚本：${computerScript}`,
       `- 桌面应用启动：${appsScript}`,
-      `- Firefox 浏览器控制：${browserScript}（Marionette；start/text/open/click/type/screenshot/quit；Grok 用 --profile grok，Copilot 用 --profile automation --direct-profile，不要用旧 copilot profile；外网依赖 Clash 7890）`,
+      `- 默认浏览器：Microsoft Edge；打开网页用 python "${edgeScript}" open <url>，已有页面用 navigate/activate。只有 Grok/Copilot 隔离才用 Firefox。`,
+      `- Firefox 隔离控制（仅 Grok/Copilot）：${browserScript}（Marionette；start/text/open/click/type/screenshot/quit；Grok 用 --profile grok，Copilot 用 --profile automation --direct-profile，不要用旧 copilot profile；外网依赖 Clash 7890）`,
+      `- 多显示器：python "${computerScript}" screen 查看布局；screenshot 默认截取全部显示器，可加 primary 或 monitor:N。坐标使用虚拟桌面坐标。`,
       `- Clash / 系统代理：${proxyScript}`,
       `- 权限模式：${bot.privilege === 'admin' ? '完全权限 + 管理员' : '标准（文件沙箱）'}`,
       `- 任务模式：${bot.autonomy === 'unattended' ? '无人值守（不打断用户）' : '交互（必要时可拍板）'}`,
@@ -7162,7 +7166,7 @@ export function apply(ctx) {
     const out = path.join(stateDir, `screen-${process.pid}-${now()}.jpg`)
     const script = [
       'from PIL import ImageGrab',
-      'im = ImageGrab.grab()',
+      'im = ImageGrab.grab(all_screens=True)',
       'im.thumbnail((1280, 800))',
       `im.convert("RGB").save(${JSON.stringify(out)}, "JPEG", quality=72, optimize=True)`,
       'print(im.size[0], im.size[1])',

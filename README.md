@@ -52,6 +52,8 @@ DSH Bot 不是聊天壳，而是把一台 Windows 电脑上的真实工作拆给
 ### 本机操作
 
 - 右侧 `LOCAL COMPUTER` 实时显示 CPU / 内存 / 磁盘 / 窗口 / 屏幕；
+- 默认浏览器是 **Microsoft Edge**：`scripts/edge.py open <url>` / `navigate` / `status`；
+- 多显示器：`computer.py screen` / `monitors` 查看布局；`screenshot` 默认截取全部显示器，可加 `primary` 或 `monitor:N`；
 - 支持 GUI 控制、截图、启动应用、浏览器隔离、代理守卫；
 - 危险操作前做快照；磁盘级破坏性命令（format / diskpart / Clear-Disk）硬拒绝；
 - 所有 API 只监听 loopback，POST 需要客户端标记，跨站请求拒绝。
@@ -125,6 +127,8 @@ node scripts/bot_cli.mjs meeting status
 node scripts/bot_cli.mjs meeting run
 node scripts/bot_cli.mjs memory history --bot 老大
 node scripts/bot_cli.mjs retry --assignment <id>
+python scripts/edge.py open https://example.com
+python scripts/computer.py screen
 ```
 
 完整 CLI：`node scripts/bot_cli.mjs help`。
