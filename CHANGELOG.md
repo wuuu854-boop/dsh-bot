@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.15.0 — 2026-11-11
+
+- Add: background update check every 6 hours against GitHub Releases; a dismissible banner in existing bots links to the new release/zip.
+- Add: `GET /update`, `POST /update/check`, and `bot_cli update [--check]`.
+- Add: per-version dismissal; a newer release re-appears even after dismissing an older one.
+
 ## 4.14.0 — 2026-11-11
 
 - Fix: stop is now synchronous from the user’s point of view — the client clears running/stream state immediately, `/stop` waits at most 500 ms for the agent to leave running, and returns a fresh snapshot.

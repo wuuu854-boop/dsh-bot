@@ -139,6 +139,10 @@ window.__ModuleLoader__.load({
         replayPause: '暂停',
         replayStep: '回放进度',
         modelMissing: '还没有可用模型',
+        updateAvailable: '发现新版本 v{version}',
+        updateHint: '下载新版安装包，重启 DSH 后生效。',
+        updateDownload: '下载新版本',
+        updateLater: '稍后提醒',
         theme: '界面主题',
         themeDark: '暗色',
         themeWarm: '暖色',
@@ -655,6 +659,10 @@ window.__ModuleLoader__.load({
         replayPause: 'Pause',
         replayStep: 'Replay position',
         modelMissing: 'No model connected',
+        updateAvailable: 'New version v{version} available',
+        updateHint: 'Download the new build and restart DSH to apply it.',
+        updateDownload: 'Download update',
+        updateLater: 'Remind me later',
         theme: 'Theme',
         themeDark: 'Dark',
         themeWarm: 'Warm',
@@ -5441,6 +5449,13 @@ window.__ModuleLoader__.load({
         }
       })
       const [pinsList, setPinsList] = useState([])
+      const [dismissedUpdate, setDismissedUpdate] = useState(() => {
+        try {
+          return localStorage.getItem('dsh-bot-dismissed-update') || ''
+        } catch {
+          return ''
+        }
+      })
       const [pinsBusy, setPinsBusy] = useState(false)
       const [sending, setSending] = useState(false)
       const [stopping, setStopping] = useState(false)
@@ -6677,6 +6692,21 @@ window.__ModuleLoader__.load({
 
       const empty = items.length === 0 && !ghost && !pending && !running
       const sendMode = running ? 'steer' : 'followup'
+      const updateInfo = snap?.update
+      const updateVisible = Boolean(updateInfo?.available && updateInfo.latest && updateInfo.latest !== dismissedUpdate)
+      const openUpdate = () => {
+        const target = updateInfo?.downloadUrl || updateInfo?.url
+        if (target) window.open(target, '_blank', 'noopener,noreferrer')
+      }
+      const dismissUpdate = () => {
+        if (!updateInfo?.latest) return
+        try {
+          localStorage.setItem('dsh-bot-dismissed-update', updateInfo.latest)
+        } catch {
+          /* dismissal is optional */
+        }
+        setDismissedUpdate(updateInfo.latest)
+      }
 
       return h(
         'div',
@@ -6731,6 +6761,21 @@ window.__ModuleLoader__.load({
             onArchive: channel?.meeting ? null : archiveThread,
             t,
           }),
+          updateVisible
+            ? h(
+                'div',
+                { className: 'gb-update-banner' },
+                h(Icon, { name: 'arrowDown', size: 14 }),
+                h(
+                  'div',
+                  { className: 'gb-update-text' },
+                  h('strong', null, t('updateAvailable', { version: updateInfo.latest })),
+                  h('span', null, t('updateHint')),
+                ),
+                h('button', { type: 'button', className: 'gb-small-btn', onClick: openUpdate }, t('updateDownload')),
+                h('button', { type: 'button', className: 'gb-icon-btn', onClick: dismissUpdate, 'aria-label': t('updateLater') }, h(Icon, { name: 'close', size: 13 })),
+              )
+            : null,
           offline
             ? h(
                 'div',
@@ -7452,6 +7497,11 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 .gb-replay-controls { display: flex; align-items: center; gap: 10px; flex: none; padding: 12px 16px; border-top: 1px solid var(--gb-line); }
 .gb-replay-controls input[type="range"] { flex: 1; accent-color: var(--gb-signal); }
 .gb-model-warning { display: flex; align-items: flex-start; gap: 7px; width: calc(100% - 76px); max-width: 880px; margin: 0 auto 6px; padding: 7px 9px; border: 1px solid color-mix(in srgb, var(--gb-warn) 40%, var(--gb-line)); border-radius: 8px; background: color-mix(in srgb, var(--gb-warn) 10%, transparent); color: var(--gb-warn); }
+.gb-update-banner { display: flex; align-items: center; gap: 9px; width: calc(100% - 76px); max-width: 880px; margin: 0 auto 6px; padding: 7px 9px; border: 1px solid color-mix(in srgb, var(--gb-signal) 34%, var(--gb-line)); border-radius: 8px; background: color-mix(in srgb, var(--gb-signal) 8%, transparent); color: var(--gb-text); }
+.gb-update-banner > svg { flex: none; color: var(--gb-signal); }
+.gb-update-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; font-size: 9px; }
+.gb-update-text strong { font-size: 9px; }
+.gb-update-text span { color: var(--gb-muted); }
 .gb-model-warning-text { display: flex; flex-direction: column; gap: 2px; font-size: 9px; }
 .gb-model-warning-text strong { font-size: 9px; }
 .gb-model-warning-text span { color: var(--gb-muted); }

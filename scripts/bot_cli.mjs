@@ -128,6 +128,7 @@ async function main() {
         'status [--thread ID]',
         'doctor',
         'health',
+        'update [--check]',
         'send --thread ID --text "..."',
         'new [--bot NAME]',
         'group create --name NAME --members "A,B"',
@@ -185,6 +186,14 @@ async function main() {
 
   if (command === 'health') {
     const result = await request('GET', '/health')
+    print(result.data)
+    return
+  }
+
+  if (command === 'update') {
+    const result = flag('check') === '1'
+      ? await request('POST', '/update/check', {})
+      : await request('GET', '/update')
     print(result.data)
     return
   }

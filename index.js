@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '4.14.0'
+const VERSION = '4.15.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -155,6 +155,111 @@ export function apply(ctx) {
     fs.mkdirSync(stateDir, { recursive: true })
   } catch (error) {
     console.error('[dsh-bot] cannot create state directory', error)
+  }
+
+  const updateFile = path.join(stateDir, 'update-check.json')
+  const updateRepo = 'wuuu854-boop/dsh-bot'
+  let updateInfo = {
+    current: VERSION,
+    latest: null,
+    available: false,
+    url: `https://github.com/${updateRepo}/releases/latest`,
+    downloadUrl: `https://github.com/${updateRepo}/releases/latest`,
+    notes: '',
+    publishedAt: null,
+    checkedAt: 0,
+    error: null,
+  }
+  let updatePromise = null
+
+  function versionParts(value) {
+    return String(value || '')
+      .replace(/^v/i, '')
+      .split('.')
+      .map((part) => Number.parseInt(part, 10) || 0)
+  }
+
+  function isNewerVersion(latest, current) {
+    const left = versionParts(latest)
+    const right = versionParts(current)
+    for (let index = 0; index < Math.max(left.length, right.length); index += 1) {
+      const a = left[index] || 0
+      const b = right[index] || 0
+      if (a !== b) return a > b
+    }
+    return false
+  }
+
+  function publicUpdate() {
+    return {
+      current: VERSION,
+      latest: updateInfo.latest,
+      available: Boolean(updateInfo.latest && isNewerVersion(updateInfo.latest, VERSION)),
+      url: updateInfo.url,
+      downloadUrl: updateInfo.downloadUrl,
+      notes: updateInfo.notes,
+      publishedAt: updateInfo.publishedAt,
+      checkedAt: updateInfo.checkedAt,
+      error: updateInfo.error,
+    }
+  }
+
+  try {
+    const cached = JSON.parse(fs.readFileSync(updateFile, 'utf8'))
+    if (cached && typeof cached === 'object') {
+      updateInfo = { ...updateInfo, ...cached, current: VERSION }
+      updateInfo.available = Boolean(updateInfo.latest && isNewerVersion(updateInfo.latest, VERSION))
+    }
+  } catch {
+    /* no cached update check yet */
+  }
+
+  async function checkForUpdate(force = false) {
+    if (updatePromise) return updatePromise
+    if (!force && updateInfo.checkedAt && now() - updateInfo.checkedAt < 6 * 60 * 60 * 1000) {
+      return publicUpdate()
+    }
+    updatePromise = (async () => {
+      try {
+        const response = await fetch(`https://api.github.com/repos/${updateRepo}/releases/latest`, {
+          headers: {
+            accept: 'application/vnd.github+json',
+            'user-agent': `dsh-bot/${VERSION}`,
+          },
+          signal: AbortSignal.timeout(8_000),
+        })
+        if (!response.ok) throw new Error(`GitHub ${response.status}`)
+        const release = await response.json()
+        const latest = String(release.tag_name || '').replace(/^v/i, '')
+        if (!latest) throw new Error('版本号为空')
+        const assets = Array.isArray(release.assets) ? release.assets : []
+        const zip = assets.find((asset) => /\.zip$/i.test(String(asset.name || '')))
+        updateInfo = {
+          current: VERSION,
+          latest,
+          available: isNewerVersion(latest, VERSION),
+          url: release.html_url || `https://github.com/${updateRepo}/releases/latest`,
+          downloadUrl: zip?.browser_download_url || release.html_url || `https://github.com/${updateRepo}/releases/latest`,
+          notes: truncate(String(release.body || '').replace(/\r/g, ''), 1_200),
+          publishedAt: release.published_at || null,
+          checkedAt: now(),
+          error: null,
+        }
+        try {
+          fs.writeFileSync(updateFile, JSON.stringify(updateInfo, null, 2), 'utf8')
+        } catch {
+          /* cache is optional */
+        }
+      } catch (error) {
+        updateInfo = { ...updateInfo, current: VERSION, checkedAt: now(), error: messageOf(error) }
+      }
+      return publicUpdate()
+    })()
+    try {
+      return await updatePromise
+    } finally {
+      updatePromise = null
+    }
   }
 
   const workspaceFile = path.join(stateDir, 'workspace.txt')
@@ -5507,6 +5612,7 @@ export function apply(ctx) {
       routines: routineList(leader.id),
       activeThreadId: group.id,
       modelReady: Boolean(agentOptions(group)),
+      update: publicUpdate(),
       assignments: state.assignments
         .filter(
           (assignment) =>
@@ -5587,6 +5693,7 @@ export function apply(ctx) {
       },
       thread: threadInfo(thread, rec),
       modelReady: Boolean(agentOptions(thread)),
+      update: publicUpdate(),
       threads: threadList(bot.id),
       routines: routineList(bot.id),
       activeThreadId: thread.id,
@@ -5872,8 +5979,20 @@ export function apply(ctx) {
           modelReady: Boolean(agentOptions()),
           provider: activeBot().provider || selection?.provider || null,
           model: activeBot().model || selection?.model || null,
+          updateAvailable: publicUpdate().available,
+          latestVersion: updateInfo.latest,
           lastError: lastFailed ? { at: lastFailed.endedAt || 0, error: truncate(lastFailed.error || '', 500) } : null,
         })
+      }
+
+      if (req.method === 'GET' && sub === '/update') {
+        return json(res, 200, { ok: true, ...publicUpdate() })
+      }
+
+      if (req.method === 'POST' && sub === '/update/check') {
+        await readBody(req)
+        const info = await checkForUpdate(true)
+        return json(res, 200, { ok: true, ...info })
       }
 
       if (req.method === 'POST' && sub === '/model/refresh') {
@@ -7418,6 +7537,18 @@ export function apply(ctx) {
   setTimeout(() => {
     ensureDefaultModel().catch(() => undefined)
   }, 1_200)
+  ctx.effect(() => {
+    const first = setTimeout(() => {
+      checkForUpdate(false).catch(() => undefined)
+    }, 3_000)
+    const timer = setInterval(() => {
+      checkForUpdate(false).catch(() => undefined)
+    }, 6 * 60 * 60 * 1000)
+    return () => {
+      clearTimeout(first)
+      clearInterval(timer)
+    }
+  })
   ctx.effect(() => {
     const timer = setTimeout(() => {
       reconcileRoutines().catch((error) => {
