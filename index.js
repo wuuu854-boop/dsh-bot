@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '4.15.1'
+const VERSION = '4.16.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -5612,6 +5612,7 @@ export function apply(ctx) {
       routines: routineList(leader.id),
       activeThreadId: group.id,
       modelReady: Boolean(agentOptions(group)),
+      voiceAvailable: process.platform === 'win32',
       update: publicUpdate(),
       assignments: state.assignments
         .filter(
@@ -5693,6 +5694,7 @@ export function apply(ctx) {
       },
       thread: threadInfo(thread, rec),
       modelReady: Boolean(agentOptions(thread)),
+      voiceAvailable: process.platform === 'win32',
       update: publicUpdate(),
       threads: threadList(bot.id),
       routines: routineList(bot.id),
@@ -6862,6 +6864,31 @@ export function apply(ctx) {
         saveStateNow()
         json(res, 200, { ok: true, skills: skillsForBot(activeBot().id).map(publicSkill) })
         return
+      }
+
+      if (req.method === 'POST' && sub === '/voice') {
+        const body = await readBody(req)
+        const action = String(body.action || '').toLowerCase()
+        if (action !== 'start' && action !== 'stop') {
+          return json(res, 400, { ok: false, error: '语音操作必须是 start 或 stop' })
+        }
+        if (process.platform !== 'win32') {
+          return json(res, 400, { ok: false, error: '系统听写目前仅支持 Windows' })
+        }
+        const python = process.env.DSH_PYTHON || 'python'
+        try {
+          await new Promise((resolve, reject) => {
+            execFile(
+              python,
+              [computerScript, 'key', 'win+h'],
+              { timeout: 8_000, windowsHide: true },
+              (error) => (error ? reject(error) : resolve()),
+            )
+          })
+          return json(res, 200, { ok: true, action, method: 'windows-voice-typing' })
+        } catch (error) {
+          return json(res, 500, { ok: false, error: `无法启动 Windows 听写：${messageOf(error)}` })
+        }
       }
 
       if (req.method === 'POST' && sub === '/stop') {

@@ -51,6 +51,7 @@ CLI 已经覆盖常用路径：`node scripts/bot_cli.mjs ...`。
 | POST | `/message/pin` | `{threadId, messageId, action?:'add'\|'remove'\|'clear'}`；最多 10 条置顶，返回 `pinnedMessages` |
 | POST | `/send` | `{threadId, text, replyTo?}`；群聊里 `@名字` 只发给该成员，晨会群普通消息只发给老大；`replyTo` 引用某条消息并默认回给该 Bot |
 | POST | `/stop` | `{threadId}`；群聊会停掉所有正在跑的成员；最多等 500ms 让 agent 退出 running，并直接返回最新快照 |
+| POST | `/voice` | `{action:'start'\|'stop'}`；Windows 系统听写（Win+H），光标需在输入框内 |
 | POST | `/delete` | `{threadId}` |
 | POST | `/reset` | `{threadId}`；重建会话 |
 | POST | `/retry` | `{threadId}` |

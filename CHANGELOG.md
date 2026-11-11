@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.16.0 — 2026-11-11
+
+- Fix: voice input uses Windows system dictation (Win+H) through the host instead of the unreliable browser SpeechRecognition API; the mic now focuses the composer first and toggles start/stop.
+- Add: while running, the UI shows plain-language actions (reading a page, checking disk, delegating to X) and recent completed steps; raw commands/JSON stay under “technical details”.
+- Add: `voiceAvailable` in snapshots and a `POST /voice` endpoint.
+
 ## 4.15.1 — 2026-11-11
 
 - Fix: `bot_cli update --check` now forces a fresh GitHub check without requiring a value.

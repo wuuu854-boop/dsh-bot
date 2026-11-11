@@ -42,6 +42,9 @@ window.__ModuleLoader__.load({
         uploadTooLarge: '附件不能超过 20MB',
         removeAttachment: '移除附件',
         dictate: '语音输入',
+        voiceStarted: 'Windows 听写已开启，说完再点一次麦克风结束',
+        voiceStopped: 'Windows 听写已关闭',
+        voiceStop: '结束语音输入',
         voiceUnsupported: '当前环境不支持语音识别',
         voiceFailed: '语音识别失败',
         send: '发送',
@@ -77,6 +80,7 @@ window.__ModuleLoader__.load({
         thinking: '思考中',
         working: '正在操作电脑',
         workingOn: '正在',
+        thinking: '正在思考下一步',
         queued: '已插话',
         stopped: '已停止',
         error: '出错',
@@ -139,6 +143,20 @@ window.__ModuleLoader__.load({
         replayPause: '暂停',
         replayStep: '回放进度',
         modelMissing: '还没有可用模型',
+        technicalDetails: '技术细节（可选）',
+        intentWebRead: '读取网页内容',
+        intentWebOpen: '打开网页',
+        intentWebClick: '点击网页控件',
+        intentWebType: '填写网页表单',
+        intentDisk: '检查磁盘空间',
+        intentProcess: '查看运行中的程序',
+        intentFile: '浏览文件',
+        intentWait: '等待任务继续',
+        intentCommand: '执行一条本机操作',
+        intentImage: '查看屏幕画面',
+        intentDelegate: '把任务派给',
+        intentHire: '招聘新专家',
+        intentSearch: '搜索',
         updateAvailable: '发现新版本 v{version}',
         updateHint: '下载新版安装包，重启 DSH 后生效。',
         updateDownload: '下载新版本',
@@ -562,6 +580,9 @@ window.__ModuleLoader__.load({
         uploadTooLarge: 'Attachments must be under 20MB',
         removeAttachment: 'Remove attachment',
         dictate: 'Voice input',
+        voiceStarted: 'Windows voice typing is on; click the mic again to stop',
+        voiceStopped: 'Windows voice typing is off',
+        voiceStop: 'Stop voice input',
         voiceUnsupported: 'Speech recognition is unavailable here',
         voiceFailed: 'Speech recognition failed',
         send: 'Send',
@@ -597,6 +618,7 @@ window.__ModuleLoader__.load({
         thinking: 'Thinking',
         working: 'Working the computer',
         workingOn: 'Working',
+        thinking: 'Thinking about the next step',
         queued: 'Steered',
         stopped: 'Stopped',
         error: 'Error',
@@ -659,6 +681,20 @@ window.__ModuleLoader__.load({
         replayPause: 'Pause',
         replayStep: 'Replay position',
         modelMissing: 'No model connected',
+        technicalDetails: 'Technical details (optional)',
+        intentWebRead: 'Reading web content',
+        intentWebOpen: 'Opening a web page',
+        intentWebClick: 'Clicking a web control',
+        intentWebType: 'Filling a web form',
+        intentDisk: 'Checking disk space',
+        intentProcess: 'Checking running programs',
+        intentFile: 'Browsing files',
+        intentWait: 'Waiting for the task',
+        intentCommand: 'Running a local operation',
+        intentImage: 'Looking at the screen',
+        intentDelegate: 'Delegating to',
+        intentHire: 'Hiring a specialist',
+        intentSearch: 'Searching',
         updateAvailable: 'New version v{version} available',
         updateHint: 'Download the new build and restart DSH to apply it.',
         updateDownload: 'Download update',
@@ -1350,9 +1386,39 @@ window.__ModuleLoader__.load({
       if (args.description) return truncateText(args.description, 80)
       if (args.prompt) return truncateText(args.prompt, 80)
       if (args.text) return truncateText(args.text, 80)
-      const keys = Object.keys(args)
-      if (keys.length === 0) return ''
-      return truncateText(JSON.stringify(args), 90)
+      return ''
+    }
+
+    function toolIntent(item, t) {
+      const name = item?.name || ''
+      const args = item?.args || {}
+      const command = String(args.command || args.code || '')
+      if (name === 'bot_delegate' || name === 'bot_dispatch') {
+        const target = String(args.bot || '').trim()
+        return target ? `${t('intentDelegate')} ${target}` : t('intentDelegate')
+      }
+      if (name === 'bot_hire') return t('intentHire')
+      if (name === 'read_image') return t('intentImage')
+      if (name === 'web_search') {
+        const query = String(args.query || '').trim()
+        return query ? `${t('intentSearch')}：${truncateText(query, 40)}` : t('intentSearch')
+      }
+      if (name === 'web_fetch') return t('intentWebRead')
+      if (name === 'bash' || name === 'run_code' || name === 'pwsh') {
+        if (/edge\.py["'\s]+read/i.test(command)) return t('intentWebRead')
+        if (/edge\.py["'\s]+open|edge\.py["'\s]+navigate/i.test(command)) return t('intentWebOpen')
+        if (/edge\.py["'\s]+click/i.test(command)) return t('intentWebClick')
+        if (/edge\.py["'\s]+type|edge\.py["'\s]+select/i.test(command)) return t('intentWebType')
+        if (/Get-(PSDrive|Volume)|wmic\s+logicaldisk|df\s+-h|diskpart/i.test(command)) return t('intentDisk')
+        if (/Get-Process|tasklist|ps\s+aux/i.test(command)) return t('intentProcess')
+        if (/Get-ChildItem|\bdir\b|\bls\b|Get-Item/i.test(command)) return t('intentFile')
+        if (/Start-Sleep|sleep\s+\d/i.test(command)) return t('intentWait')
+        return t('intentCommand')
+      }
+      if (name === 'read' || name === 'write' || name === 'edit' || name === 'glob' || name === 'grep') {
+        return t(`tool_${name}`)
+      }
+      return toolLabel(name, t)
     }
 
     async function copyText(text) {
@@ -1813,8 +1879,7 @@ window.__ModuleLoader__.load({
     }
 
     function ActivityRow({ item, t, open, onToggle }) {
-      const label = toolLabel(item.name, t)
-      const target = toolTarget(item.name, item.args, t)
+      const label = toolIntent(item, t)
       const status = item.status || 'running'
       return h(
         'div',
@@ -1833,7 +1898,6 @@ window.__ModuleLoader__.load({
             'span',
             { className: 'gb-act-main' },
             h('span', { className: 'gb-act-label' }, label),
-            target ? h('span', { className: 'gb-act-target' }, target) : null,
           ),
           item.durationMs ? h('span', { className: 'gb-act-duration' }, formatDuration(item.durationMs)) : null,
           h(Icon, { name: open ? 'chevronDown' : 'chevronRight', size: 12 }),
@@ -1842,6 +1906,7 @@ window.__ModuleLoader__.load({
           ? h(
               'div',
               { className: 'gb-act-detail' },
+              h('div', { className: 'gb-act-kicker' }, t('technicalDetails')),
               item.argsRaw
                 ? h(
                     'div',
@@ -2109,12 +2174,17 @@ window.__ModuleLoader__.load({
 
     function WorkingStrip({ items, t }) {
       const running = [...items].reverse().find((item) => item.kind === 'activity' && item.status === 'running')
+      const recent = items
+        .filter((item) => item.kind === 'activity' && item.status === 'success')
+        .slice(-2)
+        .map((item) => toolIntent(item, t))
+        .filter(Boolean)
       return h(
         'div',
         { className: 'gb-working-strip' },
         h(Spinner, { size: 14 }),
-        h('span', null, running ? `${t('workingOn')} ${toolLabel(running.name, t)}` : t('working')),
-        running ? h('span', { className: 'gb-working-target' }, toolTarget(running.name, running.args, t)) : null,
+        h('span', null, running ? `${t('workingOn')} ${toolIntent(running, t)}` : t('thinking')),
+        recent.length ? h('span', { className: 'gb-working-target' }, recent.join(' · ')) : null,
       )
     }
 
@@ -3124,6 +3194,7 @@ window.__ModuleLoader__.load({
       onRemoveAttachment,
       uploading,
       onDictate,
+      dictating,
       dictationAvailable,
       members,
       quote,
@@ -3453,10 +3524,10 @@ window.__ModuleLoader__.load({
                     'button',
                     {
                       type: 'button',
-                      className: 'gb-attach-btn',
+                      className: `gb-attach-btn${dictating ? ' is-listening' : ''}`,
                       onClick: onDictate,
-                      title: t('dictate'),
-                      'aria-label': t('dictate'),
+                      title: dictating ? t('voiceStop') : t('dictate'),
+                      'aria-label': dictating ? t('voiceStop') : t('dictate'),
                     },
                     h(Icon, { name: 'mic', size: 16 }),
                   )
@@ -3892,7 +3963,7 @@ window.__ModuleLoader__.load({
               'div',
               { className: 'gb-current-tool' },
               h(Spinner, { size: 14 }),
-              h('div', null, h('span', null, t('currentTool')), h('b', null, toolLabel(running.name, t)), h('small', null, toolTarget(running.name, running.args, t))),
+              h('div', null, h('span', null, t('currentTool')), h('b', null, toolIntent(running, t))),
             )
           : null,
         h(
@@ -3916,8 +3987,7 @@ window.__ModuleLoader__.load({
                     h(
                       'span',
                       { className: 'gb-log-text' },
-                      h('b', null, toolLabel(item.name, t)),
-                      h('small', null, toolTarget(item.name, item.args, t)),
+                      h('b', null, toolIntent(item, t)),
                     ),
                     h('span', { className: 'gb-log-time' }, formatClock(item.time)),
                   ),
@@ -6179,37 +6249,21 @@ window.__ModuleLoader__.load({
         setAttachments((previous) => previous.filter((file) => file.path !== target))
       }, [])
 
-      const dictationAvailable =
-        typeof window !== 'undefined' && Boolean(window.SpeechRecognition || window.webkitSpeechRecognition)
+      const dictationAvailable = Boolean(snap?.voiceAvailable)
+      const [dictating, setDictating] = useState(false)
 
-      const startDictation = useCallback(() => {
-        const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition
-        if (!Recognition) {
-          showToast(t('voiceUnsupported'))
-          return
-        }
+      const toggleDictation = useCallback(async () => {
+        const next = !dictating
+        if (next) inputRef.current?.focus()
         try {
-          const recognition = new Recognition()
-          recognition.lang = 'zh-CN'
-          recognition.interimResults = false
-          recognition.maxAlternatives = 1
-          recognition.onresult = (event) => {
-            const transcript = Array.from(event.results || [])
-              .map((result) => result[0]?.transcript || '')
-              .join('')
-              .trim()
-            if (!transcript) return
-            setDraft((previous) => `${previous}${previous && !previous.endsWith(' ') ? ' ' : ''}${transcript}`)
-            inputRef.current?.focus()
-          }
-          recognition.onerror = (event) => {
-            if (event?.error && event.error !== 'no-speech') showToast(`${t('voiceFailed')}: ${event.error}`)
-          }
-          recognition.start()
+          await apiPost('/voice', { action: next ? 'start' : 'stop' })
+          setDictating(next)
+          inputRef.current?.focus()
+          showToast(next ? t('voiceStarted') : t('voiceStopped'))
         } catch (error) {
           showToast(`${t('voiceFailed')}: ${error.message}`)
         }
-      }, [showToast, t])
+      }, [dictating, inputRef, showToast, t])
 
       const quoteMessage = useCallback((item) => {
         if (!item?.id) return
@@ -6981,7 +7035,8 @@ window.__ModuleLoader__.load({
             onUpload: uploadFiles,
             onRemoveAttachment: removeAttachment,
             uploading,
-            onDictate: startDictation,
+            onDictate: toggleDictation,
+            dictating,
             dictationAvailable,
             members: channel?.members || [],
             quote: quoteTarget,
@@ -7711,6 +7766,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 .gb-hint { font-size: 9px; color: var(--gb-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .gb-hint-secondary { color: color-mix(in srgb, var(--gb-muted) 70%, transparent); }
 .gb-composer-actions { display: flex; align-items: center; gap: 6px; flex: none; }
+.gb-attach-btn.is-listening { color: var(--gb-signal); border-color: color-mix(in srgb, var(--gb-signal) 60%, var(--gb-line)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--gb-signal) 14%, transparent); animation: gb-pulse 1.4s ease-in-out infinite; }
 .gb-composer.is-dragging { border-color: var(--gb-signal); box-shadow: 0 0 0 1px color-mix(in srgb, var(--gb-signal) 30%, transparent), 0 16px 50px rgba(0,0,0,.26); }
 .gb-drop-overlay { position: absolute; inset: 4px; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 8px; border: 1px dashed var(--gb-signal); border-radius: 12px; background: color-mix(in srgb, var(--gb-signal) 10%, rgba(8,10,7,.92)); color: var(--gb-signal); font-size: 11px; pointer-events: none; }
 .gb-attach-list { display: flex; flex-wrap: wrap; gap: 5px; padding: 2px 2px 7px; }
