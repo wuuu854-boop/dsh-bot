@@ -77,7 +77,6 @@ window.__ModuleLoader__.load({
         stopSpeak: '停止朗读',
         reasoning: '思考',
         reasoningHide: '收起思考',
-        thinking: '思考中',
         working: '正在操作电脑',
         workingOn: '正在',
         thinking: '正在思考下一步',
@@ -142,6 +141,16 @@ window.__ModuleLoader__.load({
         replayPlay: '播放',
         replayPause: '暂停',
         replayStep: '回放进度',
+        problemTitle: '这次没做成',
+        problemUnknown: '执行中断了，但还没有拿到明确原因。',
+        problemTried: '已经尝试',
+        problemRetry: '重试一次',
+        problemRephrase: '换个办法',
+        problemCopy: '复制诊断',
+        problemCopyDone: '诊断已复制',
+        copyFailed: '复制失败',
+        problemDetails: '技术细节',
+        problemPrompt: '刚才的任务没有完成。请先用中文说明卡在哪一步、可能原因，再换一种更简单的方法继续；不要重复失败的命令。',
         modelMissing: '还没有可用模型',
         technicalDetails: '技术细节（可选）',
         intentWebRead: '读取网页内容',
@@ -297,6 +306,8 @@ window.__ModuleLoader__.load({
         botPrivilege: '权限模式',
         botPrivilegeStandard: '标准（文件沙箱）',
         botPrivilegeAdmin: '完全权限 + 管理员',
+        adminAckLabel: '我理解管理员操作会直接执行，并允许该 Bot 使用管理员权限',
+        adminConfirmRequired: '勾选管理员权限确认后才能保存',
         botPrivilegeHint: '完全权限会关闭 DSH 文件沙箱，并允许 bot 用 admin_exec.py 提权执行管理员命令。只对你信任的 Bot 开启。',
         botAutonomy: '任务模式',
         botAutonomyInteractive: '交互（必要时可拍板）',
@@ -423,6 +434,8 @@ window.__ModuleLoader__.load({
         noScreen: '未连接',
         voice: '语音',
         fullAccess: '本机权限',
+        adminMode: '管理员权限',
+        adminModeHint: '该 Bot 有管理员权限，系统级操作会直接执行；可在 Bot 编辑里改回标准权限。',
         system: '系统',
         host: '主机',
         user: '用户',
@@ -615,7 +628,6 @@ window.__ModuleLoader__.load({
         stopSpeak: 'Stop reading',
         reasoning: 'Thinking',
         reasoningHide: 'Hide thinking',
-        thinking: 'Thinking',
         working: 'Working the computer',
         workingOn: 'Working',
         thinking: 'Thinking about the next step',
@@ -680,6 +692,16 @@ window.__ModuleLoader__.load({
         replayPlay: 'Play',
         replayPause: 'Pause',
         replayStep: 'Replay position',
+        problemTitle: 'That attempt did not finish',
+        problemUnknown: 'The run stopped without a clear reason.',
+        problemTried: 'Tried',
+        problemRetry: 'Retry once',
+        problemRephrase: 'Try another way',
+        problemCopy: 'Copy diagnostics',
+        problemCopyDone: 'Diagnostics copied',
+        copyFailed: 'Copy failed',
+        problemDetails: 'Technical details',
+        problemPrompt: 'The previous task did not finish. First explain in plain language where it got stuck and why, then try a simpler approach; do not repeat the failed command.',
         modelMissing: 'No model connected',
         technicalDetails: 'Technical details (optional)',
         intentWebRead: 'Reading web content',
@@ -835,6 +857,8 @@ window.__ModuleLoader__.load({
         botPrivilege: 'Permission mode',
         botPrivilegeStandard: 'Standard (file sandbox)',
         botPrivilegeAdmin: 'Full access + Administrator',
+        adminAckLabel: 'I understand administrator operations run directly and allow this bot to use administrator rights',
+        adminConfirmRequired: 'Confirm the administrator warning before saving',
         botPrivilegeHint: 'Full access disables the DSH file sandbox and lets the bot run administrator commands through admin_exec.py. Enable only for bots you trust.',
         botAutonomy: 'Task mode',
         botAutonomyInteractive: 'Interactive (ask when needed)',
@@ -961,6 +985,8 @@ window.__ModuleLoader__.load({
         noScreen: 'Not connected',
         voice: 'Voice',
         fullAccess: 'Local access',
+        adminMode: 'Administrator',
+        adminModeHint: 'This bot has administrator rights and system-level operations run directly. Switch it back to Standard in the bot editor if needed.',
         system: 'System',
         host: 'Host',
         user: 'User',
@@ -2200,6 +2226,7 @@ window.__ModuleLoader__.load({
       const [effort, setEffort] = useState(bot?.reasoningEffort || '')
       const [workspace, setWorkspace] = useState(bot?.workspaceOverride || '')
       const [privilege, setPrivilege] = useState(bot?.privilege || 'standard')
+      const [adminAck, setAdminAck] = useState(false)
       const [autonomy, setAutonomy] = useState(bot?.autonomy || 'interactive')
       const [role, setRole] = useState(bot?.role || 'member')
       const [busy, setBusy] = useState(false)
@@ -2216,6 +2243,7 @@ window.__ModuleLoader__.load({
         setEffort(bot?.reasoningEffort || '')
         setWorkspace(bot?.workspaceOverride || '')
         setPrivilege(bot?.privilege || 'standard')
+        setAdminAck(false)
         setAutonomy(bot?.autonomy || 'interactive')
         setRole(bot?.role || 'member')
         setError('')
@@ -2236,6 +2264,10 @@ window.__ModuleLoader__.load({
         if (busy) return
         if (!String(name || '').trim()) {
           setError(t('botNameRequired'))
+          return
+        }
+        if (privilege === 'admin' && !adminAck) {
+          setError(t('adminConfirmRequired'))
           return
         }
         setBusy(true)
@@ -2423,6 +2455,18 @@ window.__ModuleLoader__.load({
                 h('option', { value: 'admin' }, t('botPrivilegeAdmin')),
               ),
               h('small', null, t('botPrivilegeHint')),
+              privilege === 'admin'
+                ? h(
+                    'label',
+                    { className: 'gb-admin-ack' },
+                    h('input', {
+                      type: 'checkbox',
+                      checked: adminAck,
+                      onChange: (event) => setAdminAck(event.target.checked),
+                    }),
+                    h('span', null, t('adminAckLabel')),
+                  )
+                : null,
             ),
             h(
               'label',
@@ -2915,6 +2959,42 @@ window.__ModuleLoader__.load({
       )
     }
 
+    function ProblemCard({ reason, items, t, onRetry, onRephrase, onCopy }) {
+      const tried = [...(items || [])]
+        .reverse()
+        .filter((item) => item.kind === 'activity')
+        .slice(0, 3)
+        .map((item) => toolIntent(item, t))
+        .filter(Boolean)
+      return h(
+        'div',
+        { className: 'gb-problem' },
+        h('div', { className: 'gb-problem-icon' }, h(Icon, { name: 'alert', size: 16 })),
+        h(
+          'div',
+          { className: 'gb-problem-body' },
+          h('div', { className: 'gb-problem-title' }, t('problemTitle')),
+          h('p', { className: 'gb-problem-reason' }, reason || t('problemUnknown')),
+          tried.length ? h('div', { className: 'gb-problem-tried' }, `${t('problemTried')}：${tried.join(' · ')}`) : null,
+          h(
+            'div',
+            { className: 'gb-problem-actions' },
+            h('button', { type: 'button', className: 'gb-small-btn', onClick: onRetry }, t('problemRetry')),
+            h('button', { type: 'button', className: 'gb-small-btn', onClick: onRephrase }, t('problemRephrase')),
+            h('button', { type: 'button', className: 'gb-small-btn', onClick: onCopy }, t('problemCopy')),
+          ),
+          reason
+            ? h(
+                'details',
+                { className: 'gb-problem-details' },
+                h('summary', null, t('problemDetails')),
+                h('pre', null, String(reason)),
+              )
+            : null,
+        ),
+      )
+    }
+
     function ReplayModal({ items, t, onClose }) {
       const timeline = (Array.isArray(items) ? items : [])
         .filter((item) => (item.kind === 'user' || item.kind === 'assistant') && String(item.text || '').trim())
@@ -3180,6 +3260,7 @@ window.__ModuleLoader__.load({
       onStop,
       running,
       stopping,
+      admin,
       theme,
       t,
       inputRef,
@@ -3334,9 +3415,9 @@ window.__ModuleLoader__.load({
             className: `gb-composer${running ? ' is-running' : ''}${dragging ? ' is-dragging' : ''}`,
             style:
               theme === 'warm'
-                ? { background: '#3a2a1c' }
+                ? { background: '#fff8ec' }
                 : theme === 'ink'
-                  ? { background: '#26241f' }
+                  ? { background: '#fbfaf6' }
                   : undefined,
             onDragEnter: (event) => {
               if (Array.from(event.dataTransfer?.types || []).includes('Files')) {
@@ -3454,9 +3535,9 @@ window.__ModuleLoader__.load({
               className: 'gb-input',
               style:
                 theme === 'warm'
-                  ? { background: 'transparent', color: '#fff6e8' }
+                  ? { background: 'transparent', color: '#2f2418' }
                   : theme === 'ink'
-                    ? { background: 'transparent', color: '#f4f1e8' }
+                    ? { background: 'transparent', color: '#1d1c19' }
                     : undefined,
               value,
               rows: 1,
@@ -3574,6 +3655,9 @@ window.__ModuleLoader__.load({
             'span',
             { className: 'gb-foot-left' },
             h('span', { className: 'gb-access-pill' }, h('span', { className: 'gb-signal' }), t('fullAccess')),
+            admin
+              ? h('span', { className: 'gb-admin-pill', title: t('adminModeHint') }, t('adminMode'))
+              : null,
             h(
               'button',
               { type: 'button', className: 'gb-foot-btn gb-template-toggle', onClick: () => setTemplatesOpen((open) => !open), title: t('templateTitle') },
@@ -6746,6 +6830,41 @@ window.__ModuleLoader__.load({
 
       const empty = items.length === 0 && !ghost && !pending && !running
       const sendMode = running ? 'steer' : 'followup'
+      const problemReason =
+        !running && thread
+          ? thread.error ||
+            (thread.checkpoint?.error && !/用户停止|user stop/i.test(thread.checkpoint.error)
+              ? thread.checkpoint.error
+              : null)
+          : null
+      const rephrase = () => {
+        setDraft(t('problemPrompt'))
+        requestAnimationFrame(() => inputRef.current?.focus())
+      }
+      const copyProblem = async () => {
+        const tried = [...items]
+          .reverse()
+          .filter((item) => item.kind === 'activity')
+          .slice(0, 5)
+          .map((item) => toolIntent(item, t))
+          .filter(Boolean)
+        const text = [`${t('problemTitle')}：${problemReason || ''}`, `${t('problemTried')}：${tried.join(' · ')}`, `thread: ${thread?.id || ''}`, `time: ${new Date().toISOString()}`].join('\n')
+        const copied = await copyText(text)
+        showToast(copied ? t('problemCopyDone') : t('copyFailed'))
+      }
+      if (!running && problemReason) {
+        content.push(
+          h(ProblemCard, {
+            key: 'problem',
+            reason: problemReason,
+            items,
+            t,
+            onRetry: retry,
+            onRephrase: rephrase,
+            onCopy: copyProblem,
+          }),
+        )
+      }
       const updateInfo = snap?.update
       const updateVisible = Boolean(updateInfo?.available && updateInfo.latest && updateInfo.latest !== dismissedUpdate)
       const openUpdate = () => {
@@ -7027,6 +7146,7 @@ window.__ModuleLoader__.load({
             onStop: stop,
             running,
             stopping,
+            admin: snap.bot?.privilege === 'admin',
             theme,
             t,
             inputRef,
@@ -7358,25 +7478,64 @@ window.__ModuleLoader__.load({
 :root[data-dsh-bot-theme="warm"] .gb-rail { background: #fff8ec !important; }
 :root[data-dsh-bot-theme="ink"] .gb-deck,
 :root[data-dsh-bot-theme="ink"] .gb-rail { background: #fbfaf6 !important; }
-:root[data-dsh-bot-theme="warm"] .gb-composer {
-  --gb-text: #fff6e8;
-  --gb-muted: #d8c4a6;
-  --gb-faint: #b9a487;
-  --gb-line: #6b5238;
-  --gb-line-strong: #8a6a48;
-  --gb-panel: #3a2a1c;
-  --gb-panel-2: #4a3524;
-  background: #3a2a1c !important;
+:root[data-dsh-bot-theme="warm"] .gb-main {
+  background:
+    radial-gradient(900px 500px at 82% -8%, color-mix(in srgb, #d9772f 8%, transparent), transparent 66%),
+    repeating-linear-gradient(0deg, rgba(120, 85, 45, .025) 0 1px, transparent 1px 4px),
+    var(--gb-bg) !important;
+}
+:root[data-dsh-bot-theme="ink"] .gb-main {
+  background:
+    radial-gradient(1100px 620px at 78% -12%, rgba(30, 28, 24, .07), transparent 62%),
+    radial-gradient(700px 500px at 8% 110%, rgba(30, 28, 24, .05), transparent 66%),
+    repeating-linear-gradient(90deg, rgba(40, 38, 32, .018) 0 1px, transparent 1px 5px),
+    var(--gb-bg) !important;
+}
+:root[data-dsh-bot-theme="warm"] .gb-user-bubble {
+  color: #2f2418;
+  border-color: #d9b68a;
+  border-radius: 18px 18px 4px 18px;
+  background: #f0d9bb;
+}
+:root[data-dsh-bot-theme="warm"] .gb-assistant-body {
+  padding: 11px 13px;
+  border: 1px solid #e4d2b8;
+  border-radius: 4px 14px 14px 14px;
+  background: color-mix(in srgb, #fffaf1 86%, transparent);
+}
+:root[data-dsh-bot-theme="warm"] .gb-run,
+:root[data-dsh-bot-theme="warm"] .gb-problem { background: #fff8ec; }
+:root[data-dsh-bot-theme="ink"] .gb-user-bubble {
+  color: #1d1c19;
+  border: 1px solid #2b2925;
+  border-radius: 2px;
+  background: #fbfaf6;
+  box-shadow: 3px 3px 0 rgba(35, 33, 28, .13);
+}
+:root[data-dsh-bot-theme="ink"] .gb-assistant-body {
+  padding-left: 14px;
+  border-left: 2px solid #2b2925;
+  border-radius: 0;
+}
+:root[data-dsh-bot-theme="ink"] .gb-assistant-head,
+:root[data-dsh-bot-theme="ink"] .gb-topbar-name,
+:root[data-dsh-bot-theme="ink"] .gb-deck-name,
+:root[data-dsh-bot-theme="ink"] .gb-hero-title {
+  font-family: "KaiTi", "STKaiti", "SimSun", "Songti SC", serif;
+  letter-spacing: .03em;
+}
+:root[data-dsh-bot-theme="ink"] .gb-run,
+:root[data-dsh-bot-theme="ink"] .gb-problem,
+:root[data-dsh-bot-theme="ink"] .gb-notice {
+  border-color: #bdb6a6;
+  border-radius: 2px;
+  background: color-mix(in srgb, #fbfaf6 76%, transparent);
+  box-shadow: 2px 2px 0 rgba(35, 33, 28, .07);
 }
 :root[data-dsh-bot-theme="ink"] .gb-composer {
-  --gb-text: #f4f1e8;
-  --gb-muted: #c9c3b7;
-  --gb-faint: #a9a295;
-  --gb-line: #4a463d;
-  --gb-line-strong: #706a5e;
-  --gb-panel: #26241f;
-  --gb-panel-2: #35322b;
-  background: #26241f !important;
+  border: 1px solid #2b2925 !important;
+  border-radius: 3px !important;
+  box-shadow: 4px 4px 0 rgba(35, 33, 28, .12) !important;
 }
 :root[data-dsh-bot-theme="warm"] .gb-composer-wrap { background: linear-gradient(to top, #f4ead8 58%, transparent) !important; }
 :root[data-dsh-bot-theme="ink"] .gb-composer-wrap { background: linear-gradient(to top, #f0eee7 58%, transparent) !important; }
@@ -7552,6 +7711,16 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 .gb-replay-controls { display: flex; align-items: center; gap: 10px; flex: none; padding: 12px 16px; border-top: 1px solid var(--gb-line); }
 .gb-replay-controls input[type="range"] { flex: 1; accent-color: var(--gb-signal); }
 .gb-model-warning { display: flex; align-items: flex-start; gap: 7px; width: calc(100% - 76px); max-width: 880px; margin: 0 auto 6px; padding: 7px 9px; border: 1px solid color-mix(in srgb, var(--gb-warn) 40%, var(--gb-line)); border-radius: 8px; background: color-mix(in srgb, var(--gb-warn) 10%, transparent); color: var(--gb-warn); }
+.gb-problem { display: flex; gap: 10px; margin: 16px 0 16px 38px; padding: 12px 13px; border: 1px solid color-mix(in srgb, var(--gb-error) 36%, var(--gb-line)); border-radius: 11px; background: color-mix(in srgb, var(--gb-error) 7%, transparent); animation: gb-fade .25s ease both; }
+.gb-problem-icon { display: grid; place-items: center; width: 26px; height: 26px; flex: none; border-radius: 7px; background: color-mix(in srgb, var(--gb-error) 13%, transparent); color: var(--gb-error); }
+.gb-problem-body { flex: 1; min-width: 0; }
+.gb-problem-title { color: var(--gb-text); font-size: 11px; font-weight: 650; }
+.gb-problem-reason { margin: 5px 0 4px; color: var(--gb-muted); font-size: 10px; line-height: 1.6; overflow-wrap: anywhere; }
+.gb-problem-tried { color: var(--gb-faint); font-size: 9px; line-height: 1.6; }
+.gb-problem-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.gb-problem-details { margin-top: 8px; color: var(--gb-faint); font-size: 9px; }
+.gb-problem-details summary { cursor: pointer; }
+.gb-problem-details pre { max-height: 180px; margin: 6px 0 0; overflow: auto; padding: 7px; border-radius: 6px; background: color-mix(in srgb, var(--gb-panel-2) 60%, transparent); color: var(--gb-muted); font-size: 8.5px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .gb-update-banner { display: flex; align-items: center; gap: 9px; width: calc(100% - 76px); max-width: 880px; margin: 0 auto 6px; padding: 7px 9px; border: 1px solid color-mix(in srgb, var(--gb-signal) 34%, var(--gb-line)); border-radius: 8px; background: color-mix(in srgb, var(--gb-signal) 8%, transparent); color: var(--gb-text); }
 .gb-update-banner > svg { flex: none; color: var(--gb-signal); }
 .gb-update-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; font-size: 9px; }
@@ -7766,6 +7935,10 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 .gb-hint { font-size: 9px; color: var(--gb-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .gb-hint-secondary { color: color-mix(in srgb, var(--gb-muted) 70%, transparent); }
 .gb-composer-actions { display: flex; align-items: center; gap: 6px; flex: none; }
+.gb-access-pill { display: inline-flex; align-items: center; gap: 5px; height: 18px; padding: 0 8px; border: 1px solid var(--gb-line); border-radius: 999px; background: color-mix(in srgb, var(--gb-panel-2) 55%, transparent); color: var(--gb-muted); font-size: 8px; }
+.gb-admin-pill { display: inline-flex; align-items: center; height: 18px; padding: 0 8px; border: 1px solid color-mix(in srgb, var(--gb-warn) 45%, var(--gb-line)); border-radius: 999px; color: var(--gb-warn); font-size: 8px; }
+.gb-admin-ack { display: flex; align-items: flex-start; gap: 7px; margin-top: 7px; color: var(--gb-warn); font-size: 9px; line-height: 1.55; }
+.gb-admin-ack input { margin-top: 2px; accent-color: var(--gb-warn); }
 .gb-attach-btn.is-listening { color: var(--gb-signal); border-color: color-mix(in srgb, var(--gb-signal) 60%, var(--gb-line)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--gb-signal) 14%, transparent); animation: gb-pulse 1.4s ease-in-out infinite; }
 .gb-composer.is-dragging { border-color: var(--gb-signal); box-shadow: 0 0 0 1px color-mix(in srgb, var(--gb-signal) 30%, transparent), 0 16px 50px rgba(0,0,0,.26); }
 .gb-drop-overlay { position: absolute; inset: 4px; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 8px; border: 1px dashed var(--gb-signal); border-radius: 12px; background: color-mix(in srgb, var(--gb-signal) 10%, rgba(8,10,7,.92)); color: var(--gb-signal); font-size: 11px; pointer-events: none; }

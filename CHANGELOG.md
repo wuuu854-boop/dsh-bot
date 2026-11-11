@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.17.0 — 2026-11-11
+
+- Theme: warm and ink now have distinct conversation bubbles, assistant borders, input surfaces, header typography and paper/ink textures.
+- Add: failed runs show a plain-language “that attempt did not finish” card with tried steps, retry, rephrase and copy diagnostics.
+- Add: administrator permission requires an explicit risk acknowledgement before saving; the composer shows an administrator badge.
+- Fix: dashboard blank screen caused by a render-time reference to the problem card state; remove duplicate `thinking` locale keys.
+
 ## 4.16.0 — 2026-11-11
 
 - Fix: voice input uses Windows system dictation (Win+H) through the host instead of the unreliable browser SpeechRecognition API; the mic now focuses the composer first and toggles start/stop.
