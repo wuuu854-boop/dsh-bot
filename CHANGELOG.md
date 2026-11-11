@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.14.0 — 2026-11-11
+
+- Fix: stop is now synchronous from the user’s point of view — the client clears running/stream state immediately, `/stop` waits at most 500 ms for the agent to leave running, and returns a fresh snapshot.
+- Add: stop confirmation toast and disabled stop re-entry while the request is in flight.
+
 ## 4.13.2 — 2026-11-11
 
 - Fix: the right computer deck now follows warm/ink themes instead of forcing a dark inline background.

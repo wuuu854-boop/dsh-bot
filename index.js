@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '4.13.2'
+const VERSION = '4.14.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -4689,6 +4689,28 @@ export function apply(ctx) {
     return pending
   }
 
+  async function cancelLiveRec(rec) {
+    if (!rec) return false
+    try {
+      rec.agent.cancel({ kind: 'user' })
+    } catch {
+      /* the agent may already be finished */
+    }
+    rec.running = false
+    if (rec.run && rec.run.status === 'running') {
+      try {
+        closeRun(rec, 'aborted', now(), '用户停止')
+      } catch {
+        /* run close is best effort */
+      }
+    }
+    const deadline = now() + 500
+    while (rec.agent.status === 'running' && now() < deadline) {
+      await delay(30)
+    }
+    return true
+  }
+
   function disposeRec(threadId) {
     const rec = live.get(threadId)
     if (!rec) return Promise.resolve()
@@ -6727,35 +6749,11 @@ export function apply(ctx) {
         const body = await readBody(req)
         const thread = requireThread(body.threadId)
         if (isGroup(thread)) {
-          const stopped = []
-          for (const child of memberThreadsOf(thread)) {
-            const rec = live.get(child.id)
-            if (!rec) continue
-            try {
-              rec.agent.cancel({ kind: 'user' })
-              rec.running = false
-              if (rec.run) closeRun(rec, 'aborted', now(), '用户停止')
-              stopped.push(child.botId)
-            } catch {
-              /* keep stopping the rest */
-            }
-          }
-          json(res, 200, { ok: true, stopped })
-          return
+          await Promise.all(memberThreadsOf(thread).map((child) => cancelLiveRec(live.get(child.id))))
+          return json(res, 200, snapshot(thread))
         }
-        const rec = live.get(thread.id)
-        if (rec) {
-          try {
-            rec.agent.cancel({ kind: 'user' })
-            rec.running = false
-            if (rec.run) closeRun(rec, 'aborted', now(), '用户停止')
-          } catch (error) {
-            json(res, 500, { ok: false, error: messageOf(error) })
-            return
-          }
-        }
-        json(res, 200, { ok: true })
-        return
+        await cancelLiveRec(live.get(thread.id))
+        return json(res, 200, snapshot(thread))
       }
 
       if (req.method === 'POST' && sub === '/delete') {

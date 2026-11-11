@@ -1,4 +1,4 @@
-# DSH Bot v4.13.2
+# DSH Bot v4.14.0
 
 **An open-source GrokBot alternative that runs a real bot team on your own Windows machine, inside DeepSeek Harness.**
 
@@ -16,6 +16,7 @@ You talk to one **Boss**. It decides what to do, hires a specialist when nobody 
 - **Model policy** — bots follow the DSH default model, with per-assignment `effort` / `model` overrides.
 - **Local execution depth** — Edge is the default browser; all normal web pages are read through UI Automation (text + controls) before any screenshot; multi-monitor capture, GUI control, app launching, proxy guard, safety snapshots and QQ notifications.
 - **Replay + health** — replay a thread timeline from the top bar; `GET /health` reports version, uptime, state size, counts, live agents, model status and last error.
+- **Instant stop** — `/stop` cancels immediately, returns the fresh snapshot, and the UI clears running/stream state before the round-trip finishes; measured 62 ms while an agent was running.
 - **CLI + HTTP API** — `bot_cli.mjs` and `docs/API.md` cover bots, threads, groups, team, meeting, memory, routines and skills.
 
 ## Install

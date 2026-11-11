@@ -47,6 +47,9 @@ window.__ModuleLoader__.load({
         send: '发送',
         sending: '发送中',
         stop: '停止',
+        stopHint: '立即停止当前任务',
+        stopDone: '已停止',
+        stopping: '停止中…',
         hint: 'Enter 发送 · Shift + Enter 换行',
         localAccess: '本地电脑',
         computer: '电脑',
@@ -560,6 +563,9 @@ window.__ModuleLoader__.load({
         send: 'Send',
         sending: 'Sending',
         stop: 'Stop',
+        stopHint: 'Stop the running task immediately',
+        stopDone: 'Stopped',
+        stopping: 'Stopping…',
         hint: 'Enter to send · Shift + Enter for a new line',
         localAccess: 'Local computer',
         computer: 'Computer',
@@ -3095,6 +3101,7 @@ window.__ModuleLoader__.load({
       onSend,
       onStop,
       running,
+      stopping,
       theme,
       t,
       inputRef,
@@ -3461,9 +3468,9 @@ window.__ModuleLoader__.load({
               running
                 ? h(
                     'button',
-                    { type: 'button', className: 'gb-stop-btn', onClick: onStop, title: t('stopHint'), 'aria-label': t('stop') },
+                    { type: 'button', className: 'gb-stop-btn', onClick: onStop, disabled: stopping, title: t('stopHint'), 'aria-label': t('stop') },
                     h(Icon, { name: 'stop', size: 14 }),
-                    h('span', null, t('stop')),
+                    h('span', null, stopping ? t('stopping') : t('stop')),
                   )
                 : null,
               h(
@@ -5436,6 +5443,7 @@ window.__ModuleLoader__.load({
       const [pinsList, setPinsList] = useState([])
       const [pinsBusy, setPinsBusy] = useState(false)
       const [sending, setSending] = useState(false)
+      const [stopping, setStopping] = useState(false)
       const [answerBusy, setAnswerBusy] = useState(false)
       const [resuming, setResuming] = useState(false)
       const [undoing, setUndoing] = useState(false)
@@ -6406,13 +6414,29 @@ window.__ModuleLoader__.load({
       )
 
       const stop = useCallback(async () => {
-        if (!threadId) return
+        if (!threadId || stopping) return
+        setStopping(true)
+        setSnap((previous) =>
+          previous
+            ? {
+                ...previous,
+                thread: previous.thread ? { ...previous.thread, running: false } : previous.thread,
+                stream: null,
+                question: null,
+              }
+            : previous,
+        )
+        setPending(null)
         try {
-          await apiPost('/stop', { threadId })
+          const data = await apiPost('/stop', { threadId })
+          if (data?.thread) setSnap(data)
+          showToast(t('stopDone'))
         } catch (error) {
           showToast(error.message)
+        } finally {
+          setStopping(false)
         }
-      }, [showToast, threadId])
+      }, [showToast, stopping, t, threadId])
 
       const submitAnswer = useCallback(
         async (answers) => {
@@ -6903,6 +6927,7 @@ window.__ModuleLoader__.load({
             onSend: send,
             onStop: stop,
             running,
+            stopping,
             theme,
             t,
             inputRef,
