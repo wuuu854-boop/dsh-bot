@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.8.0 — 2026-11-11
+
+- Add: Edge UI Automation commands `read`, `click`, `type`, and `select`; bots now read page text and controls instead of taking screenshots by default.
+- Change: `edge.py open` reuses the running Edge process with a new tab, so browser actions no longer spawn a new window on every step.
+- Change: runtime prompts now require “read → fill/select → submit → read confirmation” for web forms and homework; screenshots are only for canvas/PDF/image/captcha fallback.
+- Add: `read` returns page title, URL, visible text, and form controls with names/roles/values/bounds.
+
 ## 4.7.3 — 2026-11-11
 
 - Fix: `bot_hire` and `bot_delegate` no longer hardcode DeepSeek provider/model IDs; hired specialists inherit the Boss provider and use a compatible default.
