@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.13.1 — 2026-11-11
+
+- Polish: template menu closes on outside click / Escape; replay closes with Escape.
+- Polish: light themes also cover modal, toast and composer surfaces; warm composer uses a deep-brown accent, ink uses an ink-black accent.
+
 ## 4.13.0 — 2026-11-11
 
 - Add: three UI themes — dark, warm paper, and ink-wash — selectable from the top bar and persisted in localStorage.

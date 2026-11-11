@@ -2838,6 +2838,13 @@ window.__ModuleLoader__.load({
       const [index, setIndex] = useState(0)
       const [playing, setPlaying] = useState(true)
       useEffect(() => {
+        const onKey = (event) => {
+          if (event.key === 'Escape') onClose?.()
+        }
+        window.addEventListener('keydown', onKey)
+        return () => window.removeEventListener('keydown', onKey)
+      }, [onClose])
+      useEffect(() => {
         if (!playing || timeline.length < 2) return undefined
         const timer = setInterval(() => {
           setIndex((value) => {
@@ -3136,6 +3143,24 @@ window.__ModuleLoader__.load({
         setTemplatesOpen(false)
         requestAnimationFrame(() => inputRef?.current?.focus())
       }
+      useEffect(() => {
+        if (!templatesOpen) return undefined
+        const close = (event) => {
+          if (event.key === 'Escape') {
+            setTemplatesOpen(false)
+            return
+          }
+          if (event.type === 'pointerdown' && !event.target?.closest?.('.gb-template-menu, .gb-template-toggle')) {
+            setTemplatesOpen(false)
+          }
+        }
+        window.addEventListener('keydown', close)
+        window.addEventListener('pointerdown', close)
+        return () => {
+          window.removeEventListener('keydown', close)
+          window.removeEventListener('pointerdown', close)
+        }
+      }, [templatesOpen])
       const submit = () => {
         const text = String(value || '').trim()
         if (text || attached.length > 0) onSend(text, attached)
@@ -3465,7 +3490,7 @@ window.__ModuleLoader__.load({
             h('span', { className: 'gb-access-pill' }, h('span', { className: 'gb-signal' }), t('fullAccess')),
             h(
               'button',
-              { type: 'button', className: 'gb-foot-btn', onClick: () => setTemplatesOpen((open) => !open), title: t('templateTitle') },
+              { type: 'button', className: 'gb-foot-btn gb-template-toggle', onClick: () => setTemplatesOpen((open) => !open), title: t('templateTitle') },
               h(Icon, { name: 'spark', size: 11 }),
               t('template'),
             ),
@@ -7269,6 +7294,10 @@ window.__ModuleLoader__.load({
 .gb-root[data-theme="ink"] .gb-pending { background: var(--gb-panel-2); }
 .gb-root[data-theme="warm"] .gb-screen,
 .gb-root[data-theme="ink"] .gb-screen { background: var(--gb-panel-2); }
+:root[data-dsh-bot-theme="warm"] .gb-modal { background: #fff8ec; }
+:root[data-dsh-bot-theme="ink"] .gb-modal { background: #fbfaf6; }
+:root[data-dsh-bot-theme="warm"] .gb-toast { background: #fff8ec; color: #2f2418; }
+:root[data-dsh-bot-theme="ink"] .gb-toast { background: #fbfaf6; color: #1d1c19; }
 .gb-theme-switch { display: flex; align-items: center; gap: 3px; padding: 2px; border: 1px solid var(--gb-line); border-radius: 999px; }
 .gb-theme-dot { width: 12px; height: 12px; padding: 0; border: 1px solid color-mix(in srgb, var(--gb-line-strong) 70%, transparent); border-radius: 50%; }
 .gb-theme-dot.is-dark { background: #101110; }
