@@ -126,6 +126,8 @@ async function main() {
         'tasks [--bot NAME]',
         'groups',
         'status [--thread ID]',
+        'doctor',
+        'health',
         'send --thread ID --text "..."',
         'new [--bot NAME]',
         'group create --name NAME --members "A,B"',
@@ -172,6 +174,18 @@ async function main() {
     const result = await request('GET', `/state?thread=${encodeURIComponent(boot.data.thread.id)}`)
     const threads = (result.data?.threads || []).filter((thread) => thread.kind === 'group')
     print({ ok: true, groups: threads.map(summarizeThread) })
+    return
+  }
+
+  if (command === 'doctor') {
+    const result = await request('GET', '/doctor')
+    print(result.data)
+    return
+  }
+
+  if (command === 'health') {
+    const result = await request('GET', '/health')
+    print(result.data)
     return
   }
 

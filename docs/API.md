@@ -12,6 +12,7 @@ CLI 已经覆盖常用路径：`node scripts/bot_cli.mjs ...`。
 | GET | `/state?thread=<id>` | 指定线程的快照；群聊会合并成员发言、活动、派活 |
 | GET | `/catalog` | 可选 Agent Preset、模型服务商和模型 |
 | GET | `/health` | 版本、运行时长、状态文件大小、Bot/线程/运行/派活数、live agent、模型状态、最近错误 |
+| GET | `/doctor` | 逐项诊断：状态目录可写、Python、Edge、模型、磁盘空间、运行时 API；返回 `checks[]` 与修复建议 |
 | GET | `/memory?botId=<id>` | 记忆正文、路径、Git 历史 |
 | GET | `/memory/history?botId=` | 提交列表、dirty |
 | GET | `/memory/diff?botId=&sha=` | 某次提交的 diff |

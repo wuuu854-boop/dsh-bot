@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '4.10.0'
+const VERSION = '4.11.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -5923,6 +5923,96 @@ export function apply(ctx) {
 
       if (req.method === 'GET' && sub === '/catalog') {
         return json(res, 200, { ok: true, ...(await botCatalog(url.searchParams.get('refresh') === '1')) })
+      }
+
+      if (req.method === 'GET' && sub === '/doctor') {
+        const checks = []
+        let stateWritable = false
+        try {
+          fs.accessSync(stateDir, fs.constants.W_OK)
+          stateWritable = true
+        } catch {
+          stateWritable = false
+        }
+        checks.push({
+          id: 'state',
+          label: '状态目录可写',
+          ok: stateWritable,
+          detail: stateDir,
+          fix: '检查 DSH_HOME/storages/dsh-bot 的权限',
+        })
+        const python = process.env.DSH_PYTHON || 'python'
+        let pythonDetail = ''
+        let pythonOk = false
+        try {
+          pythonDetail = String(execFileSync(python, ['--version'], {
+            timeout: 3_000,
+            windowsHide: true,
+            encoding: 'utf8',
+            stdio: ['ignore', 'pipe', 'pipe'],
+          })).trim()
+          pythonOk = true
+        } catch (error) {
+          pythonDetail = messageOf(error)
+        }
+        checks.push({
+          id: 'python',
+          label: 'Python 可用',
+          ok: pythonOk,
+          detail: pythonDetail || python,
+          fix: '安装 Python 3，或设置 DSH_PYTHON 指向 python.exe',
+        })
+        const edgeCandidates = [
+          process.env.ProgramFiles && path.join(process.env.ProgramFiles, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+          process.env['ProgramFiles(x86)'] &&
+            path.join(process.env['ProgramFiles(x86)'], 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+          process.env.LOCALAPPDATA &&
+            path.join(process.env.LOCALAPPDATA, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+        ].filter(Boolean)
+        const edgePath = edgeCandidates.find((candidate) => fs.existsSync(candidate)) || null
+        checks.push({
+          id: 'edge',
+          label: 'Edge 可用',
+          ok: Boolean(edgePath),
+          detail: edgePath || '未找到 msedge.exe',
+          fix: '安装 Microsoft Edge，或确认 Edge 安装路径',
+        })
+        checks.push({
+          id: 'model',
+          label: '模型已连接',
+          ok: Boolean(agentOptions()),
+          detail: `${activeBot().provider || selection?.provider || '无'} / ${activeBot().model || selection?.model || '无'}`,
+          fix: '在 DSH 设置里接入 API 并选择默认模型，然后点“重新检测”',
+        })
+        let disk = null
+        try {
+          const stat = fs.statfsSync(stateDir)
+          const free = Number(stat.bfree) * Number(stat.bsize)
+          const total = Number(stat.blocks) * Number(stat.bsize)
+          disk = { free, total, percent: total ? Math.round((free / total) * 100) : null }
+        } catch {
+          disk = null
+        }
+        checks.push({
+          id: 'disk',
+          label: '磁盘空间',
+          ok: !disk || disk.percent === null || disk.percent > 5,
+          detail: disk ? `${disk.percent}% 可用` : '无法读取',
+          fix: '清理 C 盘或把工作区移到空间更大的磁盘',
+        })
+        checks.push({
+          id: 'runtime',
+          label: '运行时 API',
+          ok: Boolean(webOrigin),
+          detail: webOrigin || '未获取到 DSH web origin',
+          fix: '重启 DSH 或重新加载插件',
+        })
+        return json(res, 200, {
+          ok: checks.every((check) => check.ok),
+          version: VERSION,
+          checks,
+          lastError: state.runs.find((run) => run.status === 'failed' || run.status === 'aborted')?.error || null,
+        })
       }
 
       if (req.method === 'GET' && sub === '/health') {

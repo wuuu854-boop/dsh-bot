@@ -408,6 +408,16 @@ window.__ModuleLoader__.load({
         sessionReset: '会话已重建',
         menu: '菜单',
         sendHint: 'Ctrl / Cmd + Enter 也可发送',
+        template: '模板',
+        templateTitle: '任务模板',
+        templateHomework: '网页作业',
+        templateHomeworkPrompt: '帮我做这个网页作业：<粘贴作业 URL>。先用 python scripts/edge.py open <URL> 打开，一次 read 读取全部题目和控件；逐题作答/填写，提交后用 read 确认。不要截图，只有 canvas/PDF/图片题才回退视觉。',
+        templateRead: '网页速读',
+        templateReadPrompt: '打开 <URL>，用 edge.py read 读取全文；长页面先 scroll down 再 read；输出 5 条要点、关键数据和原文引用。不要截图。',
+        templateCleanup: '磁盘清理',
+        templateCleanupPrompt: '只盘点 C 盘和 E 盘的空间、缓存、旧备份、回收站和重复文件，输出可清理清单与预计释放空间；不要删除任何文件，等我确认。',
+        templateReview: '今日复盘',
+        templateReviewPrompt: '汇总最近 24 小时团队各 Bot 的运行记录：完成了什么、失败/中断了什么、下一步建议。不要重新执行任务。',
         imageRefreshed: '画面已刷新',
         context: '上下文',
         thinkingDone: '思考完成',
@@ -907,6 +917,16 @@ window.__ModuleLoader__.load({
         sessionReset: 'Session rebuilt',
         menu: 'Menu',
         sendHint: 'Ctrl / Cmd + Enter also sends',
+        template: 'Templates',
+        templateTitle: 'Task templates',
+        templateHomework: 'Web homework',
+        templateHomeworkPrompt: 'Do this web homework: <paste assignment URL>. Open it with python scripts/edge.py open <URL>, run read once to get all questions and controls, answer/fill them, submit, then read to confirm. Do not screenshot unless the page is canvas/PDF/image-only.',
+        templateRead: 'Web digest',
+        templateReadPrompt: 'Open <URL> and read the full page with edge.py read; scroll down and read again for long pages. Return 5 key points, key numbers, and source quotes. Do not screenshot.',
+        templateCleanup: 'Disk cleanup',
+        templateCleanupPrompt: 'Only inventory C: and E: for space, caches, old backups, recycle bin and duplicates. Output a cleanup list and estimated reclaim; delete nothing until I confirm.',
+        templateReview: 'Daily review',
+        templateReviewPrompt: 'Summarize the team runs from the last 24 hours: what completed, what failed or was interrupted, and next actions. Do not re-run tasks.',
         imageRefreshed: 'Preview refreshed',
         context: 'Context',
         thinkingDone: 'Thought',
@@ -3061,6 +3081,7 @@ window.__ModuleLoader__.load({
       onClearQuote,
     }) {
       const [dragging, setDragging] = useState(false)
+      const [templatesOpen, setTemplatesOpen] = useState(false)
       const fileRef = useRef(null)
       const attached = Array.isArray(attachments) ? attachments : []
       const memberList = Array.isArray(members) ? members : []
@@ -3075,6 +3096,18 @@ window.__ModuleLoader__.load({
         const prefix = String(value || '').slice(0, match.index) + (match[1] || '')
         onChange(`${prefix}@${member.name} `)
         inputRef?.current?.focus()
+      }
+      const templates = [
+        { title: 'templateHomework', prompt: 'templateHomeworkPrompt', icon: 'computer' },
+        { title: 'templateRead', prompt: 'templateReadPrompt', icon: 'search' },
+        { title: 'templateCleanup', prompt: 'templateCleanupPrompt', icon: 'trash' },
+        { title: 'templateReview', prompt: 'templateReviewPrompt', icon: 'activity' },
+      ]
+      const applyTemplate = (template) => {
+        const base = String(value || '').trim()
+        onChange(base ? `${base}\n${t(template.prompt)}` : t(template.prompt))
+        setTemplatesOpen(false)
+        requestAnimationFrame(() => inputRef?.current?.focus())
       }
       const submit = () => {
         const text = String(value || '').trim()
@@ -3290,6 +3323,31 @@ window.__ModuleLoader__.load({
               'aria-label': t('inputPlaceholder'),
             },
           ),
+          templatesOpen
+            ? h(
+                'div',
+                { className: 'gb-template-menu' },
+                h(
+                  'div',
+                  { className: 'gb-template-head' },
+                  h(Icon, { name: 'spark', size: 13 }),
+                  h('span', null, t('templateTitle')),
+                ),
+                templates.map((template) =>
+                  h(
+                    'button',
+                    {
+                      key: template.title,
+                      type: 'button',
+                      className: 'gb-template-item',
+                      onClick: () => applyTemplate(template),
+                    },
+                    h(Icon, { name: template.icon, size: 14 }),
+                    h('span', null, t(template.title)),
+                  ),
+                ),
+              )
+            : null,
           h(
             'div',
             { className: 'gb-composer-row' },
@@ -3358,6 +3416,12 @@ window.__ModuleLoader__.load({
             'span',
             { className: 'gb-foot-left' },
             h('span', { className: 'gb-access-pill' }, h('span', { className: 'gb-signal' }), t('fullAccess')),
+            h(
+              'button',
+              { type: 'button', className: 'gb-foot-btn', onClick: () => setTemplatesOpen((open) => !open), title: t('templateTitle') },
+              h(Icon, { name: 'spark', size: 11 }),
+              t('template'),
+            ),
             h(
               'button',
               { type: 'button', className: 'gb-foot-btn gb-rail-toggle', onClick: onToggleRail, title: t('tasks') },
@@ -7361,6 +7425,11 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 /* composer */
 .gb-composer-wrap { flex: none; padding: 10px 38px 14px; background: linear-gradient(to top, var(--gb-bg) 58%, transparent); }
 .gb-composer { position: relative; max-width: 880px; margin: 0 auto; padding: 11px 13px 8px; border: 1px solid var(--gb-line); border-radius: 15px; background: color-mix(in srgb, var(--gb-panel) 76%, transparent); box-shadow: 0 16px 50px rgba(0,0,0,.22), 0 0 0 1px color-mix(in srgb, #fff 2%, transparent) inset; transition: border-color .18s ease, box-shadow .18s ease; }
+.gb-template-menu { position: absolute; left: 8px; bottom: calc(100% - 3px); z-index: 40; width: min(340px, 88vw); padding: 6px; border: 1px solid var(--gb-line-strong); border-radius: 11px; background: var(--gb-panel); box-shadow: 0 18px 50px rgba(0,0,0,.45); }
+.gb-template-head { display: flex; align-items: center; gap: 6px; padding: 5px 7px 7px; color: var(--gb-signal); font-size: 9px; letter-spacing: .04em; }
+.gb-template-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 8px; border: 0; border-radius: 7px; background: transparent; color: var(--gb-text); text-align: left; font-size: 10px; }
+.gb-template-item:hover { background: color-mix(in srgb, var(--gb-signal) 8%, transparent); color: var(--gb-signal); }
+.gb-template-item > svg { flex: none; color: var(--gb-muted); }
 .gb-mention-pop { position: absolute; left: 10px; right: 10px; bottom: calc(100% + 6px); z-index: 6; max-height: 220px; padding: 4px; overflow: auto; border: 1px solid var(--gb-line-strong); border-radius: 10px; background: var(--gb-panel); box-shadow: 0 16px 40px rgba(0,0,0,.3); }
 .gb-mention-item { display: flex; align-items: center; gap: 7px; width: 100%; padding: 5px 7px; border: 0; border-radius: 6px; background: transparent; color: var(--gb-text); text-align: left; }
 .gb-mention-item:hover { background: color-mix(in srgb, var(--gb-panel-2) 70%, transparent); }

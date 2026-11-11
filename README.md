@@ -28,7 +28,8 @@ DSH Bot 不是聊天壳，而是把一台 Windows 电脑上的真实工作拆给
 - **自建员工**：没有对口成员时，Boss 用 `bot_hire` 创建新 Bot（角色、头像、persona、workspace、模型）并立即派活。
 - **派活可观测**：卡片显示状态、步数、耗时、tokens；失败/中断可一键重试，最多 3 次。
 - **对话回放**：顶栏「回放」按时间线重播当前对话，支持播放/暂停、进度拖动；长任务可以像看录像一样复盘。
-- **健康检查**：`GET /health` 返回版本、运行时长、状态大小、模型状态和最近错误，方便排查。
+- **任务模板**：输入框「模板」提供网页作业、网页速读、磁盘清理、今日复盘四套提示词，点一下填入再补 URL/细节。
+- **健康检查**：`GET /health` 返回版本、运行时长、状态大小、模型状态和最近错误；`GET /doctor` 逐项检查 Python / Edge / 模型 / 磁盘 / 状态目录。
 - **群内派活**：Boss 在群里用 `bot_dispatch`，同样会生成 assignment 并回收执。
 
 ### 群聊
@@ -133,6 +134,8 @@ node scripts/bot_cli.mjs team list            # 名册 + 最近派活
 node scripts/bot_cli.mjs team assignments --status success --limit 5
 node scripts/bot_cli.mjs meeting status
 node scripts/bot_cli.mjs meeting run
+node scripts/bot_cli.mjs doctor            # 环境逐项诊断
+node scripts/bot_cli.mjs health            # 版本/状态/模型摘要
 node scripts/bot_cli.mjs memory history --bot 老大
 node scripts/bot_cli.mjs retry --assignment <id>
 python scripts/edge.py open https://example.com

@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.11.0 — 2026-11-11
+
+- Add: four composer task templates (web homework, web digest, disk cleanup, daily review) with low-level browser guidance.
+- Add: `GET /doctor` and `bot_cli doctor` checks for state directory, Python, Edge, model, disk and runtime API.
+- Add: `bot_cli health` for the `/health` summary.
+
 ## 4.10.0 — 2026-11-11
 
 - Add: conversation replay modal — play/pause, scrub, and restart the current thread timeline.
