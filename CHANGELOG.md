@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.12.0 — 2026-11-11
+
+- Change: no preset team is deployed. A fresh install has only the Boss; “添加专家” opens a blank editor so each user defines their own roles.
+- Change: removed the fixed `/team/bootstrap` flow (now 410) and `team init`; existing bots are untouched.
+- Docs: README/TEAM/API now describe on-demand specialists instead of a disk/university template.
+
 ## 4.11.0 — 2026-11-11
 
 - Add: four composer task templates (web homework, web digest, disk cleanup, daily review) with low-level browser guidance.

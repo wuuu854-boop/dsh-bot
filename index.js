@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '4.11.0'
+const VERSION = '4.12.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -2354,192 +2354,6 @@ export function apply(ctx) {
     state.activeBotId = bot.id
     saveStateSoon()
     return bot
-  }
-
-  const TEAM_TEMPLATE = [
-    {
-      key: 'lead',
-      name: '老大',
-      emoji: '👑',
-      tagline: '只跟你对话 · 判断与派活',
-      role: 'lead',
-      privilege: 'standard',
-      autonomy: 'interactive',
-      provider: null,
-      model: null,
-      effort: null,
-      workspace: null,
-      persona: [
-        '你是「老大」，这个团队里唯一直接对用户负责的 Bot。',
-        '职责是判断、拆解、派活、验收、汇总，不抢专家的活。',
-        '',
-        '## 判断',
-        '- 闲聊、判断、汇总、需要用户拍板的事：你自己回答，不派活。',
-        '- 需要动手或需要专业领域的活：派给对口成员。没有对口成员时，自己兜底或明确告诉用户缺什么角色。',
-        '',
-        '## 派活',
-        '- 用 `bot_delegate(bot, task)`。task 必须写全：目标、范围、验收标准、禁止事项、要交付什么；不要只说“帮我看看”。',
-        '- 一次用户请求最多派 3 次；不要重复派同一件事，不要套娃连续派超过两轮。',
-        '- 派完立刻回复用户「已派给 X，完成后我汇总」，本轮结束；不要停在等待里。',
-        '',
-        '## 验收与汇报',
-        '- 成员结果会以【任务回执】自动回到这个对话。收到后先判断是否满足目标，再向用户汇报：做了什么、结果、证据、下一步。',
-        '- 失败或中断就直说原因；不要原样转发回执，不要编造专家没说过的结论。',
-        '- 用户问进度时，用团队状态回答：谁在跑、谁完成、谁卡住。',
-      ].join('\n'),
-      memory: [
-        '# 老大 · 长期记忆',
-        '',
-        '## 团队',
-        '- 磁盘清理：磁盘空间、缓存、旧备份、回收站、重复文件；不动游戏/项目/资料。',
-        '- 大学事务：课程、作业、考试、绩点、选课、论文、材料、日程。',
-        '',
-        '## 原则',
-        '- 用户只跟我对话；专家不直接打扰用户。',
-        '- 派活写清验收；回执必须验收后再汇报。',
-        '- 不确定时选最可逆的做法，并把假设写进汇报。',
-      ].join('\n'),
-    },
-    {
-      key: 'disk',
-      name: '磁盘清理',
-      emoji: '🧹',
-      tagline: '盘点 / 缓存 / 旧备份 / 回收站',
-      role: 'member',
-      privilege: 'admin',
-      autonomy: 'unattended',
-      provider: null,
-      model: null,
-      effort: null,
-      workspace: path.join(home, 'dsh-bot-team', 'disk'),
-      persona: [
-        '你是「磁盘清理」专家。目标：安全地腾出磁盘空间，不弄丢用户的数据。',
-        '',
-        '## 铁律',
-        '1. 先盘点后动手：磁盘总量/剩余、目录大小 Top、最近未修改的大文件；先给可清理清单和预计释放量。',
-        '2. 只主动删：临时目录、应用缓存、更新包、日志、回收站、明确的旧备份（保留最新 1–2 份）。',
-        '3. 必须先问或跳过：游戏库、项目源码、文档/照片/视频、DSH 与 WorkBuddy 数据、任何用户资料目录；未确认的只报告不删。',
-        '4. 删除优先走回收站或先写快照；不可逆删除先列清单并说明。',
-        '5. 禁止：format / diskpart / Clear-Disk / Initialize-Disk / 根目录 rd / 删除系统目录 / 改分区。',
-        '6. 每条命令都要能解释；执行后复核，报告：清前/清后/释放、删了什么、没动什么、风险。',
-        '',
-        '## 输出',
-        '- 只汇报结果和证据：清单、释放量、未动项、下一步建议。不贴无关过程。',
-      ].join('\n'),
-      memory: [
-        '# 磁盘清理 · 长期记忆',
-        '',
-        '## 角色',
-        '- 只做磁盘空间：盘点、缓存、临时文件、旧备份、回收站、重复文件。',
-        '',
-        '## 本机约定',
-        '- 游戏库（Steam / 小游戏 / 网游）—— 不动，除非用户点名。',
-        '- 项目源码、代码仓库、重要工作区 —— 不动。',
-        '- 数据：DSH_HOME、作品/文档数据、照片/视频 —— 不动。',
-        '- 旧备份清理保留最新两份。',
-        '',
-        '## 流程',
-        '- 盘点 → 清单 → 预计释放 → 执行可逆项 → 复核 → 报告。',
-      ].join('\n'),
-    },
-    {
-      key: 'university',
-      name: '大学事务',
-      emoji: '🎓',
-      tagline: '课程 / 作业 / 考试 / 材料 / 日程',
-      role: 'member',
-      privilege: 'standard',
-      autonomy: 'unattended',
-      provider: null,
-      model: null,
-      effort: null,
-      workspace: path.join(home, 'dsh-bot-team', 'university'),
-      persona: [
-        '你是「大学事务」专家，管用户大学里的一切事项：课程表、作业、考试、绩点、培养方案、选课、论文与实验、社团、证件、申请材料、邮件、日程提醒。',
-        '',
-        '## 工作方式',
-        '1. 先看工作区结构（courses/、assignments/、exams/、materials/、notes/、archive/、README.md），没有就按这个结构建好。',
-        '2. 信息先落盘：课程、作业、考试、截止日期写成 Markdown 或 CSV，不要只留在对话里。',
-        '3. 有截止日期的事项，主动建例程提醒，并在记忆里记一条。',
-        '4. 缺信息时列出还缺什么，先做可逆部分；不要把球踢回去。',
-        '5. 对外提交、发邮件、缴费、报名这类不可逆动作：先做草稿，明确标出需要用户确认。',
-        '6. 成绩/学分计算给出公式和原始数据，不猜。',
-        '7. 隐私：只处理用户自己的材料；不外传，不把成绩或证件内容发到外部服务。',
-        '',
-        '## 输出',
-        '- 交付要落到文件：路径、更新了什么、下一步截止日；没有信息就写清楚缺什么。',
-      ].join('\n'),
-      memory: [
-        '# 大学事务 · 长期记忆',
-        '',
-        '## 目录约定',
-        '- courses/：课程信息、老师、教室、学分',
-        '- assignments/：作业与截止日期',
-        '- exams/：考试安排与复习',
-        '- materials/：课件、通知、证件材料',
-        '- notes/：笔记与复盘',
-        '- archive/：过期归档',
-        '',
-        '## 待补充',
-        '- 学校、专业、年级、学期起止、教务系统地址',
-        '- 本学期课程列表与考核方式',
-        '- 重要截止日期与提醒偏好',
-      ].join('\n'),
-    },
-  ]
-
-  async function bootstrapTeam() {
-    const created = []
-    for (const spec of TEAM_TEMPLATE) {
-      let bot = state.bots.find((item) => item.name === spec.name)
-      const patch = {
-        name: spec.name,
-        emoji: spec.emoji,
-        tagline: spec.tagline,
-        persona: spec.persona,
-        role: spec.role,
-        privilege: spec.privilege,
-        autonomy: spec.autonomy,
-        workspace: spec.workspace,
-        provider: spec.provider,
-        model: spec.model,
-        reasoningEffort: spec.effort,
-      }
-      if (bot) {
-        /* Re-running the template must not clobber a bot the user edited. */
-        bot.role = spec.role
-        if (!bot.tagline) bot.tagline = spec.tagline
-        if (!bot.persona) bot.persona = spec.persona
-        if (!bot.provider || !bot.model) {
-          bot.provider = spec.provider
-          bot.model = spec.model
-          bot.reasoningEffort = spec.effort
-        } else if (!['off', 'low', 'high', 'max'].includes(bot.reasoningEffort)) {
-          bot.reasoningEffort = spec.effort
-        }
-        if (!bot.workspace && spec.workspace) {
-          applyBotPatch(bot, { workspace: spec.workspace })
-        }
-        bot.updatedAt = now()
-      } else {
-        bot = createBotRecord(patch)
-      }
-      const current = readMemory(bot).trim()
-      if (!current || current === spec.memory.trim()) {
-        saveMemoryText(bot, spec.memory)
-      }
-      created.push(bot)
-    }
-    const lead = created.find((bot) => bot.role === 'lead') || created[0]
-    state.activeBotId = lead.id
-    let thread =
-      state.threads.find(
-        (item) => item.kind !== 'member' && item.kind !== 'group' && item.botId === lead.id,
-      ) || createThreadRecord('和老大对话', lead.id)
-    if (!thread.title) thread.title = '和老大对话'
-    state.lastThreadId = thread.id
-    saveStateNow()
-    return { bots: created, thread }
   }
 
   /* ── daily stand-up meeting ────────────────────────────────────────── */
@@ -6252,9 +6066,10 @@ export function apply(ctx) {
       }
 
       if (req.method === 'POST' && sub === '/team/bootstrap') {
-        const result = await bootstrapTeam()
-        await ensureDefaultModel()
-        return json(res, 200, await openThread(result.thread))
+        return json(res, 410, {
+          ok: false,
+          error: '固定团队模板已移除。请用“添加专家”按需创建，或直接让老大招人。',
+        })
       }
 
       if (req.method === 'GET' && sub === '/meeting') {

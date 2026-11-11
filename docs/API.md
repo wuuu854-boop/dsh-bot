@@ -73,7 +73,7 @@ CLI 已经覆盖常用路径：`node scripts/bot_cli.mjs ...`。
 
 | 方法 | 路径 | body |
 |---|---|---|
-| POST | `/team/bootstrap` | 幂等创建/补全「老大 + 磁盘清理 + 大学事务」，返回老大私聊快照 |
+| POST | `/team/bootstrap` | 已移除（410）；不再部署固定团队，请用 `/bot/create` 按需创建专家 |
 | POST | `/team/cleanup` | `{keepRunning?}`；删除已结束派活及其线程 |
 | POST | `/assignment/retry` | `{assignmentId}`；重派失败/中断的任务，回执回到原会话 |
 | POST | `/meeting/run` | `{force?}`；立即补开晨会（异步，秒回 `started:true`） |
@@ -104,15 +104,16 @@ CLI 已经覆盖常用路径：`node scripts/bot_cli.mjs ...`。
 ## 示例
 
 ```powershell
-$api = 'http://127.0.0.1:52036/dsh-bot/api'
+$api = 'http://127.0.0.1:<dsh-web-port>/dsh-bot/api'
 Invoke-RestMethod "$api/bootstrap"
 
 Invoke-RestMethod "$api/send" -Method Post -ContentType 'application/json' `
   -Headers @{ 'x-dsh-bot-client' = '1' } `
-  -Body (@{ threadId = '<threadId>'; text = '让磁盘清理盘点 C 盘' } | ConvertTo-Json)
+  -Body (@{ threadId = '<threadId>'; text = '让专家盘点 C 盘' } | ConvertTo-Json)
 
-Invoke-RestMethod "$api/team/bootstrap" -Method Post -ContentType 'application/json' `
-  -Headers @{ 'x-dsh-bot-client' = '1' } -Body '{}'
+Invoke-RestMethod "$api/bot/create" -Method Post -ContentType 'application/json' `
+  -Headers @{ 'x-dsh-bot-client' = '1' } `
+  -Body (@{ name = '报税'; tagline = '报税与发票'; persona = '你负责报税与发票核对'; role = 'member' } | ConvertTo-Json)
 ```
 
 ## 安全边界

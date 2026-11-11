@@ -55,7 +55,7 @@ check('bootstrap responds', boot.status === 200 && boot.data?.ok, `status ${boot
 check('version present', typeof boot.data?.bot?.version === 'string', boot.data?.bot?.version)
 check('at least one bot', (boot.data?.bots || []).length >= 1)
 const lead = (boot.data?.bots || []).find((bot) => bot.role === 'lead')
-check('lead bot exists', Boolean(lead), 'run `team init` first')
+check('lead bot exists', Boolean(lead), 'add a lead bot first')
 
 const team = await get('/team')
 check('team endpoint', team.status === 200 && team.data?.ok)

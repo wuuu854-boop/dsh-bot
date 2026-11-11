@@ -1,4 +1,4 @@
-# DSH Bot v4.11.0
+# DSH Bot v4.12.0
 
 **An open-source GrokBot alternative that runs a real bot team on your own Windows machine, inside DeepSeek Harness.**
 
@@ -27,7 +27,7 @@ git clone https://github.com/wuuu854-boop/dsh-bot.git
 #   "@local/dsh-bot": "link:<path>/dsh-bot"
 ```
 
-Then talk to the default **老大** bot; click **团队模板** only when you want to add specialists.
+Then talk to the default **老大** bot; click **添加专家** only when you need a specialist — no preset team is deployed.
 
 ## Verified locally
 

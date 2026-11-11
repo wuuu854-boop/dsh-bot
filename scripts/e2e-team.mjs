@@ -62,7 +62,7 @@ check('bootstrap', boot.ok)
 const lead = (boot.bots || []).find((bot) => bot.role === 'lead')
 check('lead exists', Boolean(lead))
 if (!lead) {
-  console.error('先运行 team init')
+  console.error('先添加一个 lead Bot')
   process.exit(1)
 }
 

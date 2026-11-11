@@ -26,8 +26,8 @@ window.__ModuleLoader__.load({
         welcomeTitle: '把活交给我。',
         welcomeSub: '一句话交代。剩下的，我在你的电脑上做完。',
         welcomeFoot: '终端 · 文件 · 网络 · 子代理 · 后台任务',
-        welcomeTeamCta: '添加专家团队',
-        welcomeTeamHint: '需要磁盘清理、大学事务等专家时，再一键添加。',
+        welcomeTeamCta: '按需添加专家',
+        welcomeTeamHint: '不预置角色；需要什么专家就加什么，或直接让老大招。',
         suggestion1: '看看我的电脑现在在忙什么',
         suggestion2: '把下载文件夹整理一下',
         suggestion3: '给这个项目做一次体检',
@@ -506,7 +506,7 @@ window.__ModuleLoader__.load({
         botEffort: '思考强度',
         botEffortAuto: '跟随默认',
         botEffortHint: 'flash 支持 low / high / max；越高越慢越贵。老大建议 max，队员默认 low。',
-        teamTemplate: '团队模板',
+        teamTemplate: '添加专家',
         teamTemplateConfirm: '建立/刷新团队模板？会创建或补全「老大 / 磁盘清理 / 大学事务」三个 Bot，不会覆盖你改过的设定。',
         teamTemplateDone: '团队已就绪：直接和老大对话就行',
         teamTemplateFailed: '建立团队失败',
@@ -535,8 +535,8 @@ window.__ModuleLoader__.load({
         welcomeTitle: 'Give me the work.',
         welcomeSub: 'One sentence. I will finish it on your computer.',
         welcomeFoot: 'Terminal · Files · Web · Subagents · Background jobs',
-        welcomeTeamCta: 'Add a specialist team',
-        welcomeTeamHint: 'Add disk cleanup, university, or other specialists only when you need them.',
+        welcomeTeamCta: 'Add a specialist',
+        welcomeTeamHint: 'No preset roles; add exactly the specialist you need, or ask the Boss to hire one.',
         suggestion1: 'See what my computer is busy with',
         suggestion2: 'Clean up my Downloads folder',
         suggestion3: 'Run a health check on this project',
@@ -1015,7 +1015,7 @@ window.__ModuleLoader__.load({
         botEffort: 'Reasoning effort',
         botEffortAuto: 'Follow default',
         botEffortHint: 'flash supports low / high / max; higher is slower and more expensive. Lead: max, members: low.',
-        teamTemplate: 'Team template',
+        teamTemplate: 'Add specialist',
         teamTemplateConfirm: 'Create or refresh the team template? Adds Boss / Disk cleanup / University bots; existing edits are kept.',
         teamTemplateDone: 'Team is ready — just talk to the Boss',
         teamTemplateFailed: 'Could not set up the team',
@@ -5907,21 +5907,9 @@ window.__ModuleLoader__.load({
         [],
       )
 
-      const createTeam = useCallback(async () => {
-        if (!window.confirm(t('teamTemplateConfirm'))) return
-        try {
-          const data = await apiPost('/team/bootstrap', {})
-          setSnap(data)
-          setThreadId(data.thread.id)
-          setDraft('')
-          setPending(null)
-          setAttachments([])
-          spokenReadyRef.current = false
-          showToast(t('teamTemplateDone'))
-        } catch (error) {
-          showToast(`${t('teamTemplateFailed')}: ${error.message}`)
-        }
-      }, [showToast, t])
+      const addSpecialist = useCallback(() => {
+        openBotEditor({ id: null, name: '', emoji: '🤖', tagline: '', persona: '', role: 'member' })
+      }, [openBotEditor])
 
       const retryModel = useCallback(async () => {
         try {
@@ -6595,7 +6583,7 @@ window.__ModuleLoader__.load({
           onEditBot: (bot) =>
             openBotEditor((snap.bots || []).find((item) => item.id === bot?.id) || bot),
           onNewGroup: () => openGroupEditor(null),
-          onTeam: createTeam,
+          onTeam: addSpecialist,
           onPin: pinThread,
           onReorder: reorderThreads,
           roster: snap.roster || [],
@@ -6770,7 +6758,7 @@ window.__ModuleLoader__.load({
                       : h('span', { className: 'gb-history-end' }, t('noMoreHistory')),
                   )
                 : null,
-              empty ? h(Welcome, { t, onSend: send, onCreateTeam: createTeam, showTeamCta: (snap.bots || []).length <= 1 }) : content,
+              empty ? h(Welcome, { t, onSend: send, onCreateTeam: addSpecialist, showTeamCta: (snap.bots || []).length <= 1 }) : content,
               !empty && running ? h('div', { className: 'gb-chat-spacer' }) : null,
             ),
           ),
@@ -6873,7 +6861,7 @@ window.__ModuleLoader__.load({
               skillBusy,
               captureBusy,
               onUndo: undoSnapshot,
-              onCreateTeam: createTeam,
+              onCreateTeam: addSpecialist,
             })
           : null,
         botEditor

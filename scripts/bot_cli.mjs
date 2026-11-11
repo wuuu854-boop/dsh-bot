@@ -132,7 +132,7 @@ async function main() {
         'new [--bot NAME]',
         'group create --name NAME --members "A,B"',
         'group delete --thread ID',
-        'team init | list | assignments | cleanup',
+        'team list | assignments | cleanup',
         'meeting status | run | reset | config --enabled 1|0 --weekdays 1|0 --only-work 1|0',
         'rename --thread ID --title "..."',
         'retry --assignment ID',
@@ -300,15 +300,13 @@ async function main() {
   if (command === 'team') {
     const action = argv[1] || 'list'
     if (action === 'init') {
-      const result = await request('POST', '/team/bootstrap', {})
-      print({
-        ok: Boolean(result.data?.ok),
-        status: result.status,
-        bot: result.data?.bot ? summarizeBot(result.data.bot) : null,
-        bots: (result.data?.bots || []).map(summarizeBot),
-        thread: result.data?.thread ? summarizeThread(result.data.thread) : null,
-        error: result.data?.error,
-      })
+      print(
+        {
+          ok: false,
+          error: '固定团队模板已移除；请用 UI「添加专家」按需创建，或直接让老大招人。',
+        },
+        1,
+      )
       return
     }
     if (action === 'cleanup') {
