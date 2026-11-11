@@ -518,6 +518,10 @@ window.__ModuleLoader__.load({
         approvalDeny: '拒绝',
         approvalReason: '原因',
         approvalHint: 'AI 已暂停，不会继续执行；这次决定只影响当前调用。',
+        approvalNativeKicker: 'DSH 原生授权',
+        approvalNativeTitle: 'DSH 正在等你授权',
+        approvalNativeHint: '授权弹窗在 DSH 主界面左侧会话里，Bot 不能代点。请回到 DSH 处理，或先停止任务。',
+        approvalNativeOpen: '回到 DSH 处理',
         stoppedByUser: '你停止了这一轮',
         retryHint: '让 DSH 继续',
         offlineHint: '后台没有响应，正在重试…',
@@ -1110,6 +1114,10 @@ window.__ModuleLoader__.load({
         approvalDeny: 'Reject',
         approvalReason: 'Reason',
         approvalHint: 'The AI is paused and will not continue; this decision applies to this call only.',
+        approvalNativeKicker: 'DSH APPROVAL',
+        approvalNativeTitle: 'DSH is waiting for approval',
+        approvalNativeHint: 'The approval popup is in the DSH session list on the left; the Bot cannot answer it. Return to DSH to decide, or stop this task.',
+        approvalNativeOpen: 'Return to DSH',
         stoppedByUser: 'You stopped this turn',
         retryHint: 'Let DSH continue',
         offlineHint: 'Backend is not answering, retrying…',
@@ -5605,7 +5613,7 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function PendingPrompt({ question, approval, t, onAnswer, onApproval, submitting }) {
+    function PendingPrompt({ question, approval, t, onAnswer, onApproval, onStop, onNative, submitting }) {
       const [answers, setAnswers] = useState({})
 
       useEffect(() => {
@@ -5667,30 +5675,46 @@ window.__ModuleLoader__.load({
               h(
                 'div',
                 { className: 'gb-pending-head' },
-                h('span', { className: 'gb-pending-kicker' }, t('approvalKicker')),
-                h('span', { className: 'gb-pending-title' }, t('approvalTitle')),
+                h('span', { className: 'gb-pending-kicker' }, t(approval.native ? 'approvalNativeKicker' : 'approvalKicker')),
+                h('span', { className: 'gb-pending-title' }, t(approval.native ? 'approvalNativeTitle' : 'approvalTitle')),
               ),
               h(
                 'div',
                 { className: 'gb-pending-body' },
                 h('div', { className: 'gb-pending-reason' }, h('span', null, `${approval.botName || t('tool_default')} · `), h('b', null, toolLabel(approval.toolName, t))),
                 approval.reason ? h('p', null, approval.reason) : null,
-                h('div', { className: 'gb-pending-hint' }, t('approvalHint')),
+                h('div', { className: 'gb-pending-hint' }, t(approval.native ? 'approvalNativeHint' : 'approvalHint')),
               ),
               h(
                 'div',
                 { className: 'gb-pending-actions' },
-                h(
-                  'button',
-                  { type: 'button', className: 'gb-pending-btn', disabled: submitting, onClick: () => onApproval('rejected') },
-                  t('approvalDeny'),
-                ),
-                h(
-                  'button',
-                  { type: 'button', className: 'gb-pending-btn is-primary', disabled: submitting, onClick: () => onApproval('allowed-once') },
-                  submitting ? h(Spinner, { size: 12 }) : null,
-                  t('approvalAllow'),
-                ),
+                approval.native
+                  ? [
+                      h(
+                        'button',
+                        { key: 'stop', type: 'button', className: 'gb-pending-btn', onClick: onStop, disabled: submitting },
+                        t('stop'),
+                      ),
+                      h(
+                        'button',
+                        { key: 'native', type: 'button', className: 'gb-pending-btn is-primary', onClick: onNative },
+                        h(Icon, { name: 'computer', size: 12 }),
+                        t('approvalNativeOpen'),
+                      ),
+                    ]
+                  : [
+                      h(
+                        'button',
+                        { key: 'deny', type: 'button', className: 'gb-pending-btn', disabled: submitting, onClick: () => onApproval('rejected') },
+                        t('approvalDeny'),
+                      ),
+                      h(
+                        'button',
+                        { key: 'allow', type: 'button', className: 'gb-pending-btn is-primary', disabled: submitting, onClick: () => onApproval('allowed-once') },
+                        submitting ? h(Spinner, { size: 12 }) : null,
+                        t('approvalAllow'),
+                      ),
+                    ],
               ),
             )
           : null,
@@ -7387,6 +7411,11 @@ window.__ModuleLoader__.load({
             t,
             onAnswer: submitAnswer,
             onApproval: submitApproval,
+            onStop: stop,
+            onNative: () => {
+              if (window.history.length > 1) window.history.back()
+              else window.location.assign(window.location.origin + '/')
+            },
             submitting: answerBusy,
           }),
           channel

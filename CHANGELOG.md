@@ -1,6 +1,13 @@
 # Changelog
 
-## 4.22.0 — 2026-11-11
+## 4.23.0 — 2026-11-11
+
+- Fix: native DSH approvals (the popup in the main session list) are now folded from `approval/asked` / `approval/decided` and shown as a Bot card, so the user is no longer unaware.
+- Add: native approval card offers “回到 DSH 处理” (history back) and “停止”; it never pretends the Bot can answer a DSH-owned prompt.
+- Fix: native approval state clears on stop/dispose and when the matching `approval/decided` arrives.
+- Fix: approval cards are auto-scrolled into view when they appear.
+
+## 4.22.0
 
 - Add: `scripts/ocr.py` local Tesseract OCR fallback (image/window/screen, word boxes, language detection and Chinese-language hint).
 - Add: `scripts/sandbox.py` local isolated workbench; Windows Sandbox when available, otherwise a dedicated browser profile + workspace.

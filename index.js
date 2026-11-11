@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '4.22.0'
+const VERSION = '4.23.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -4835,6 +4835,7 @@ export function apply(ctx) {
   async function cancelLiveRec(rec) {
     if (!rec) return false
     settleApproval(rec, 'cancelled')
+    if (rec.pendingApproval?.native) rec.pendingApproval = null
     try {
       rec.agent.cancel({ kind: 'user' })
     } catch {
@@ -4859,6 +4860,7 @@ export function apply(ctx) {
     const rec = live.get(threadId)
     if (!rec) return Promise.resolve()
     settleApproval(rec, 'cancelled')
+    if (rec.pendingApproval?.native) rec.pendingApproval = null
     try {
       rec.approvalOff?.()
     } catch {
@@ -4944,6 +4946,29 @@ export function apply(ctx) {
     rec.thread.updatedAt = time
 
     switch (event.type) {
+      case 'approval/asked': {
+        const data = event.data || {}
+        if (!rec.pendingApproval && data.id) {
+          rec.pendingApproval = {
+            id: String(data.id),
+            toolName: String(data.toolName || 'tool'),
+            callId: data.callId || null,
+            reason: String(data.reason || ''),
+            createdAt: time,
+            native: true,
+            finish: null,
+          }
+        }
+        break
+      }
+      case 'approval/decided': {
+        const data = event.data || {}
+        const pending = rec.pendingApproval
+        if (pending && (pending.id === String(data.id || '') || typeof pending.finish === 'function')) {
+          rec.pendingApproval = null
+        }
+        break
+      }
       case 'user/message': {
         const text = textOf(event.data?.content)
         if (!text || isInternalUserText(text)) break
@@ -5529,6 +5554,7 @@ export function apply(ctx) {
       toolName: pending.toolName,
       callId: pending.callId || null,
       reason: pending.reason || '',
+      native: pending.native === true,
       botId: bot?.id || null,
       botName: bot?.name || null,
       botEmoji: bot?.emoji || null,
@@ -5538,6 +5564,7 @@ export function apply(ctx) {
   function settleApproval(rec, outcome) {
     const pending = rec?.pendingApproval
     if (!pending) return false
+    if (typeof pending.finish !== 'function') return false
     rec.pendingApproval = null
     try {
       pending.finish(outcome)
