@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '4.24.0'
+const VERSION = '4.25.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -119,6 +119,12 @@ function prettyModel(model) {
     'mimo-v2.6-pro-ultraspeed': 'MiMo V2.6 Pro UltraSpeed',
   }
   return table[model] || model || 'Auto'
+}
+
+function clampEffort(value, role) {
+  if (value === 'max') return 'max'
+  if (role === 'lead') return 'max'
+  return 'high'
 }
 
 function newSessionId() {
@@ -2435,7 +2441,15 @@ export function apply(ctx) {
         bot.workspace = value
       }
     }
-    if (!bot.provider) bot.model = null
+    if (!bot.provider) {
+      bot.provider = selection?.provider || null
+    }
+    const leadModel = state.bots.find((item) => item.role === 'lead' && item.model)?.model
+    bot.model =
+      leadModel ||
+      (bot.provider === 'deepseek-official' ? 'deepseek-flash' : selection?.model || bot.model) ||
+      null
+    bot.reasoningEffort = clampEffort(bot.reasoningEffort, bot.role)
     bot.updatedAt = now()
   }
 
@@ -3303,13 +3317,10 @@ export function apply(ctx) {
     const stamp = now()
     const thread = createThreadRecord('', targetBot.id, 'task', null, { setActive: false })
     thread.title = `派活 · ${targetBot.name}：${task.replace(/\s+/g, ' ').slice(0, 24)}`
-    if (options.effort) thread.reasoningEffort = options.effort
-    if (options.model) {
-      const provider = targetBot.provider || selection?.provider || fromBot.provider || null
-      if (provider) {
-        thread.modelProvider = provider
-        thread.modelName = options.model
-      }
+    thread.reasoningEffort = clampEffort(options.effort || targetBot.reasoningEffort, targetBot.role)
+    if (targetBot.provider && targetBot.model) {
+      thread.modelProvider = targetBot.provider
+      thread.modelName = targetBot.model
     }
     const assignment = {
       id: `asg-${crypto.randomUUID()}`,
@@ -3922,6 +3933,7 @@ export function apply(ctx) {
       `- 长期记忆文件：${botMemoryFile(bot)}。当用户给出长期偏好、项目背景、重要决定时，用 write/edit 更新它；不要覆盖无关内容。每次任务开始可先读它。`,
       `- 找旧记忆、旧任务、以前流程：先 python "${memorySearchScript}" search --query "关键词"；不要重新问用户已经记过的事。`,
       '- 你能通过终端、文件和网络操作这台电脑，也能操作图形界面；但不要“先截图猜坐标”。',
+      '- 全团队统一使用 DSH 当前最新模型；不要给任何 Bot 降级到旧模型。只通过 `effort` 调思考强度：普通任务 `high`，复杂分析/排障 `max`，不要用 `low`。',
       `- GUI 控制：先 python "${computerScript}" windows 看窗口的 process / pid / dpi，再用 python "${uiaScript}" list --window <标题> 拿无障碍控件；用 uia.py click/type 按控件名操作。只有 canvas、PDF、图片题、游戏等没有控件树时，才用 computer.py screenshot + 坐标点击兜底。`,
       `- UIA 坐标已由 uia.py 归一化（UIA 2x → Win32 屏幕坐标）；不要自己再乘/除缩放。窗口截图用 python "${computerScript}" window-shot <标题> <png>，不要默认截整个桌面。`,
       `- 图片/PDF/canvas/验证码等没有控件树时：先 window-shot，再 python "${ocrScript}" window <标题> --lang eng（有中文包用 eng+chi_sim）；OCR 只是兜底，能 read 就不 OCR。`,
@@ -3955,7 +3967,7 @@ export function apply(ctx) {
             '- 你自己动手只允许两类：读取/汇总已有结果；一句话能回答的判断。任何要执行命令、扫描磁盘、改文件、建目录的活，都派给专家。',
             '- 派活用 `bot_delegate(bot, task)`。task 要写全：目标、范围、验收标准、禁止事项、需要交付什么；不要只说一句“帮我看看”。',
             '- 现有成员都做不了时，先用 `bot_hire(name, persona, tagline, effort, model)` 招一个对口专家，再派活；告诉用户你新增了什么角色。不要招万能助手，名字要具体（例如“报税”“软件盘点”）。一次请求最多招 2 个。',
-            '- 成本控制：`bot_delegate` 带 `effort` 参数。简单读取/单条命令用 `low`；多步脚本用 `high`；复杂分析或排障用 `max`；只有真正困难、值得升级的活才在派活时指定更强的模型。默认让队员用较低 effort。',
+            '- 成本控制：所有专家统一使用当前最新模型；只用 `effort` 区分思考档位。普通任务用 `high`，复杂分析或排障用 `max`；不要用 `low`，也不要为了省钱降模型。',
             '- 一次用户请求最多派 3 次活；不要重复派同一件事，也不要自己再去做专家的活。',
             '- 派完立刻告诉用户「已派给 X，完成后我汇总」，本轮可以结束；不要停在等待上。',
             '- 成员的结果会以【任务回执】自动回到这个对话。收到后向用户汇报：做了什么、结果、证据、下一步；不要把回执原文贴出来。',
@@ -4083,8 +4095,8 @@ export function apply(ctx) {
     const override =
       thread && thread.modelProvider && thread.modelName
         ? {
-            provider: thread.modelProvider,
-            model: thread.modelName,
+            provider: bot?.provider || thread.modelProvider,
+            model: bot?.model || thread.modelName,
             reasoningEffort: thread.reasoningEffort || bot?.reasoningEffort || undefined,
           }
         : null
@@ -4095,7 +4107,8 @@ export function apply(ctx) {
         : selection)
     if (!chosen) return undefined
     const options = { provider: chosen.provider, model: chosen.model }
-    if (chosen.reasoningEffort) options.reasoningEffort = chosen.reasoningEffort
+    const effort = clampEffort(chosen.reasoningEffort, bot?.role)
+    if (effort) options.reasoningEffort = effort
     return options
   }
 
@@ -4132,14 +4145,47 @@ export function apply(ctx) {
         }
       }
       if (!provider || !model) return false
+      try {
+        const llm = ctx.get('llm')
+        const listed = llm?.listModels ? await llm.listModels(provider) : []
+        const models = Array.isArray(listed) ? listed : []
+        if (models.length > 0) {
+          const latest =
+            models.find((item) => item.id === 'deepseek-flash') ||
+            models.find((item) => /v?4\.1/i.test(String(item.name || ''))) ||
+            models[0]
+          if (latest?.id) model = latest.id
+        }
+      } catch {
+        /* keep the selected model when the catalog is unavailable */
+      }
       let changed = false
       for (const bot of state.bots) {
-        if (bot.provider && bot.model) continue
-        bot.provider = provider
-        bot.model = model
-        if (effort) bot.reasoningEffort = effort
-        bot.updatedAt = now()
-        changed = true
+        const effort = clampEffort(bot.reasoningEffort, bot.role)
+        if (bot.provider !== provider || bot.model !== model || bot.reasoningEffort !== effort) {
+          bot.provider = provider
+          bot.model = model
+          bot.reasoningEffort = effort
+          bot.updatedAt = now()
+          changed = true
+        }
+      }
+      for (const thread of state.threads) {
+        const owner = botById(thread.botId)
+        if (!owner) continue
+        const effort = clampEffort(thread.reasoningEffort || owner.reasoningEffort, owner.role)
+        if (
+          thread.modelProvider !== provider ||
+          thread.modelName !== model ||
+          thread.model !== model ||
+          thread.reasoningEffort !== effort
+        ) {
+          thread.modelProvider = provider
+          thread.modelName = model
+          thread.model = model
+          thread.reasoningEffort = effort
+          changed = true
+        }
       }
       if (changed) saveStateNow()
       return true
@@ -4603,11 +4649,11 @@ export function apply(ctx) {
                 effort: {
                   type: 'string',
                   enum: ['low', 'high', 'max'],
-                  description: 'Reasoning effort for this assignment only. Simple reads: low; multi-step work: high; hard analysis: max.',
+                  description: 'Reasoning effort for this assignment only. Use high for most work, max for hard analysis; low is clamped to high.',
                 },
                 model: {
                   type: 'string',
-                  description: 'Optional model id from the teammate provider. Omit to keep the teammate default.',
+                  description: 'Ignored: every teammate uses the current latest model. Kept for compatibility.',
                 },
               },
               required: ['bot', 'task'],
@@ -4648,8 +4694,8 @@ export function apply(ctx) {
                 throw new Error(`同一次请求最多派 ${DELEGATE_LIMIT} 次活`)
               }
               const { assignment, thread } = createAssignmentRecord(from, rec.thread, target, task, {
-                effort: ['low', 'high', 'max'].includes(args?.effort) ? args.effort : '',
-                model: textValue(args?.model, 120),
+                effort: clampEffort(args?.effort, target.role),
+                model: '',
               })
               let targetRec
               try {
@@ -4711,8 +4757,8 @@ export function apply(ctx) {
                   type: 'string',
                   description: 'Full system prompt: responsibilities, rules, boundaries, output format.',
                 },
-                effort: { type: 'string', enum: ['low', 'high', 'max'] },
-                model: { type: 'string', description: 'Optional model id from the same provider as the Boss.' },
+                effort: { type: 'string', enum: ['low', 'high', 'max'], description: 'high by default; max for hard work; low is clamped to high.' },
+                model: { type: 'string', description: 'Ignored: all bots use the current latest model.' },
               },
               required: ['name', 'persona'],
               additionalProperties: false,
@@ -4743,11 +4789,7 @@ export function apply(ctx) {
               const slug = name.replace(/[\\/:*?"<>|\s]+/g, '-').slice(0, 40) || 'member'
               const workspace = path.join(getWorkspace(), 'team', slug)
               const provider = from.provider || selection?.provider || null
-              const requestedModel = textValue(args?.model, 120)
-              const fallbackModel =
-                provider === 'deepseek-official'
-                  ? 'deepseek-flash'
-                  : selection?.model || from.model || null
+              const latestModel = from.model || selection?.model || 'deepseek-flash'
               const bot = createBotRecord({
                 name,
                 emoji: textValue(args?.emoji, 8) || '🤖',
@@ -4758,12 +4800,8 @@ export function apply(ctx) {
                 autonomy: 'unattended',
                 workspace,
                 provider,
-                model: requestedModel || fallbackModel,
-                reasoningEffort: ['low', 'high', 'max'].includes(args?.effort)
-                  ? args.effort
-                  : provider === 'deepseek-official'
-                    ? 'low'
-                    : null,
+                model: latestModel,
+                reasoningEffort: clampEffort(args?.effort, 'member'),
               })
               bot.role = 'member'
               state.activeBotId = from.id

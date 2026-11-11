@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.25.0 — 2026-11-11
+
+- Changed: every bot now uses the same current latest model (DeepSeek V4.1 Flash) instead of mixing Flash and older Pro routes.
+- Changed: only reasoning effort differs — lead defaults to `max`, members to `high`; `low` is clamped to `high` and removed from the Bot editor.
+- Changed: existing bots and thread model metadata are migrated on startup so old threads no longer show/use the previous model.
+- Changed: delegation/hiring prompts no longer offer model downgrades; `effort` is the only per-task knob.
+
 ## 4.24.0 — 2026-11-11
 
 - Add: `scripts/memory_search.py` local full-text search over bot memories, thread titles and group messages; Chinese substring matching, no upload/vector service.
