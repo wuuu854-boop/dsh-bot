@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '4.26.0'
+const VERSION = '4.27.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -3971,6 +3971,7 @@ export function apply(ctx) {
     const memory = truncate(readMemory(bot).trim(), 12_000)
     const skills = skillsForBot(bot.id).slice(0, 6)
     const group = thread && thread.kind === 'member' ? state.threads.find((item) => item.id === thread.channelId) : null
+    const difficulty = normalizeDifficulty(thread?.difficulty)
     const teamBlock =
       bot.role === 'lead'
         ? [
@@ -3982,6 +3983,7 @@ export function apply(ctx) {
             '- 派活用 `bot_delegate(bot, task)`。task 要写全：目标、范围、验收标准、禁止事项、需要交付什么；不要只说一句“帮我看看”。',
             '- 现有成员都做不了时，先用 `bot_hire(name, persona, tagline, effort, model)` 招一个对口专家，再派活；告诉用户你新增了什么角色。不要招万能助手，名字要具体（例如“报税”“软件盘点”）。一次请求最多招 2 个。',
             '- 成本控制：所有专家统一使用当前最新模型；只用 `effort` 区分思考档位。普通任务用 `high`，复杂分析或排障用 `max`；不要用 `low`，也不要为了省钱降模型。',
+            `- 当前任务难度是 ${difficulty === 'simple' ? '简单' : difficulty === 'hard' ? '困难' : '标准'}；派活时 effort 至少 high，困难任务用 max。`,
             '- 一次用户请求最多派 3 次活；不要重复派同一件事，也不要自己再去做专家的活。',
             '- 派完立刻告诉用户「已派给 X，完成后我汇总」，本轮可以结束；不要停在等待上。',
             '- 成员的结果会以【任务回执】自动回到这个对话。收到后向用户汇报：做了什么、结果、证据、下一步；不要把回执原文贴出来。',
@@ -4006,6 +4008,16 @@ export function apply(ctx) {
           `- 同一个用户请求里你最多派 ${DISPATCH_LIMIT} 次活；不要派回给刚派活给你的成员，也不要重复派同一件事。`,
         ].join('\n')
       : ''
+    const difficultyBlock = [
+      '',
+      '## 当前任务难度（用户在输入框选择）',
+      difficulty === 'simple'
+        ? '- 简单：先给结论，步骤最少；只做用户明确要求的事，不做无关扩展。'
+        : difficulty === 'hard'
+          ? '- 困难：先拆解关键问题/风险/假设，执行后做交叉验证；给出证据、失败点和下一步。'
+          : '- 标准：完整执行并验证结果；过程和证据保持简洁。',
+      '- 难度只影响思考深度和验证力度，不改变模型；不要因为“简单”就跳过必要的安全确认。',
+    ].join('\n')
     return [
       '## 本地运行环境（实时）',
       `- 当前 Bot：${bot.name}${bot.tagline ? `（${bot.tagline}）` : ''}`,
@@ -4020,6 +4032,7 @@ export function apply(ctx) {
       `- Firefox 隔离控制（仅 Grok/Copilot）：${browserScript}（Marionette；start/text/open/click/type/screenshot/quit；Grok 用 --profile grok，Copilot 用 --profile automation --direct-profile，不要用旧 copilot profile；外网依赖 Clash 7890）`,
       `- 多显示器：python "${computerScript}" screen 查看布局；screenshot 默认截取全部显示器，可加 primary 或 monitor:N。坐标使用虚拟桌面坐标。`,
       '',
+      difficultyBlock,
       '## 浏览器任务（默认底层，不走视觉）',
       `- 默认用 Edge + UI Automation：python "${edgeScript}" read 读取页面全文和控件；click/type/select 直接操作控件。`,
       `- 所有网页内容（文章、搜索、文档、作业、表单）都先 read；只要 read.textLength > 0，就不要截图。`,

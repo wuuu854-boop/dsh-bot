@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.27.0 — 2026-11-11
+
+- Changed: task difficulty now changes behavior, not only effort — simple asks for the shortest result, standard executes/verifies, hard decomposes risks and cross-checks.
+- Changed: the Boss passes the chosen difficulty into delegation effort (at least `high`, `max` for hard) and the agent prompt refreshes as difficulty changes.
+
 ## 4.26.0 — 2026-11-11
 
 - Add: task difficulty selector (简单 / 标准 / 困难) in the composer; simple/standard map to `high`, hard to `max`; persisted per thread and shown in the title bar and task list.
