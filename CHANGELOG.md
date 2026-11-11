@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.24.0 — 2026-11-11
+
+- Add: `scripts/memory_search.py` local full-text search over bot memories, thread titles and group messages; Chinese substring matching, no upload/vector service.
+- Add: site profiles for ICVE/智慧职教, 超星/学习通, 智慧树, 学堂在线 in `edge.py read`; each returns a domain-specific iframe/loop hint.
+- Changed: Bot prompt tells agents to search local memory before asking the user to repeat old context.
+- Docs: memory search and site profiles added to README and the all-in-one map.
+
 ## 4.23.0 — 2026-11-11
 
 - Fix: native DSH approvals (the popup in the main session list) are now folded from `approval/asked` / `approval/decided` and shown as a Bot card, so the user is no longer unaware.

@@ -101,6 +101,25 @@ BROWSERS = {
 }
 BROWSER_ORDER = ("edge", "chrome", "brave", "chromium", "firefox")
 PREFERRED_BROWSER = os.environ.get("DSH_BOT_BROWSER", "auto").strip().lower() or "auto"
+SITE_PROFILES = {
+    "icve.com.cn": (
+        "icve",
+        "智慧职教：任务/视频/作业常在 iframe。先看 documents 的 frame；"
+        "点击用 click --all --verify，changed:false 时禁止重复点击，先检查新 frame、scroll、wait-change，仍无变化就停下报告卡点。",
+    ),
+    "chaoxing.com": (
+        "chaoxing",
+        "超星/学习通：章节、视频、作业常在 iframe 或新窗口；先 read --all，提交后必须 read 确认状态，未变化不要重复点。",
+    ),
+    "zhihuishu.com": (
+        "zhihuishu",
+        "智慧树：课程视频/章节在播放器 iframe；先 read --all，视频用播放控件，作业提交后回读确认。",
+    ),
+    "xuetangx.com": (
+        "xuetangx",
+        "学堂在线：课件/视频/测验常在 iframe；先 read --all，点击用 --all --verify，卡住就停下报告。",
+    ),
+}
 
 
 def find_browser(name):
@@ -631,13 +650,12 @@ def main():
     if command == "read":
         limit = int(flag(args, "limit", "200") or 200)
         result = read_page(limit, "--all" in args)
-        if "icve.com.cn" in str(result.get("url") or ""):
-            result["adapter"] = "icve"
-            result["siteHint"] = (
-                "智慧职教：任务/视频/作业常在 iframe。先看 documents 的 frame；"
-                "点击用 click --all --verify，changed:false 时禁止重复点击，"
-                "先检查新 frame、scroll、wait-change，仍无变化就停下报告卡点。"
-            )
+        url = str(result.get("url") or "").lower()
+        for domain, (adapter, hint) in SITE_PROFILES.items():
+            if domain in url:
+                result["adapter"] = adapter
+                result["siteHint"] = hint
+                break
         if (
             result.get("ok")
             and resolve_browser() == "firefox"

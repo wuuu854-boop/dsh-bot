@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '4.23.0'
+const VERSION = '4.24.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -153,6 +153,7 @@ export function apply(ctx) {
   const uiaScript = path.join(packageDir, 'scripts', 'uia.py')
   const ocrScript = path.join(packageDir, 'scripts', 'ocr.py')
   const sandboxScript = path.join(packageDir, 'scripts', 'sandbox.py')
+  const memorySearchScript = path.join(packageDir, 'scripts', 'memory_search.py')
 
   try {
     fs.mkdirSync(stateDir, { recursive: true })
@@ -3919,6 +3920,7 @@ export function apply(ctx) {
         : '- 需要用户决策、付款、对外发消息、删除工作区外文件、修改系统设置等不可逆操作时，先用 bot_ask 问一次；其余直接做。',
       '- 需要用户拍板时用 bot_ask；它会结束本轮，用户回答后自动继续。不要调用 ask_user_question / exit_plan_mode（Bot 页面禁用了这两个阻塞工具）。',
       `- 长期记忆文件：${botMemoryFile(bot)}。当用户给出长期偏好、项目背景、重要决定时，用 write/edit 更新它；不要覆盖无关内容。每次任务开始可先读它。`,
+      `- 找旧记忆、旧任务、以前流程：先 python "${memorySearchScript}" search --query "关键词"；不要重新问用户已经记过的事。`,
       '- 你能通过终端、文件和网络操作这台电脑，也能操作图形界面；但不要“先截图猜坐标”。',
       `- GUI 控制：先 python "${computerScript}" windows 看窗口的 process / pid / dpi，再用 python "${uiaScript}" list --window <标题> 拿无障碍控件；用 uia.py click/type 按控件名操作。只有 canvas、PDF、图片题、游戏等没有控件树时，才用 computer.py screenshot + 坐标点击兜底。`,
       `- UIA 坐标已由 uia.py 归一化（UIA 2x → Win32 屏幕坐标）；不要自己再乘/除缩放。窗口截图用 python "${computerScript}" window-shot <标题> <png>，不要默认截整个桌面。`,

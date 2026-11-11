@@ -28,6 +28,7 @@ DSH Bot 不是聊天壳，而是把一台 Windows 电脑上的真实工作拆给
 - **自建员工**：没有对口成员时，Boss 用 `bot_hire` 创建新 Bot（角色、头像、persona、workspace、模型）并立即派活。
 - **派活可观测**：卡片显示状态、步数、耗时、tokens；失败/中断可一键重试，最多 3 次。
 - **主题切换**：顶栏三色圆点，暗色 / 暖色 / 水墨；三种主题的对话气泡、输入区和标题字体各自不同，刷新后保持。
+- **本地记忆检索**：`memory_search.py search --query "关键词"` 搜长期记忆、旧任务标题和群聊记录；中文按子串匹配，不上传、不依赖向量库。
 - **本地隔离工作台**：没有云电脑也能隔离实验——Windows Sandbox 可用时开一次性桌面，否则用独立浏览器 profile + 独立工作区；日常 Cookie 和下载不受影响。
 - **OCR 兜底**：canvas/PDF/图片题用 `computer.py window-shot` + `ocr.py` 本地 Tesseract，不默认全屏截图；中文需安装 chi_sim 语言包。
 - **深度调研/电脑体检/隔离工作台模板**：从输入框旁模板直接套用，不需要记命令。
@@ -168,6 +169,8 @@ python scripts/ocr.py image out.png --lang eng
 python scripts/sandbox.py status
 python scripts/sandbox.py create --name 课程实验
 python scripts/sandbox.py open --name 课程实验
+python scripts/memory_search.py stats
+python scripts/memory_search.py search --query "智慧职教"
 python scripts/edge.py scroll down
 python scripts/edge.py type --name "学号" --text "123"
 python scripts/edge.py click --name "提交"

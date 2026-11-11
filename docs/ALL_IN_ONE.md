@@ -33,10 +33,12 @@
 2. **浏览器**：Edge / Chrome / Brave / Chromium 自动选择；`read --all` 跨 iframe；`click --all --verify`；`course.py` 刷课状态机。
 3. **电脑**：`uia.py` 无障碍树 + 语义点击/输入；`computer.py` 窗口 process/pid/dpi、窗口截图、剪贴板、launch、wait-window。
 4. **视觉兜底**：`ocr.py` Tesseract 本地 OCR；`window-shot` 只截目标窗口。
-5. **隔离**：`sandbox.py` 本地工作台；Windows Sandbox 可用则开一次性桌面，否则独立浏览器 profile + 工作区。
-6. **模板**：作业、阅读、清理、复盘、深度调研、隔离工作台、OCR、电脑体检、智慧职教/刷课。
-7. **新手引导**：4 步上手 + 侧边栏「使用指引」。
-8. **可观测**：健康检查、replay、活动时间线、token/耗时统计、失败卡。
+5. **本地记忆检索**：`memory_search.py` 全文搜记忆、任务标题、群聊记录；中文子串，零上传。
+6. **站点适配**：ICVE/智慧职教、超星/学习通、智慧树、学堂在线返回 iframe/防循环提示。
+7. **隔离**：`sandbox.py` 本地工作台；Windows Sandbox 可用则开一次性桌面，否则独立浏览器 profile + 工作区。
+8. **模板**：作业、阅读、清理、复盘、深度调研、隔离工作台、OCR、电脑体检、智慧职教/刷课。
+9. **新手引导**：4 步上手 + 侧边栏「使用指引」。
+10. **可观测**：健康检查、replay、活动时间线、token/耗时统计、失败卡。
 
 ## 不做的部分
 
