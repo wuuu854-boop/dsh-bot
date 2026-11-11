@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.7.1 — 2026-11-11
+
+- Fix: a fresh install starts with exactly one bot, **老大 (lead)**. The full specialist team is only added when the user clicks **团队模板**.
+- Fix: bots now resolve the current DSH default model at first bootstrap instead of hardcoding `deepseek-official`; the team template no longer pins model IDs.
+- Fix: if DSH has no usable model, the UI shows a setup banner and `/send` returns a clear message instead of a raw task failure.
+
 ## 4.7.0 — 2026-11-10
 
 - Change: Microsoft Edge is now the default browser for every bot. New `scripts/edge.py` provides `open`, `navigate`, `activate`, `status`, `screenshot`, `monitors`, and `screen`.

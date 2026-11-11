@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '4.7.0'
+const VERSION = '4.7.1'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -414,16 +414,16 @@ export function apply(ctx) {
   function makeDefaultBot() {
     return {
       id: DEFAULT_BOT_ID,
-      name: 'DSH',
-      emoji: '◉',
-      tagline: '本地智能体 · 全权限',
+      name: '老大',
+      emoji: '👑',
+      tagline: '只跟你对话 · 判断与派活',
       persona: '',
       presetId: null,
       provider: null,
       model: null,
       reasoningEffort: null,
       workspace: null,
-      role: 'member',
+      role: 'lead',
       privilege: 'standard',
       autonomy: 'interactive',
       createdAt: startedAt,
@@ -2365,9 +2365,9 @@ export function apply(ctx) {
       role: 'lead',
       privilege: 'standard',
       autonomy: 'interactive',
-      provider: 'deepseek-official',
-      model: 'deepseek-v4-pro',
-      effort: 'max',
+      provider: null,
+      model: null,
+      effort: null,
       workspace: null,
       persona: [
         '你是「老大」，这个团队里唯一直接对用户负责的 Bot。',
@@ -2408,9 +2408,9 @@ export function apply(ctx) {
       role: 'member',
       privilege: 'admin',
       autonomy: 'unattended',
-      provider: 'deepseek-official',
-      model: 'deepseek-flash',
-      effort: 'low',
+      provider: null,
+      model: null,
+      effort: null,
       workspace: path.join(home, 'dsh-bot-team', 'disk'),
       persona: [
         '你是「磁盘清理」专家。目标：安全地腾出磁盘空间，不弄丢用户的数据。',
@@ -2450,9 +2450,9 @@ export function apply(ctx) {
       role: 'member',
       privilege: 'standard',
       autonomy: 'unattended',
-      provider: 'deepseek-official',
-      model: 'deepseek-flash',
-      effort: 'low',
+      provider: null,
+      model: null,
+      effort: null,
       workspace: path.join(home, 'dsh-bot-team', 'university'),
       persona: [
         '你是「大学事务」专家，管用户大学里的一切事项：课程表、作业、考试、绩点、培养方案、选课、论文与实验、社团、证件、申请材料、邮件、日程提醒。',
@@ -2810,6 +2810,7 @@ export function apply(ctx) {
     }
     if (!state.bots.some((bot) => bot.role === 'lead')) return
     if (state.bots.length < 2) return
+    if (!selection && !state.bots.some((bot) => bot.provider && bot.model)) return
     if (state.meeting.lastDate === meetingDateKey()) return
     if (state.meeting.lastAttemptAt && now() - state.meeting.lastAttemptAt < 30 * 60 * 1000) return
     meetingScheduled = true
@@ -4156,6 +4157,56 @@ export function apply(ctx) {
     const options = { provider: chosen.provider, model: chosen.model }
     if (chosen.reasoningEffort) options.reasoningEffort = chosen.reasoningEffort
     return options
+  }
+
+  let modelProbe = null
+
+  async function ensureDefaultModel() {
+    if (modelProbe) return modelProbe
+    modelProbe = (async () => {
+      try {
+        const current = ctx.get('agentDefaultModel')?.currentSelection?.()
+        if (current?.provider && current?.model) selection = current
+      } catch {
+        /* keep the startup selection */
+      }
+      let provider = selection?.provider || null
+      let model = selection?.model || null
+      let effort = selection?.reasoningEffort || null
+      if (!provider || !model) {
+        try {
+          const llm = ctx.get('llm')
+          const providers = llm?.listProviders?.() || []
+          const preferred = providers.find((item) => item.id === 'deepseek-official') || providers[0]
+          if (preferred?.id) {
+            const listed = await llm.listModels(preferred.id)
+            const models = Array.isArray(listed) ? listed : []
+            if (models.length > 0) {
+              provider = preferred.id
+              model = models[0].id
+              effort = null
+            }
+          }
+        } catch {
+          /* no provider configured yet */
+        }
+      }
+      if (!provider || !model) return false
+      let changed = false
+      for (const bot of state.bots) {
+        if (bot.provider && bot.model) continue
+        bot.provider = provider
+        bot.model = model
+        if (effort) bot.reasoningEffort = effort
+        bot.updatedAt = now()
+        changed = true
+      }
+      if (changed) saveStateNow()
+      return true
+    })()
+    const ready = await modelProbe.catch(() => false)
+    if (!ready) modelProbe = null
+    return ready
   }
 
   async function createAgentFor(thread, preset) {
@@ -5599,6 +5650,7 @@ export function apply(ctx) {
       threads: threadList(leader.id),
       routines: routineList(leader.id),
       activeThreadId: group.id,
+      modelReady: Boolean(agentOptions(group)),
       assignments: state.assignments
         .filter(
           (assignment) =>
@@ -5678,6 +5730,7 @@ export function apply(ctx) {
         auditCount: state.audits.length,
       },
       thread: threadInfo(thread, rec),
+      modelReady: Boolean(agentOptions(thread)),
       threads: threadList(bot.id),
       routines: routineList(bot.id),
       activeThreadId: thread.id,
@@ -5843,6 +5896,7 @@ export function apply(ctx) {
         if (!belongs) thread = firstThreadForBot(bot.id)
         if (!thread) thread = createThreadRecord('', bot.id)
         state.activeBotId = bot.id
+        await ensureDefaultModel()
         maybeRunMeeting('open')
         return json(res, 200, await openThread(thread))
       }
@@ -6053,6 +6107,7 @@ export function apply(ctx) {
 
       if (req.method === 'POST' && sub === '/team/bootstrap') {
         const result = await bootstrapTeam()
+        await ensureDefaultModel()
         return json(res, 200, await openThread(result.thread))
       }
 
@@ -6521,6 +6576,14 @@ export function apply(ctx) {
         }
         if (text.length > 24_000) {
           json(res, 400, { ok: false, error: '消息太长' })
+          return
+        }
+        await ensureDefaultModel()
+        if (!agentOptions(thread)) {
+          json(res, 409, {
+            ok: false,
+            error: '当前 DSH 还没有可用模型。请先在 DSH 设置里接入 API 并选择默认模型，再发任务。',
+          })
           return
         }
         if (isGroup(thread)) {
@@ -7384,6 +7447,9 @@ export function apply(ctx) {
   }
   saveStateNow()
   writeRuntimeInfo()
+  setTimeout(() => {
+    ensureDefaultModel().catch(() => undefined)
+  }, 1_200)
   ctx.effect(() => {
     const timer = setTimeout(() => {
       reconcileRoutines().catch((error) => {

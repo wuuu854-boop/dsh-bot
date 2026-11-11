@@ -126,6 +126,8 @@ window.__ModuleLoader__.load({
         loadEarlier: '加载更早',
         noMoreHistory: '没有更早的消息了',
         replyYou: '你',
+        modelMissing: '还没有可用模型',
+        modelMissingHint: '请先在 DSH 设置里接入 API 并选择默认模型，再发任务。',
         quoteJump: '跳到原消息',
         quote: '引用',
         pinMessage: '置顶',
@@ -612,6 +614,8 @@ window.__ModuleLoader__.load({
         loadEarlier: 'Load earlier',
         noMoreHistory: 'No earlier messages',
         replyYou: 'You',
+        modelMissing: 'No model connected',
+        modelMissingHint: 'Connect an API and choose a default model in DSH settings before sending a task.',
         quoteJump: 'Jump to the original message',
         quote: 'Quote',
         pinMessage: 'Pin',
@@ -6411,6 +6415,19 @@ window.__ModuleLoader__.load({
                 h('span', { className: 'gb-offline-sub' }, t('offlineHint')),
               )
             : null,
+          snap.modelReady === false
+            ? h(
+                'div',
+                { className: 'gb-model-warning' },
+                h(Icon, { name: 'alert', size: 14 }),
+                h(
+                  'div',
+                  { className: 'gb-model-warning-text' },
+                  h('strong', null, t('modelMissing')),
+                  h('span', null, t('modelMissingHint')),
+                ),
+              )
+            : null,
           pinnedList.length > 0
             ? h(
                 'div',
@@ -6972,6 +6989,10 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 /* chat */
 .gb-chat-scroll { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; scroll-behavior: smooth; }
 .gb-pinned-wrap { position: relative; width: calc(100% - 76px); max-width: 880px; margin: 0 auto 6px; }
+.gb-model-warning { display: flex; align-items: flex-start; gap: 7px; width: calc(100% - 76px); max-width: 880px; margin: 0 auto 6px; padding: 7px 9px; border: 1px solid color-mix(in srgb, var(--gb-warn) 40%, var(--gb-line)); border-radius: 8px; background: color-mix(in srgb, var(--gb-warn) 10%, transparent); color: var(--gb-warn); }
+.gb-model-warning-text { display: flex; flex-direction: column; gap: 2px; font-size: 9px; }
+.gb-model-warning-text strong { font-size: 9px; }
+.gb-model-warning-text span { color: var(--gb-muted); }
 .gb-pinned { display: flex; align-items: center; gap: 6px; width: 100%; padding: 5px 9px; border: 1px solid var(--gb-line); border-radius: 8px; background: color-mix(in srgb, var(--gb-panel-2) 45%, transparent); }
 .gb-pinned > svg { flex: none; color: var(--gb-signal); }
 .gb-pinned-body { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; border: 0; background: transparent; text-align: left; cursor: pointer; }

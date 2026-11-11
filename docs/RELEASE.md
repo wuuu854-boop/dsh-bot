@@ -1,4 +1,4 @@
-# DSH Bot v4.7.0
+# DSH Bot v4.7.1
 
 **An open-source GrokBot alternative that runs a real bot team on your own Windows machine, inside DeepSeek Harness.**
 
@@ -13,7 +13,7 @@ You talk to one **Boss**. It decides what to do, hires a specialist when nobody 
 - **Daily stand-up** — first DSH open of the day creates a ☀️ group with every bot; each reports from its own 36-hour run history; the Boss writes the minutes. Configurable: off, weekdays only, or only when there was work.
 - **Group chats** — 2–8 bots in one channel, `@name` routing, `bot_dispatch`, speaker-attributed replies, persisted group transcript.
 - **Git-backed memory** — each bot's memory is a Git repo with history, diff and one-click restore.
-- **Model policy** — Boss `deepseek-v4-pro` + `max`; members `deepseek-flash` + `low`; per-assignment `effort` / `model` overrides.
+- **Model policy** — bots follow the DSH default model, with per-assignment `effort` / `model` overrides.
 - **Local execution depth** — Edge is the default browser; multi-monitor screenshots cover the whole virtual desktop; GUI control, app launching, Clash proxy guard, isolated Firefox, safety snapshots, budgets, QQ notifications and remote control.
 - **CLI + HTTP API** — `bot_cli.mjs` and `docs/API.md` cover bots, threads, groups, team, meeting, memory, routines and skills.
 
@@ -26,7 +26,7 @@ git clone https://github.com/wuuu854-boop/dsh-bot.git
 #   "@local/dsh-bot": "link:<path>/dsh-bot"
 ```
 
-Then click **团队模板** in the sidebar (or `node scripts/bot_cli.mjs team init`) and start talking to **老大**.
+Then talk to the default **老大** bot; click **团队模板** only when you want to add specialists.
 
 ## Verified locally
 
