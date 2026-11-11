@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '4.7.2'
+const VERSION = '4.7.3'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -3382,8 +3382,11 @@ export function apply(ctx) {
     thread.title = `派活 · ${targetBot.name}：${task.replace(/\s+/g, ' ').slice(0, 24)}`
     if (options.effort) thread.reasoningEffort = options.effort
     if (options.model) {
-      thread.modelProvider = targetBot.provider || 'deepseek-official'
-      thread.modelName = options.model
+      const provider = targetBot.provider || selection?.provider || fromBot.provider || null
+      if (provider) {
+        thread.modelProvider = provider
+        thread.modelName = options.model
+      }
     }
     const assignment = {
       id: `asg-${crypto.randomUUID()}`,
@@ -4025,7 +4028,7 @@ export function apply(ctx) {
             '- 你自己动手只允许两类：读取/汇总已有结果；一句话能回答的判断。任何要执行命令、扫描磁盘、改文件、建目录的活，都派给专家。',
             '- 派活用 `bot_delegate(bot, task)`。task 要写全：目标、范围、验收标准、禁止事项、需要交付什么；不要只说一句“帮我看看”。',
             '- 现有成员都做不了时，先用 `bot_hire(name, persona, tagline, effort, model)` 招一个对口专家，再派活；告诉用户你新增了什么角色。不要招万能助手，名字要具体（例如“报税”“软件盘点”）。一次请求最多招 2 个。',
-            '- 成本控制：`bot_delegate` 带 `effort` 参数。简单读取/单条命令用 `low`；多步脚本用 `high`；复杂分析或排障用 `max`；只有真正困难、值得用最贵模型的活才用 `deepseek-v4-pro`。默认让队员用 flash + low。',
+            '- 成本控制：`bot_delegate` 带 `effort` 参数。简单读取/单条命令用 `low`；多步脚本用 `high`；复杂分析或排障用 `max`；只有真正困难、值得升级的活才在派活时指定更强的模型。默认让队员用较低 effort。',
             '- 一次用户请求最多派 3 次活；不要重复派同一件事，也不要自己再去做专家的活。',
             '- 派完立刻告诉用户「已派给 X，完成后我汇总」，本轮可以结束；不要停在等待上。',
             '- 成员的结果会以【任务回执】自动回到这个对话。收到后向用户汇报：做了什么、结果、证据、下一步；不要把回执原文贴出来。',
@@ -4204,7 +4207,10 @@ export function apply(ctx) {
       if (changed) saveStateNow()
       return true
     })()
-    const ready = await modelProbe.catch(() => false)
+    const ready = await Promise.race([
+      modelProbe.catch(() => false),
+      delay(6_000).then(() => false),
+    ])
     if (!ready) modelProbe = null
     return ready
   }
@@ -4633,8 +4639,7 @@ export function apply(ctx) {
                 },
                 model: {
                   type: 'string',
-                  enum: ['deepseek-flash', 'deepseek-v4-pro'],
-                  description: 'Optional model override for this assignment. Default keeps the teammate model.',
+                  description: 'Optional model id from the teammate provider. Omit to keep the teammate default.',
                 },
               },
               required: ['bot', 'task'],
@@ -4676,7 +4681,7 @@ export function apply(ctx) {
               }
               const { assignment, thread } = createAssignmentRecord(from, rec.thread, target, task, {
                 effort: ['low', 'high', 'max'].includes(args?.effort) ? args.effort : '',
-                model: ['deepseek-flash', 'deepseek-v4-pro'].includes(args?.model) ? args.model : '',
+                model: textValue(args?.model, 120),
               })
               let targetRec
               try {
@@ -4739,7 +4744,7 @@ export function apply(ctx) {
                   description: 'Full system prompt: responsibilities, rules, boundaries, output format.',
                 },
                 effort: { type: 'string', enum: ['low', 'high', 'max'] },
-                model: { type: 'string', enum: ['deepseek-flash', 'deepseek-v4-pro'] },
+                model: { type: 'string', description: 'Optional model id from the same provider as the Boss.' },
               },
               required: ['name', 'persona'],
               additionalProperties: false,
@@ -4769,6 +4774,12 @@ export function apply(ctx) {
               }
               const slug = name.replace(/[\\/:*?"<>|\s]+/g, '-').slice(0, 40) || 'member'
               const workspace = path.join(getWorkspace(), 'team', slug)
+              const provider = from.provider || selection?.provider || null
+              const requestedModel = textValue(args?.model, 120)
+              const fallbackModel =
+                provider === 'deepseek-official'
+                  ? 'deepseek-flash'
+                  : selection?.model || from.model || null
               const bot = createBotRecord({
                 name,
                 emoji: textValue(args?.emoji, 8) || '🤖',
@@ -4778,13 +4789,13 @@ export function apply(ctx) {
                 privilege: 'standard',
                 autonomy: 'unattended',
                 workspace,
-                provider: 'deepseek-official',
-                model: ['deepseek-flash', 'deepseek-v4-pro'].includes(args?.model)
-                  ? args.model
-                  : 'deepseek-flash',
+                provider,
+                model: requestedModel || fallbackModel,
                 reasoningEffort: ['low', 'high', 'max'].includes(args?.effort)
                   ? args.effort
-                  : 'low',
+                  : provider === 'deepseek-official'
+                    ? 'low'
+                    : null,
               })
               bot.role = 'member'
               state.activeBotId = from.id

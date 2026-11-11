@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.7.3 — 2026-11-11
+
+- Fix: `bot_hire` and `bot_delegate` no longer hardcode DeepSeek provider/model IDs; hired specialists inherit the Boss provider and use a compatible default.
+- Fix: per-assignment model overrides respect the teammate provider instead of falling back to `deepseek-official`.
+- Polish: cost guidance is provider-neutral.
+
 ## 4.7.2 — 2026-11-11
 
 - Add: first-run welcome and Team tab offer a one-click **添加专家团队** action when only the Boss exists.
