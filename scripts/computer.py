@@ -30,6 +30,7 @@ from __future__ import annotations
 import ctypes
 import json
 import os
+import subprocess
 import sys
 import tempfile
 import time
@@ -340,6 +341,34 @@ def window_rect(hwnd):
     return [rect.left, rect.top, rect.right, rect.bottom]
 
 
+def process_name(pid):
+    """Return the executable basename for a PID (best effort)."""
+    try:
+        PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+        handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, int(pid))
+        if not handle:
+            return ''
+        try:
+            size = DWORD(1024)
+            buffer = ctypes.create_unicode_buffer(1024)
+            if kernel32.QueryFullProcessImageNameW(handle, 0, buffer, ctypes.byref(size)):
+                return os.path.basename(buffer.value)
+        finally:
+            kernel32.CloseHandle(handle)
+    except Exception:
+        pass
+    return ''
+
+
+def window_dpi(hwnd):
+    """Effective DPI for one window (96 = 100%, 144 = 150%, 192 = 200%)."""
+    try:
+        value = int(user32.GetDpiForWindow(wintypes.HWND(int(hwnd))))
+        return value if value > 0 else 96
+    except Exception:
+        return 96
+
+
 def list_windows():
     active = user32.GetForegroundWindow()
     results = []
@@ -356,6 +385,8 @@ def list_windows():
         results.append({
             'handle': int(hwnd),
             'pid': int(pid.value),
+            'process': process_name(pid.value),
+            'dpi': window_dpi(hwnd),
             'title': title,
             'active': hwnd == active,
             'rect': window_rect(hwnd),
@@ -521,6 +552,86 @@ def screen_size():
     return screen_info()
 
 
+def screenshot_window(needle, path=None):
+    """Capture only one window (screen region), not the whole desktop."""
+    from PIL import ImageGrab
+
+    window = activate_window(needle)
+    rect = window.get('rect') or [0, 0, 0, 0]
+    left, top, right, bottom = [int(value) for value in rect]
+    if right <= left or bottom <= top:
+        raise RuntimeError('window has no visible rectangle')
+    image = ImageGrab.grab(bbox=(left, top, right, bottom), all_screens=True)
+    target_path = path or os.path.join(tempfile.gettempdir(), f'dsh-bot-window-{int(time.time())}.png')
+    os.makedirs(os.path.dirname(os.path.abspath(target_path)), exist_ok=True)
+    image.save(target_path)
+    return {
+        'ok': True,
+        'path': os.path.abspath(target_path),
+        'width': image.size[0],
+        'height': image.size[1],
+        'window': window,
+        'bbox': [left, top, right, bottom],
+    }
+
+
+def clipboard_get():
+    completed = subprocess.run(
+        ['powershell', '-NoProfile', '-Command', 'Get-Clipboard -Raw'],
+        capture_output=True,
+        text=True,
+        encoding='utf-8',
+        errors='replace',
+        timeout=10,
+    )
+    if completed.returncode != 0:
+        raise RuntimeError((completed.stderr or 'clipboard read failed').strip())
+    return completed.stdout
+
+
+def clipboard_set(text):
+    env = dict(os.environ)
+    env['DSH_CLIP'] = str(text)
+    completed = subprocess.run(
+        ['powershell', '-NoProfile', '-Command', 'Set-Clipboard -Value $env:DSH_CLIP'],
+        capture_output=True,
+        text=True,
+        encoding='utf-8',
+        errors='replace',
+        timeout=10,
+        env=env,
+    )
+    if completed.returncode != 0:
+        raise RuntimeError((completed.stderr or 'clipboard write failed').strip())
+    return True
+
+
+def launch_program(target, args=None):
+    """Launch an executable or open a document/path with its default app."""
+    target = str(target or '').strip()
+    if not target:
+        raise ValueError('launch target is empty')
+    args = list(args or [])
+    if os.path.isfile(target) and target.lower().endswith(('.exe', '.com', '.bat', '.cmd')):
+        process = subprocess.Popen([target, *args], close_fds=True)
+        return {'ok': True, 'pid': process.pid, 'target': target, 'args': args}
+    if args:
+        process = subprocess.Popen([target, *args], close_fds=True)
+        return {'ok': True, 'pid': process.pid, 'target': target, 'args': args}
+    os.startfile(target)  # type: ignore[attr-defined]
+    return {'ok': True, 'target': target, 'args': []}
+
+
+def wait_window(needle, timeout=10.0):
+    deadline = time.time() + max(0.5, float(timeout))
+    while time.time() < deadline:
+        for window in list_windows():
+            if str(needle).lower() in window['title'].lower():
+                return window
+        time.sleep(0.25)
+    raise LookupError(f'no visible window matching {needle!r} within {timeout}s')
+
+
 def main():
     if len(sys.argv) < 2:
         fail('missing command; try: screen, windows, active, screenshot, click, type, key, activate')
@@ -536,7 +647,7 @@ def main():
         hwnd = user32.GetForegroundWindow()
         pid = DWORD()
         user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
-        emit({'ok': True, 'window': {'handle': int(hwnd), 'pid': int(pid.value), 'title': window_title(hwnd), 'rect': window_rect(hwnd)}})
+        emit({'ok': True, 'window': {'handle': int(hwnd), 'pid': int(pid.value), 'process': process_name(pid.value), 'dpi': window_dpi(hwnd), 'title': window_title(hwnd), 'rect': window_rect(hwnd)}})
     if command == 'screenshot':
         path = None
         target = 'all'
@@ -548,6 +659,24 @@ def main():
                 if len(args) > 1:
                     target = args[1]
         emit(screenshot(path, target))
+    if command == 'window-shot':
+        if len(args) < 1:
+            fail('window-shot requires TITLE [PATH]')
+        emit(screenshot_window(args[0], args[1] if len(args) > 1 else None))
+    if command == 'clipboard':
+        if len(args) >= 1 and args[0] == 'set':
+            text = ' '.join(args[1:])
+            emit({'ok': True, 'text': text, 'set': clipboard_set(text)})
+        emit({'ok': True, 'text': clipboard_get()})
+    if command == 'launch':
+        if len(args) < 1:
+            fail('launch requires PATH [ARGS...]')
+        emit(launch_program(args[0], args[1:]))
+    if command == 'wait-window':
+        if len(args) < 1:
+            fail('wait-window requires TITLE [TIMEOUT]')
+        timeout = float(args[1]) if len(args) > 1 else 10.0
+        emit({'ok': True, 'window': wait_window(args[0], timeout)})
     if command == 'click':
         if len(args) < 2:
             fail('click requires X Y [left|right|double]')

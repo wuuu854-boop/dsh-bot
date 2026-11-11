@@ -28,6 +28,33 @@ window.__ModuleLoader__.load({
         welcomeFoot: '终端 · 文件 · 网络 · 子代理 · 后台任务',
         welcomeTeamCta: '按需添加专家',
         welcomeTeamHint: '不预置角色；需要什么专家就加什么，或直接让老大招。',
+        guideOpen: '使用指引',
+        guideKicker: '新手上路',
+        guideTitle: '4 步认识 DSH Bot',
+        guideStep1Title: '一句话交代',
+        guideStep1Body: '不用学命令，直接把目标、范围、完成标准说清楚。',
+        guideStep1Bullet1: '说清“做到什么算完成”，比说步骤更有用。',
+        guideStep1Bullet2: '不确定时先说“先别动，给我方案”。',
+        guideStartTask: '新建第一个任务',
+        guideStep2Title: '专家按需添加',
+        guideStep2Body: '默认只有老大。需要课程、磁盘、软件等专家时再加，不用一次装一堆。',
+        guideStep2Bullet1: '每个专家有独立记忆、技能和工作区。',
+        guideStep2Bullet2: '也可以直接让老大判断该不该招人。',
+        guideAddSpecialist: '添加一个专家',
+        guideStep3Title: '常用入口',
+        guideStep3Body: '这些入口能省很多重复操作。',
+        guideStep3Bullet1: '模板：日报、复盘、智慧职教/刷课。',
+        guideStep3Bullet2: '记忆：长期偏好、固定流程、项目背景。',
+        guideStep3Bullet3: '语音在输入框右侧，主题在右上角三个点。',
+        guideStep4Title: '它怎么动电脑',
+        guideStep4Body: '优先读页面/控件，不瞎点坐标；卡住会停下来。',
+        guideStep4Bullet1: 'Edge / Chrome / Brave 自动选择，不用手动配。',
+        guideStep4Bullet2: '需要授权或遇到弹窗时，Bot 里会出现确认卡。',
+        guideStep4Bullet3: '考试、监考、交卷页面不会自动作答。',
+        guideSkip: '以后再说',
+        guidePrev: '上一步',
+        guideNext: '下一步',
+        guideDone: '开始使用',
         suggestion1: '看看我的电脑现在在忙什么',
         suggestion2: '把下载文件夹整理一下',
         suggestion3: '给这个项目做一次体检',
@@ -585,6 +612,33 @@ window.__ModuleLoader__.load({
         welcomeFoot: 'Terminal · Files · Web · Subagents · Background jobs',
         welcomeTeamCta: 'Add a specialist',
         welcomeTeamHint: 'No preset roles; add exactly the specialist you need, or ask the Boss to hire one.',
+        guideOpen: 'Guide',
+        guideKicker: 'GETTING STARTED',
+        guideTitle: 'Meet DSH Bot in 4 steps',
+        guideStep1Title: 'Just describe the job',
+        guideStep1Body: 'No commands to learn. State the goal, scope and what “done” means.',
+        guideStep1Bullet1: 'Say what counts as finished, not every step.',
+        guideStep1Bullet2: 'When unsure, ask for a plan before changes.',
+        guideStartTask: 'Create my first task',
+        guideStep2Title: 'Add specialists on demand',
+        guideStep2Body: 'You start with the Boss only. Add course, disk or software experts when needed.',
+        guideStep2Bullet1: 'Each specialist has its own memory, skills and workspace.',
+        guideStep2Bullet2: 'Or let the Boss decide whether hiring is worthwhile.',
+        guideAddSpecialist: 'Add a specialist',
+        guideStep3Title: 'Everyday entries',
+        guideStep3Body: 'These save repeated setup work.',
+        guideStep3Bullet1: 'Templates: daily report, review, vocational course runner.',
+        guideStep3Bullet2: 'Memory: long-term preferences, routines and project context.',
+        guideStep3Bullet3: 'Voice sits by the composer; themes sit under the top-right menu.',
+        guideStep4Title: 'How it drives the computer',
+        guideStep4Body: 'It reads pages and controls first, not blind coordinates; it stops when stuck.',
+        guideStep4Bullet1: 'Edge / Chrome / Brave are selected automatically.',
+        guideStep4Bullet2: 'Approvals and popups appear as a card inside the Bot.',
+        guideStep4Bullet3: 'Exam and proctored pages are never auto-answered.',
+        guideSkip: 'Later',
+        guidePrev: 'Back',
+        guideNext: 'Next',
+        guideDone: 'Start using it',
         suggestion1: 'See what my computer is busy with',
         suggestion2: 'Clean up my Downloads folder',
         suggestion3: 'Run a health check on this project',
@@ -1196,6 +1250,7 @@ window.__ModuleLoader__.load({
       paperclip: ['M9 12l6-6a3 3 0 0 1 4 4l-8 8a5 5 0 0 1-7-7l7-7'],
       mic: ['M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z', 'M5 11a7 7 0 0 0 14 0', 'M12 18v3'],
       sparkles: ['M12 3l1.5 5L19 9.5 13.5 11 12 16l-1.5-5L5 9.5 10.5 8 12 3z', 'M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z'],
+      help: ['M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18', 'M9.5 9a2.5 2.5 0 1 1 4.3 1.7c-.8.7-1.8 1.2-1.8 2.8', 'M12 17h.01'],
     }
 
     function Icon({ name, size = 18, strokeWidth = 1.6 }) {
@@ -2738,6 +2793,7 @@ window.__ModuleLoader__.load({
       onNew,
       onDelete,
       onMemory,
+      onGuide,
       onClose,
       t,
       open,
@@ -2970,12 +3026,130 @@ window.__ModuleLoader__.load({
             h('span', null, t('memory')),
           ),
           h(
+            'button',
+            { type: 'button', className: 'gb-rail-foot-btn', onClick: onGuide },
+            h(Icon, { name: 'help', size: 15 }),
+            h('span', null, t('guideOpen')),
+          ),
+          h(
             'div',
             { className: 'gb-local-badge' },
             h('span', { className: 'gb-signal' }),
             h('span', null, t('localAccess')),
           ),
           h('div', { className: 'gb-host-line' }, `${bot?.host || 'localhost'} · ${bot?.platform || 'Windows'}`),
+        ),
+      )
+    }
+
+    function GuideModal({ step, onStep, onClose, onCreate, onAdd, t }) {
+      const steps = [
+        {
+          title: t('guideStep1Title'),
+          body: t('guideStep1Body'),
+          bullets: [t('guideStep1Bullet1'), t('guideStep1Bullet2')],
+          action: { label: t('guideStartTask'), onClick: onCreate },
+        },
+        {
+          title: t('guideStep2Title'),
+          body: t('guideStep2Body'),
+          bullets: [t('guideStep2Bullet1'), t('guideStep2Bullet2')],
+          action: { label: t('guideAddSpecialist'), onClick: onAdd },
+        },
+        {
+          title: t('guideStep3Title'),
+          body: t('guideStep3Body'),
+          bullets: [t('guideStep3Bullet1'), t('guideStep3Bullet2'), t('guideStep3Bullet3')],
+        },
+        {
+          title: t('guideStep4Title'),
+          body: t('guideStep4Body'),
+          bullets: [t('guideStep4Bullet1'), t('guideStep4Bullet2'), t('guideStep4Bullet3')],
+        },
+      ]
+      const current = steps[Math.min(step, steps.length - 1)]
+      return h(
+        'div',
+        { className: 'gb-guide-backdrop', role: 'dialog', 'aria-modal': 'true', onClick: onClose },
+        h(
+          'div',
+          { className: 'gb-guide', onClick: (event) => event.stopPropagation() },
+          h(
+            'div',
+            { className: 'gb-guide-head' },
+            h('div', { className: 'gb-guide-mark' }, h(Icon, { name: 'sparkles', size: 18 })),
+            h(
+              'div',
+              { className: 'gb-guide-headings' },
+              h('span', { className: 'gb-guide-kicker' }, t('guideKicker')),
+              h('h2', null, t('guideTitle')),
+            ),
+            h(
+              'button',
+              { type: 'button', className: 'gb-icon-btn', onClick: onClose, 'aria-label': t('close') },
+              h(Icon, { name: 'close', size: 14 }),
+            ),
+          ),
+          h(
+            'div',
+            { className: 'gb-guide-progress' },
+            steps.map((item, index) =>
+              h(
+                'button',
+                {
+                  key: item.title,
+                  type: 'button',
+                  className: `gb-guide-dot${index === step ? ' is-active' : ''}${index < step ? ' is-done' : ''}`,
+                  onClick: () => onStep(index),
+                  'aria-label': item.title,
+                },
+                index < step ? h(Icon, { name: 'check', size: 10 }) : String(index + 1),
+              ),
+            ),
+          ),
+          h(
+            'div',
+            { className: 'gb-guide-body' },
+            h('span', { className: 'gb-guide-step' }, `${String(step + 1).padStart(2, '0')} / ${String(steps.length).padStart(2, '0')}`),
+            h('h3', null, current.title),
+            h('p', null, current.body),
+            h(
+              'ul',
+              { className: 'gb-guide-list' },
+              current.bullets.map((item) => h('li', { key: item }, h(Icon, { name: 'check', size: 12 }), h('span', null, item))),
+            ),
+            current.action
+              ? h(
+                  'button',
+                  {
+                    type: 'button',
+                    className: 'gb-guide-action',
+                    onClick: current.action.onClick,
+                  },
+                  current.action.label,
+                  h(Icon, { name: 'chevronRight', size: 13 }),
+                )
+              : null,
+          ),
+          h(
+            'div',
+            { className: 'gb-guide-foot' },
+            h('button', { type: 'button', className: 'gb-small-btn', onClick: onClose }, t('guideSkip')),
+            h('div', { className: 'gb-guide-foot-right' },
+              step > 0
+                ? h('button', { type: 'button', className: 'gb-small-btn', onClick: () => onStep(step - 1) }, t('guidePrev'))
+                : null,
+              h(
+                'button',
+                {
+                  type: 'button',
+                  className: 'gb-small-btn is-primary',
+                  onClick: step >= steps.length - 1 ? onClose : () => onStep(step + 1),
+                },
+                step >= steps.length - 1 ? t('guideDone') : t('guideNext'),
+              ),
+            ),
+          ),
         ),
       )
     }
@@ -5634,6 +5808,28 @@ window.__ModuleLoader__.load({
       })
       const [stalled, setStalled] = useState(false)
       const progressRef = useRef({ at: Date.now(), key: '' })
+      const [guideOpen, setGuideOpen] = useState(false)
+      const [guideStep, setGuideStep] = useState(0)
+      const closeGuide = useCallback(() => {
+        try {
+          localStorage.setItem('dsh-bot-guide-v1', '1')
+        } catch {
+          /* dismissal is optional */
+        }
+        setGuideOpen(false)
+        setGuideStep(0)
+      }, [])
+      useEffect(() => {
+        if (!booted) return
+        try {
+          if (!localStorage.getItem('dsh-bot-guide-v1')) {
+            setGuideStep(0)
+            setGuideOpen(true)
+          }
+        } catch {
+          /* localStorage is optional */
+        }
+      }, [booted])
       const [pinsBusy, setPinsBusy] = useState(false)
       const [sending, setSending] = useState(false)
       const [stopping, setStopping] = useState(false)
@@ -6954,6 +7150,10 @@ window.__ModuleLoader__.load({
           onNew: createTask,
           onDelete: deleteTask,
           onMemory: openMemory,
+          onGuide: () => {
+            setGuideStep(0)
+            setGuideOpen(true)
+          },
           onClose: () => setRailOpen(false),
           t,
           open: railOpen,
@@ -7279,6 +7479,22 @@ window.__ModuleLoader__.load({
           : null,
         replayOpen
           ? h(ReplayModal, { items: snap.items, t, onClose: () => setReplayOpen(false) })
+          : null,
+        guideOpen
+          ? h(GuideModal, {
+              step: guideStep,
+              onStep: setGuideStep,
+              onClose: closeGuide,
+              onCreate: () => {
+                closeGuide()
+                createTask()
+              },
+              onAdd: () => {
+                closeGuide()
+                addSpecialist()
+              },
+              t,
+            })
           : null,
         searchOpen
           ? h(
@@ -7755,6 +7971,28 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 /* chat */
 .gb-chat-scroll { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; scroll-behavior: smooth; }
 .gb-pinned-wrap { position: relative; width: calc(100% - 76px); max-width: 880px; margin: 0 auto 6px; }
+.gb-guide-backdrop { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(0,0,0,.55); backdrop-filter: blur(3px); }
+.gb-guide { width: min(620px, 94vw); max-height: 88vh; overflow: auto; padding: 22px; border: 1px solid var(--gb-line); border-radius: 16px; background: var(--gb-panel); box-shadow: 0 24px 80px rgba(0,0,0,.35); }
+.gb-guide-head { display: flex; align-items: center; gap: 12px; }
+.gb-guide-mark { display: grid; place-items: center; width: 38px; height: 38px; flex: none; border-radius: 12px; color: var(--gb-signal); background: color-mix(in srgb, var(--gb-signal) 12%, transparent); border: 1px solid color-mix(in srgb, var(--gb-signal) 30%, var(--gb-line)); }
+.gb-guide-headings { flex: 1; min-width: 0; }
+.gb-guide-kicker { display: block; color: var(--gb-faint); font-family: "Cascadia Code", Consolas, monospace; font-size: 8px; letter-spacing: .12em; }
+.gb-guide-headings h2 { margin: 3px 0 0; color: var(--gb-text); font-size: 17px; font-weight: 600; }
+.gb-guide-progress { display: flex; gap: 6px; margin: 18px 0 14px; }
+.gb-guide-dot { display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 1px solid var(--gb-line); border-radius: 50%; background: transparent; color: var(--gb-faint); font-family: "Cascadia Code", Consolas, monospace; font-size: 8px; cursor: pointer; }
+.gb-guide-dot.is-active { color: var(--gb-bg); background: var(--gb-signal); border-color: var(--gb-signal); }
+.gb-guide-dot.is-done { color: var(--gb-signal); border-color: color-mix(in srgb, var(--gb-signal) 40%, var(--gb-line)); }
+.gb-guide-body { padding: 16px; border: 1px solid var(--gb-line); border-radius: 12px; background: color-mix(in srgb, var(--gb-panel-2) 30%, transparent); }
+.gb-guide-step { color: var(--gb-faint); font-family: "Cascadia Code", Consolas, monospace; font-size: 8px; letter-spacing: .1em; }
+.gb-guide-body h3 { margin: 7px 0 6px; color: var(--gb-text); font-size: 15px; font-weight: 600; }
+.gb-guide-body p { margin: 0; color: var(--gb-muted); font-size: 11px; line-height: 1.7; }
+.gb-guide-list { display: flex; flex-direction: column; gap: 7px; margin: 14px 0 0; padding: 0; list-style: none; }
+.gb-guide-list li { display: flex; align-items: flex-start; gap: 8px; color: var(--gb-muted); font-size: 10.5px; line-height: 1.6; }
+.gb-guide-list li > svg { flex: none; margin-top: 2px; color: var(--gb-signal); }
+.gb-guide-action { display: inline-flex; align-items: center; gap: 5px; margin-top: 16px; padding: 8px 11px; border: 1px solid color-mix(in srgb, var(--gb-signal) 38%, var(--gb-line)); border-radius: 8px; background: color-mix(in srgb, var(--gb-signal) 9%, transparent); color: var(--gb-signal); font-size: 10px; cursor: pointer; }
+.gb-guide-action:hover { background: color-mix(in srgb, var(--gb-signal) 15%, transparent); }
+.gb-guide-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 16px; }
+.gb-guide-foot-right { display: flex; gap: 8px; }
 .gb-replay { width: min(680px, 92vw); }
 .gb-modal-title { color: var(--gb-text); font-size: 14px; font-weight: 600; letter-spacing: .01em; }
 .gb-modal-sub { margin-top: 3px; color: var(--gb-faint); font-family: "Cascadia Code", Consolas, monospace; font-size: 9px; }

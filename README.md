@@ -28,6 +28,9 @@ DSH Bot 不是聊天壳，而是把一台 Windows 电脑上的真实工作拆给
 - **自建员工**：没有对口成员时，Boss 用 `bot_hire` 创建新 Bot（角色、头像、persona、workspace、模型）并立即派活。
 - **派活可观测**：卡片显示状态、步数、耗时、tokens；失败/中断可一键重试，最多 3 次。
 - **主题切换**：顶栏三色圆点，暗色 / 暖色 / 水墨；三种主题的对话气泡、输入区和标题字体各自不同，刷新后保持。
+- **新手上路**：首次打开自动显示 4 步指引（怎么交代、专家按需添加、模板/记忆/语音、浏览器与授权行为）；侧边栏「使用指引」可随时重看。
+- **语义控件优先**：`computer.py windows` 看窗口/进程/DPI，`uia.py list/click/type` 按无障碍控件操作；截图和坐标只用于 canvas/PDF/图片按钮；UIA 的 2x 坐标会自动归一化。
+- **窗口级截图/剪贴板/启动**：`window-shot` 只截目标窗口，`clipboard get/set`、`launch`、`wait-window` 不截全屏。
 - **智慧职教 / 刷课适配**：`course.py status` 判断视频/PPT/题目/下一回合，`play` 播放、`ppt` 翻页、`question` 读题、`answer` 作答、`next` 进入下一回合；每次点击验证是否变化，无变化禁止循环。
 - **失败可处理**：任务失败会显示“这次没做成”，给出已尝试步骤，并提供重试、换办法、复制诊断，不用重开对话。
 - **权限确认**：新 Bot 默认标准权限；标准模式下敏感操作走 DSH 授权弹窗，切换到管理员必须勾选风险确认，输入区会持续显示“管理员权限”标记。
@@ -63,7 +66,7 @@ DSH Bot 不是聊天壳，而是把一台 Windows 电脑上的真实工作拆给
 ### 本机操作
 
 - 右侧 `LOCAL COMPUTER` 实时显示 CPU / 内存 / 磁盘 / 窗口 / 屏幕；
-- 默认浏览器是 **Microsoft Edge**：`scripts/edge.py open <url>` / `navigate` / `status`；
+- 默认浏览器是 **Microsoft Edge**；没有 Edge 时自动选择 Chrome / Brave / Chromium / Firefox，用户正在使用的浏览器优先；`--browser chrome|brave|firefox` 可指定；`set DSH_BOT_BROWSER=chrome` 可改默认；
 - 网页任务默认走 **UI Automation 底层**：`edge.py read` 读取全文和控件，`click --name` / `type --name --text` / `select --name` 直接操作；不默认截图；
 - 长页面用 `edge.py scroll down` 分页读取；`wait` 等待加载；`back/forward/reload` 不重新开浏览器；
 - `open` 复用正在运行的 Edge 进程（新标签），不会每一步都新开浏览器；
@@ -143,7 +146,9 @@ node scripts/bot_cli.mjs doctor            # 环境逐项诊断
 node scripts/bot_cli.mjs health            # 版本/状态/模型摘要
 node scripts/bot_cli.mjs memory history --bot 老大
 node scripts/bot_cli.mjs retry --assignment <id>
-python scripts/edge.py open https://example.com
+python scripts/edge.py status
+python scripts/edge.py open https://example.com --browser chrome
+python scripts/edge.py read --all --browser chrome
 python scripts/edge.py read
 python scripts/edge.py read --all
 python scripts/course.py status
@@ -152,6 +157,10 @@ python scripts/course.py ppt
 python scripts/course.py question
 python scripts/course.py answer --choice 2 --submit
 python scripts/course.py next
+python scripts/computer.py windows
+python scripts/uia.py list --window "窗口标题" --interactive
+python scripts/uia.py click --window "窗口标题" --name "提交"
+python scripts/computer.py window-shot "窗口标题" out.png
 python scripts/edge.py scroll down
 python scripts/edge.py type --name "学号" --text "123"
 python scripts/edge.py click --name "提交"

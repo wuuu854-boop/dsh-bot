@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Microsoft Edge helper for DSH Bot — low-level UI Automation first.
+"""Browser helper for DSH Bot — Edge / Chrome / Brave / Chromium / Firefox.
+
+Low-level UI Automation first; auto-selects the browser the user is currently
+using, then installed Edge → Chrome → Brave → Chromium → Firefox.
 
 Default workflow for web tasks:
   edge.py open URL       # reuse the running Edge process, new tab
@@ -11,19 +14,19 @@ Default workflow for web tasks:
 Screenshots are a fallback for canvas/PDF/image-only pages, not the default.
 
 Commands:
-  status
-  open URL [--new-window]
-  navigate URL
-  activate
-  read [--limit 200] [--all]
+  status [--browser edge|chrome|brave|chromium|firefox]
+  open URL [--new-window] [--browser NAME]
+  navigate URL [--browser NAME]
+  activate [--browser NAME]
+  read [--limit 200] [--all] [--browser NAME]
   wait [--timeout 8]
   wait-change [--timeout 6]
   scroll [down|up|top|bottom] [--pages N]
   back
   forward
   reload
-  click --name TEXT [--role Button] [--all] [--verify]
-  type --name TEXT --text VALUE
+  click --name TEXT [--role Button] [--all] [--verify] [--browser NAME]
+  type --name TEXT --text VALUE [--browser NAME]
   type --index N --text VALUE
   select --name TEXT
   screenshot [PATH]
@@ -64,7 +67,46 @@ def flag(args, name, default=""):
     return default
 
 
-def find_edge():
+BROWSERS = {
+    "edge": {
+        "name": "Microsoft Edge",
+        "exe": ("Microsoft", "Edge", "Application", "msedge.exe"),
+        "title": "Edge",
+        "process": "msedge.exe",
+    },
+    "chrome": {
+        "name": "Google Chrome",
+        "exe": ("Google", "Chrome", "Application", "chrome.exe"),
+        "title": "Chrome",
+        "process": "chrome.exe",
+    },
+    "brave": {
+        "name": "Brave",
+        "exe": ("BraveSoftware", "Brave-Browser", "Application", "brave.exe"),
+        "title": "Brave",
+        "process": "brave.exe",
+    },
+    "chromium": {
+        "name": "Chromium",
+        "exe": ("Chromium", "Application", "chrome.exe"),
+        "title": "Chromium",
+        "process": "chrome.exe",
+    },
+    "firefox": {
+        "name": "Mozilla Firefox",
+        "exe": ("Mozilla Firefox", "firefox.exe"),
+        "title": "Firefox",
+        "process": "firefox.exe",
+    },
+}
+BROWSER_ORDER = ("edge", "chrome", "brave", "chromium", "firefox")
+PREFERRED_BROWSER = os.environ.get("DSH_BOT_BROWSER", "auto").strip().lower() or "auto"
+
+
+def find_browser(name):
+    spec = BROWSERS.get(str(name).lower())
+    if not spec:
+        return None
     candidates = []
     for root in (
         os.environ.get("ProgramFiles(x86)"),
@@ -72,15 +114,17 @@ def find_edge():
         os.environ.get("LOCALAPPDATA"),
     ):
         if root:
-            candidates.append(os.path.join(root, "Microsoft", "Edge", "Application", "msedge.exe"))
+            candidates.append(os.path.join(root, *spec["exe"]))
     try:
         import winreg
 
-        with winreg.OpenKey(
-            winreg.HKEY_LOCAL_MACHINE,
-            r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\msedge.exe",
-        ) as key:
-            candidates.insert(0, winreg.QueryValue(key, None))
+        if str(name).lower() != "chromium":
+            exe_name = spec["exe"][-1]
+            with winreg.OpenKey(
+                winreg.HKEY_LOCAL_MACHINE,
+                rf"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\{exe_name}",
+            ) as key:
+                candidates.insert(0, winreg.QueryValue(key, None))
     except Exception:
         pass
     for candidate in candidates:
@@ -89,12 +133,47 @@ def find_edge():
     return None
 
 
-def edge_windows():
+def installed_browsers():
+    return [name for name in BROWSER_ORDER if find_browser(name)]
+
+
+def browser_windows(name):
+    title_needle = BROWSERS.get(str(name).lower(), {}).get("title", "")
+    if not title_needle:
+        return []
     return [
         window
         for window in computer.list_windows()
-        if "edge" in str(window.get("title", "")).lower()
+        if title_needle.lower() in str(window.get("title", "")).lower()
     ]
+
+
+def resolve_browser(preferred=None):
+    wanted = str(preferred or PREFERRED_BROWSER or "auto").strip().lower()
+    if wanted != "auto":
+        if wanted not in BROWSERS:
+            raise RuntimeError(f"unknown browser: {wanted}")
+        if not find_browser(wanted) and not browser_windows(wanted):
+            raise RuntimeError(f"{BROWSERS[wanted]['name']} is not installed or not running")
+        return wanted
+    running = [name for name in BROWSER_ORDER if browser_windows(name)]
+    active = [name for name in running if any(item.get("active") for item in browser_windows(name))]
+    if active:
+        return active[0]
+    if running:
+        return running[0]
+    installed = installed_browsers()
+    if installed:
+        return installed[0]
+    raise RuntimeError("no supported browser found (Edge / Chrome / Brave / Chromium / Firefox)")
+
+
+def find_edge():
+    return find_browser("edge")
+
+
+def edge_windows(browser=None):
+    return browser_windows(resolve_browser(browser))
 
 
 def normalize_url(value):
@@ -106,41 +185,55 @@ def normalize_url(value):
     return url
 
 
-def activate_edge():
-    windows = edge_windows()
+def activate_edge(browser=None):
+    name = resolve_browser(browser)
+    windows = browser_windows(name)
     if not windows:
         return None
     return computer.activate_window(windows[0]["title"])
 
 
-def open_url(url, new_window=False):
-    edge = find_edge()
-    if not edge:
-        raise RuntimeError("Microsoft Edge not found")
-    args = [edge]
+def open_url(url, new_window=False, browser=None):
+    name = resolve_browser(browser)
+    executable = find_browser(name)
+    if not executable:
+        raise RuntimeError(f"{BROWSERS[name]['name']} not found")
+    windows = browser_windows(name)
+    args = [executable]
     if new_window:
-        args.append("--new-window")
-    elif edge_windows():
-        # Reuse the running Edge process; never spawn a second copy per step.
-        args.append("--new-tab")
+        args.append("-new-window" if name == "firefox" else "--new-window")
+    elif windows:
+        # Reuse the running browser process; never spawn a second copy per step.
+        args.append("-new-tab" if name == "firefox" else "--new-tab")
+    if name != "firefox" and not windows:
+        args.extend(["--no-first-run", "--no-default-browser-check"])
     args.append(url)
     subprocess.Popen(args, close_fds=True)
     time.sleep(0.9)
-    window = activate_edge()
+    window = activate_edge(name)
     page = wait_ready(8)
-    return {"ok": True, "url": url, "window": window, "page": page, "windows": edge_windows()}
+    return {
+        "ok": True,
+        "browser": name,
+        "browserName": BROWSERS[name]["name"],
+        "url": url,
+        "window": window,
+        "page": page,
+        "windows": browser_windows(name),
+    }
 
 
-def navigate(url):
-    activate_edge()
-    if not edge_windows():
-        return open_url(url)
+def navigate(url, browser=None):
+    name = resolve_browser(browser)
+    activate_edge(name)
+    if not browser_windows(name):
+        return open_url(url, browser=name)
     computer.press_combo("ctrl+l")
     time.sleep(0.2)
     computer.type_text(url)
     time.sleep(0.2)
     computer.press_combo("enter")
-    return {"ok": True, "url": url, "page": wait_ready(8), "windows": edge_windows()}
+    return {"ok": True, "browser": name, "url": url, "page": wait_ready(8), "windows": browser_windows(name)}
 
 
 def read_page(limit=200, all_frames=False):
@@ -271,7 +364,7 @@ $root = [System.Windows.Automation.AutomationElement]::RootElement
 $windows = $root.FindAll([System.Windows.Automation.TreeScope]::Children, [System.Windows.Automation.Condition]::TrueCondition)
 $win = $null
 foreach ($w in $windows) {
-  if ($w.Current.Name -match 'Edge') { $win = $w; break }
+  if ($w.Current.Name -match [regex]::Escape([string]$payload.window)) { $win = $w; break }
 }
 if (-not $win) { '{"ok":false,"error":"Edge window not found"}'; exit 1 }
 $all = $win.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition)
@@ -442,7 +535,11 @@ $base | ConvertTo-Json -Compress
 
 
 def uia_run(action, **kwargs):
-    payload = {"action": action, **kwargs}
+    try:
+        browser = resolve_browser()
+    except Exception as error:
+        return {"ok": False, "error": str(error)}
+    payload = {"action": action, "window": BROWSERS[browser]["title"], "browser": browser, **kwargs}
     encoded_payload = base64.b64encode(
         json.dumps(payload, ensure_ascii=False).encode("utf-8")
     ).decode("ascii")
@@ -474,19 +571,49 @@ def uia_run(action, **kwargs):
     if not line:
         return {"ok": False, "error": (completed.stderr or raw or "UI Automation returned nothing")[:500]}
     try:
-        return json.loads(line)
+        parsed = json.loads(line)
+        parsed.setdefault("browser", browser)
+        return parsed
     except Exception as error:
-        return {"ok": False, "error": f"bad UIA json: {error}"}
+        return {"ok": False, "error": f"bad UIA json: {error}", "browser": browser}
 
 
 def main():
+    global PREFERRED_BROWSER
     if len(sys.argv) < 2:
         fail("missing command; try: status, open, navigate, read, click, type, select, screenshot")
     command = sys.argv[1].lower()
     args = sys.argv[2:]
+    requested = flag(args, "browser", "")
+    if requested:
+        PREFERRED_BROWSER = requested.strip().lower()
+    cleaned = []
+    skip = False
+    for index, item in enumerate(args):
+        if skip:
+            skip = False
+            continue
+        if item == "--browser":
+            skip = True
+            continue
+        cleaned.append(item)
+    args = cleaned
 
     if command == "status":
-        return emit({"ok": True, "edge": find_edge(), "windows": edge_windows(), "monitors": computer.list_monitors()})
+        installed = {name: find_browser(name) for name in BROWSER_ORDER}
+        running = {name: browser_windows(name) for name in BROWSER_ORDER}
+        active = resolve_browser()
+        return emit(
+            {
+                "ok": True,
+                "browser": active,
+                "browserName": BROWSERS[active]["name"],
+                "installed": installed,
+                "running": running,
+                "windows": browser_windows(active),
+                "monitors": computer.list_monitors(),
+            }
+        )
     if command == "monitors":
         return emit({"ok": True, "monitors": computer.list_monitors(), "virtual": computer.virtual_screen()})
     if command == "screen":
@@ -511,6 +638,15 @@ def main():
                 "点击用 click --all --verify，changed:false 时禁止重复点击，"
                 "先检查新 frame、scroll、wait-change，仍无变化就停下报告卡点。"
             )
+        if (
+            result.get("ok")
+            and resolve_browser() == "firefox"
+            and int(result.get("textLength") or 0) == 0
+            and int(result.get("controlsCount") or 0) == 0
+        ):
+            result["ok"] = False
+            result["error"] = "Firefox 未向 Windows UI Automation 暴露页面内容"
+            result["hint"] = "改用 --browser chrome / edge / brave，或使用 scripts/browser.py 的 Firefox Marionette 桥。"
         if result.get("ok"):
             activate_edge()
         return emit(result)

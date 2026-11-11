@@ -1,4 +1,4 @@
-# DSH Bot v4.19.0
+# DSH Bot v4.21.0
 
 **An open-source GrokBot alternative that runs a real bot team on your own Windows machine, inside DeepSeek Harness.**
 
@@ -14,7 +14,10 @@ You talk to one **Boss**. It decides what to do, hires a specialist when nobody 
 - **Group chats** — 2–8 bots in one channel, `@name` routing, `bot_dispatch`, speaker-attributed replies, persisted group transcript.
 - **Git-backed memory** — each bot's memory is a Git repo with history, diff and one-click restore.
 - **Model policy** — bots follow the DSH default model, with per-assignment `effort` / `model` overrides.
-- **Local execution depth** — Edge is the default browser; all normal web pages are read through UI Automation (text + controls) before any screenshot; multi-monitor capture, GUI control, app launching, proxy guard, safety snapshots and QQ notifications.
+- **Browser coverage** — Edge / Chrome / Brave / Chromium are selected automatically (active browser first), with `--browser` and `DSH_BOT_BROWSER` overrides; normal pages use UI Automation text + controls before any screenshot.
+- **Semantic PC control** — `uia.py` lists the accessibility tree and invokes/selects/toggles controls by name; `computer.py` exposes window process/DPI, window-only screenshots, clipboard, launch and wait-window. UIA 2x coordinates are normalized, screenshots are fallback only.
+- **New-user guide** — first launch shows a 4-step guide (how to ask, specialists on demand, templates/memory/voice, browser and approval behavior); the sidebar keeps a “使用指引” entry.
+- **Course runner** — `course.py status/play/ppt/question/answer/next` for self-paced ICVE/智慧职教 pages, with stalled-action circuit breaker and exam-page guard.
 - **Replay + health** — replay a thread timeline from the top bar; `GET /health` reports version, uptime, state size, counts, live agents, model status and last error.
 - **Instant stop** — `/stop` cancels immediately, returns the fresh snapshot, and the UI clears running/stream state before the round-trip finishes; measured 62 ms while an agent was running.
 - **CLI + HTTP API** — `bot_cli.mjs` and `docs/API.md` cover bots, threads, groups, team, meeting, memory, routines and skills.

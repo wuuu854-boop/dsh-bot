@@ -1,5 +1,21 @@
 # Changelog
 
+## 4.21.0 — 2026-11-11
+
+- Add: `scripts/uia.py` accessibility-tree inventory and semantic actions (`list`/`click`/`type`/`focus`/`wait`), preferring Invoke/Select/Toggle over coordinates.
+- Add: UIA coordinate normalization using the Win32 window rect (handles providers that report 2x coordinates, including DSH's own window).
+- Add: `computer.py` window `process`/`pid`/`dpi`, `window-shot`, clipboard get/set, `launch`, and `wait-window`.
+- Add: `docs/COMPUTER_CONTROL.md` distilling high-star projects (Windows-MCP, UI-TARS, UFO, pywinauto, FlaUI, OpenAdapt, AutoHotkey, OpenInterpreter) without copying their code.
+- Add: first-run 4-step guide (new task, specialists on demand, templates/memory/voice, browser/approval behavior) plus a persistent “使用指引” entry in the sidebar.
+- Changed: GUI system prompt now starts from `computer.py windows` + `uia.py list/click/type`; screenshots/coordinates are fallback only.
+
+## 4.20.0 — 2026-11-11
+
+- Add: browser abstraction for Edge / Chrome / Brave / Chromium / Firefox; auto-selects the active running browser, then installed Edge → Chrome → Brave → Chromium → Firefox.
+- Add: `--browser NAME` and `DSH_BOT_BROWSER` override; `edge.py status` reports installed and running browsers.
+- Add: Chromium-family launch flags to suppress first-run/default-browser modals; Firefox UIA emptiness returns a clear hint to use Chromium or the Marionette bridge.
+- Changed: all read/click/type/course commands use the selected browser; `course.py` follows the same auto-selection.
+
 ## 4.19.0 — 2026-11-11
 
 - Add: `scripts/course.py` state machine for self-paced course pages — `status` classifies video / PPT / quiz / next, `play`, `ppt`, `question`, `answer --choice --submit`, and `next`.
