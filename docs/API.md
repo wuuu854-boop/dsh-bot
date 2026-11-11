@@ -11,6 +11,7 @@ CLI 已经覆盖常用路径：`node scripts/bot_cli.mjs ...`。
 | GET | `/bootstrap` | 当前 Bot、当前线程、Bot 列表、完整快照；打开页面时调用 |
 | GET | `/state?thread=<id>` | 指定线程的快照；群聊会合并成员发言、活动、派活 |
 | GET | `/catalog` | 可选 Agent Preset、模型服务商和模型 |
+| GET | `/health` | 版本、运行时长、状态文件大小、Bot/线程/运行/派活数、live agent、模型状态、最近错误 |
 | GET | `/memory?botId=<id>` | 记忆正文、路径、Git 历史 |
 | GET | `/memory/history?botId=` | 提交列表、dirty |
 | GET | `/memory/diff?botId=&sha=` | 某次提交的 diff |
@@ -29,6 +30,8 @@ CLI 已经覆盖常用路径：`node scripts/bot_cli.mjs ...`。
 | POST | `/bot/select` | `{botId}` |
 | POST | `/bot/update` | 同上，带 `botId`；改 `role` 会重开该 Bot 的 agent |
 | POST | `/bot/delete` | `{botId}` |
+
+`POST /model/refresh`：清空模型探测缓存，重新读取 DSH 当前默认模型/可用 provider，返回 `{modelReady, provider, model}`。
 
 `role`: `member` 或 `lead`。`reasoningEffort`: `low` / `high` / `max`（`off` 也可，但 UI 不暴露）。
 

@@ -94,3 +94,21 @@ QQ 通知与远程控制、安全快照、预算、验收、技能库。所以 v
 - 团队：老大 → 磁盘清理 0.65 秒返回 C 盘剩余空间与命令证据；老大 → 大学事务建成 17 目录/16 文件并复核；两次派活都有独立线程、回执卡片和工具轨迹。
 - 自建员工：老大招「软件盘点 📦」并派活，产出 469 条清单，验收后汇报。
 - 晨会：首次打开自动触发，5 位成员发言 + 老大纪要；`lastDate` 一天一次；晨会不触发 QQ 通知。
+
+## 六、dsh-go 蒸馏（2026-11-11）
+
+样本：
+
+| 项目 | Star | 形态 | 我们蒸馏的点 |
+|---|---|---|---|
+| [ccch1mneyyy/dsh-Go](https://github.com/ccch1mneyyy/dsh-Go)（AGPL-3.0） | 19.3k | Android 客户端 + 手机本机引擎 + 远程连接 | 对话回放、移动端语音/通知/响应式体验 |
+| [JopenChen/dsh-go](https://github.com/JopenChen/dsh-go)（MIT） | 24 | 纯 Go、进程内 Agent 参考实现 | 事件时间线回放、健康检查/可观测性 |
+| [coeasy/dsh-go](https://github.com/coeasy/dsh-go) | 23 | DSH 包管理器/Registry | `/health`、状态大小、最近错误、LKG 思路 |
+
+落地：
+
+- **对话回放**：顶栏「回放」把当前线程的 user/assistant 消息按时间线播放，可暂停、拖动、重播；不复制 dsh-Go 的 AGPL 代码或素材。
+- **健康检查**：新增 `GET /health`，返回版本、uptime、状态文件大小、Bot/线程/运行/派活数、live agent、模型状态和最近错误；对应 dsh-go 的 health/LKG 思路。
+- **已有能力确认**：语音输入（Web Speech API）、浏览器通知、附件、响应式布局此前已在客户端存在；这一轮补齐回放入口和状态诊断。
+- **没有照搬**：dsh-Go 的手机本机 Ubuntu/Node 运行时、远程 SSH 通道、插件市场/事务安装器属于另一个产品边界，不塞进 DSH Bot；远程仍由 QQ 通知/远程控制覆盖。
+

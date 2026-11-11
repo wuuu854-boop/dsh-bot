@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '4.9.0'
+const VERSION = '4.10.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -5923,6 +5923,31 @@ export function apply(ctx) {
 
       if (req.method === 'GET' && sub === '/catalog') {
         return json(res, 200, { ok: true, ...(await botCatalog(url.searchParams.get('refresh') === '1')) })
+      }
+
+      if (req.method === 'GET' && sub === '/health') {
+        let stateBytes = 0
+        try {
+          stateBytes = fs.statSync(stateFile).size
+        } catch {
+          stateBytes = 0
+        }
+        const lastFailed = state.runs.find((run) => run.status === 'failed' || run.status === 'aborted')
+        return json(res, 200, {
+          ok: true,
+          version: VERSION,
+          uptimeSec: Math.round(process.uptime()),
+          stateBytes,
+          bots: state.bots.length,
+          threads: state.threads.length,
+          runs: state.runs.length,
+          assignments: state.assignments.length,
+          liveAgents: live.size,
+          modelReady: Boolean(agentOptions()),
+          provider: activeBot().provider || selection?.provider || null,
+          model: activeBot().model || selection?.model || null,
+          lastError: lastFailed ? { at: lastFailed.endedAt || 0, error: truncate(lastFailed.error || '', 500) } : null,
+        })
       }
 
       if (req.method === 'POST' && sub === '/model/refresh') {

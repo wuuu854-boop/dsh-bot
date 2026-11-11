@@ -128,6 +128,13 @@ window.__ModuleLoader__.load({
         loadEarlier: '加载更早',
         noMoreHistory: '没有更早的消息了',
         replyYou: '你',
+        replay: '回放',
+        replayTitle: '对话回放',
+        replayEmpty: '这个任务还没有可回放的消息。',
+        replayBot: 'Bot',
+        replayPlay: '播放',
+        replayPause: '暂停',
+        replayStep: '回放进度',
         modelMissing: '还没有可用模型',
         modelMissingHint: '请先在 DSH 设置里接入 API 并选择默认模型，再发任务。',
         modelRetry: '重新检测',
@@ -620,6 +627,13 @@ window.__ModuleLoader__.load({
         loadEarlier: 'Load earlier',
         noMoreHistory: 'No earlier messages',
         replyYou: 'You',
+        replay: 'Replay',
+        replayTitle: 'Conversation replay',
+        replayEmpty: 'No messages to replay yet.',
+        replayBot: 'Bot',
+        replayPlay: 'Play',
+        replayPause: 'Pause',
+        replayStep: 'Replay position',
         modelMissing: 'No model connected',
         modelMissingHint: 'Connect an API and choose a default model in DSH settings before sending a task.',
         modelRetry: 'Retry',
@@ -1036,6 +1050,7 @@ window.__ModuleLoader__.load({
       stop: ['M7 7h10v10H7z'],
       computer: ['M4 5h16v11H4z', 'M9 20h6', 'M12 16v4'],
       activity: ['M3 12h4l2 6 4-14 2 8h6'],
+      play: ['M8 5v14l11-7z'],
       brain: ['M9 4a3 3 0 0 0-3 3v1a3 3 0 0 0-1 5.8V15a3 3 0 0 0 3 3h1V4z', 'M15 4a3 3 0 0 1 3 3v1a3 3 0 0 1 1 5.8V15a3 3 0 0 1-3 3h-1V4z'],
       trash: ['M4 7h16', 'M9 7V4h6v3', 'M7 7l1 13h8l1-13', 'M10 11v5', 'M14 11v5'],
       close: ['M6 6l12 12', 'M18 6 6 18'],
@@ -2788,7 +2803,86 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function TopBar({ thread, model, running, channel, onManage, onRename, onSearch, onExport, onPins, archived, onArchive, t }) {
+    function ReplayModal({ items, t, onClose }) {
+      const timeline = (Array.isArray(items) ? items : [])
+        .filter((item) => (item.kind === 'user' || item.kind === 'assistant') && String(item.text || '').trim())
+        .slice(-120)
+      const [index, setIndex] = useState(0)
+      const [playing, setPlaying] = useState(true)
+      useEffect(() => {
+        if (!playing || timeline.length < 2) return undefined
+        const timer = setInterval(() => {
+          setIndex((value) => {
+            if (value >= timeline.length - 1) {
+              setPlaying(false)
+              return value
+            }
+            return value + 1
+          })
+        }, 1800)
+        return () => clearInterval(timer)
+      }, [playing, timeline.length])
+      const current = timeline[index]
+      return h(
+        'div',
+        { className: 'gb-modal-backdrop', onClick: onClose },
+        h(
+          'div',
+          {
+            className: 'gb-modal gb-replay',
+            role: 'dialog',
+            'aria-modal': 'true',
+            'aria-label': t('replayTitle'),
+            onClick: (event) => event.stopPropagation(),
+          },
+          h(
+            'div',
+            { className: 'gb-modal-head' },
+            h('div', null, h('div', { className: 'gb-modal-title' }, t('replayTitle')), h('div', { className: 'gb-modal-sub' }, `${index + 1} / ${timeline.length}`)),
+            h('button', { type: 'button', className: 'gb-icon-btn', onClick: onClose, 'aria-label': t('close') }, h(Icon, { name: 'close', size: 15 })),
+          ),
+          h(
+            'div',
+            { className: 'gb-replay-body' },
+            !current
+              ? h('div', { className: 'gb-replay-empty' }, t('replayEmpty'))
+              : h(
+                  'div',
+                  { className: 'gb-replay-item' },
+                  h('div', { className: `gb-replay-author${current.kind === 'user' ? ' is-user' : ''}` }, current.kind === 'user' ? t('replyYou') : current.speaker?.name || t('replayBot')),
+                  h('div', { className: 'gb-replay-text' }, current.text),
+                ),
+          ),
+          h(
+            'div',
+            { className: 'gb-replay-controls' },
+            h(
+              'button',
+              {
+                type: 'button',
+                className: 'gb-small-btn',
+                onClick: () => {
+                  if (index >= timeline.length - 1) setIndex(0)
+                  setPlaying((value) => !value)
+                },
+              },
+              playing ? t('replayPause') : t('replayPlay'),
+            ),
+            h('input', {
+              type: 'range',
+              min: 0,
+              max: Math.max(0, timeline.length - 1),
+              value: Math.min(index, Math.max(0, timeline.length - 1)),
+              onChange: (event) => setIndex(Number(event.target.value)),
+              'aria-label': t('replayStep'),
+            }),
+            h('button', { type: 'button', className: 'gb-small-btn', onClick: onClose }, t('close')),
+          ),
+        ),
+      )
+    }
+
+    function TopBar({ thread, model, running, channel, onManage, onRename, onSearch, onExport, onPins, onReplay, archived, onArchive, t }) {
       const members = channel?.members || []
       const [editing, setEditing] = useState(false)
       const [draft, setDraft] = useState('')
@@ -2890,6 +2984,18 @@ window.__ModuleLoader__.load({
                 h(Icon, { name: 'arrowDown', size: 11 }),
               )
             : null,
+          onReplay
+            ? h(
+                'button',
+                {
+                  type: 'button',
+                  className: 'gb-topbar-archive',
+                  onClick: onReplay,
+                  title: t('replay'),
+                },
+                h(Icon, { name: 'play', size: 11 }),
+              )
+            : null,
           onSearch
             ? h(
                 'button',
@@ -2943,6 +3049,7 @@ window.__ModuleLoader__.load({
       onToggleRail,
       onToggleVoice,
       onReset,
+      onReplay,
       attachments,
       onUpload,
       onRemoveAttachment,
@@ -3263,6 +3370,14 @@ window.__ModuleLoader__.load({
               h(Icon, { name: 'computer', size: 11 }),
               t('computer'),
             ),
+            onReplay
+              ? h(
+                  'button',
+                  { type: 'button', className: 'gb-foot-btn', onClick: onReplay, title: t('replay') },
+                  h(Icon, { name: 'play', size: 11 }),
+                  t('replay'),
+                )
+              : null,
             h(
               'button',
               { type: 'button', className: 'gb-foot-btn gb-foot-icon', onClick: onToggleVoice, title: t('voice') },
@@ -5174,6 +5289,7 @@ window.__ModuleLoader__.load({
       const [searchBusy, setSearchBusy] = useState(false)
       const [pinnedOpen, setPinnedOpen] = useState(false)
       const [pinsOpen, setPinsOpen] = useState(false)
+      const [replayOpen, setReplayOpen] = useState(false)
       const [pinsList, setPinsList] = useState([])
       const [pinsBusy, setPinsBusy] = useState(false)
       const [sending, setSending] = useState(false)
@@ -6442,6 +6558,9 @@ window.__ModuleLoader__.load({
             onSearch: () => setSearchOpen(true),
             onExport: exportThread,
             onPins: openPins,
+            onReplay: (snap.items || []).some((item) => (item.kind === 'user' || item.kind === 'assistant') && String(item.text || '').trim())
+              ? () => setReplayOpen(true)
+              : null,
             archived: thread?.archived === true,
             onArchive: channel?.meeting ? null : archiveThread,
             t,
@@ -6666,6 +6785,9 @@ window.__ModuleLoader__.load({
               setRailOpen((value) => !value)
             },
             onToggleVoice: toggleVoice,
+            onReplay: (snap.items || []).some((item) => (item.kind === 'user' || item.kind === 'assistant') && String(item.text || '').trim())
+              ? () => setReplayOpen(true)
+              : null,
             onReset: resetTask,
           }),
         ),
@@ -6709,6 +6831,9 @@ window.__ModuleLoader__.load({
               onDelete: deleteGroup,
               t,
             })
+          : null,
+        replayOpen
+          ? h(ReplayModal, { items: snap.items, t, onClose: () => setReplayOpen(false) })
           : null,
         searchOpen
           ? h(
@@ -7035,6 +7160,17 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 /* chat */
 .gb-chat-scroll { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; scroll-behavior: smooth; }
 .gb-pinned-wrap { position: relative; width: calc(100% - 76px); max-width: 880px; margin: 0 auto 6px; }
+.gb-replay { width: min(680px, 92vw); }
+.gb-modal-title { color: var(--gb-text); font-size: 14px; font-weight: 600; letter-spacing: .01em; }
+.gb-modal-sub { margin-top: 3px; color: var(--gb-faint); font-family: "Cascadia Code", Consolas, monospace; font-size: 9px; }
+.gb-replay-body { flex: 1; min-height: 220px; max-height: 56vh; overflow: auto; padding: 18px; background: color-mix(in srgb, var(--gb-panel-2) 26%, transparent); }
+.gb-replay-item { display: flex; flex-direction: column; gap: 8px; }
+.gb-replay-author { color: var(--gb-signal); font-family: "Cascadia Code", Consolas, monospace; font-size: 9px; letter-spacing: .05em; }
+.gb-replay-author.is-user { color: var(--gb-muted); }
+.gb-replay-text { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--gb-text); font-size: 12px; line-height: 1.75; }
+.gb-replay-empty { color: var(--gb-faint); font-size: 11px; }
+.gb-replay-controls { display: flex; align-items: center; gap: 10px; flex: none; padding: 12px 16px; border-top: 1px solid var(--gb-line); }
+.gb-replay-controls input[type="range"] { flex: 1; accent-color: var(--gb-signal); }
 .gb-model-warning { display: flex; align-items: flex-start; gap: 7px; width: calc(100% - 76px); max-width: 880px; margin: 0 auto 6px; padding: 7px 9px; border: 1px solid color-mix(in srgb, var(--gb-warn) 40%, var(--gb-line)); border-radius: 8px; background: color-mix(in srgb, var(--gb-warn) 10%, transparent); color: var(--gb-warn); }
 .gb-model-warning-text { display: flex; flex-direction: column; gap: 2px; font-size: 9px; }
 .gb-model-warning-text strong { font-size: 9px; }

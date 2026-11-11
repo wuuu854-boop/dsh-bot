@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.10.0 — 2026-11-11
+
+- Add: conversation replay modal — play/pause, scrub, and restart the current thread timeline.
+- Add: `GET /health` with version, uptime, state size, counts, live agents, model status, and last error.
+- Docs: competitive notes on `dsh-Go`, `JopenChen/dsh-go`, and `coeasy/dsh-go`; only ideas independently implemented, no AGPL code/assets copied.
+
 ## 4.9.0 — 2026-11-11
 
 - Add: Edge `read` now selects the largest document, reports `textLength` / `controlsCount`, and supports `wait`, `scroll`, `back`, `forward`, `reload`.
