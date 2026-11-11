@@ -1,5 +1,9 @@
 # Changelog
 
+## 4.15.1 — 2026-11-11
+
+- Fix: `bot_cli update --check` now forces a fresh GitHub check without requiring a value.
+
 ## 4.15.0 — 2026-11-11
 
 - Add: background update check every 6 hours against GitHub Releases; a dismissible banner in existing bots links to the new release/zip.

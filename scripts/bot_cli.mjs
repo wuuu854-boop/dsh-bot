@@ -191,7 +191,7 @@ async function main() {
   }
 
   if (command === 'update') {
-    const result = flag('check') === '1'
+    const result = argv.includes('--check')
       ? await request('POST', '/update/check', {})
       : await request('GET', '/update')
     print(result.data)
