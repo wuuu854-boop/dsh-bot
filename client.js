@@ -5083,7 +5083,7 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function ComputerPanel({ snap, t, tab, setTab, onClose, onToast, onReset, botId, onOpenThread, onRefresh, onRunSkill, onDeleteSkill, onCaptureSkill, skillBusy, captureBusy, onUndo, onCreateTeam }) {
+    function ComputerPanel({ snap, t, tab, setTab, onClose, onToast, onReset, botId, onOpenThread, onRefresh, onRunSkill, onDeleteSkill, onCaptureSkill, skillBusy, captureBusy, onUndo, onCreateTeam, theme }) {
       const [computer, setComputer] = useState(null)
       const [refreshTick, setRefreshTick] = useState(0)
 
@@ -5115,7 +5115,7 @@ window.__ModuleLoader__.load({
 
       return h(
         'aside',
-        { className: 'gb-deck', 'aria-label': t('localComputer'), style: { background: '#0a0b09', zIndex: 100, isolation: 'isolate' } },
+        { className: 'gb-deck', 'aria-label': t('localComputer'), style: { background: theme === 'warm' ? '#fff8ec' : theme === 'ink' ? '#fbfaf6' : '#0a0b09', zIndex: 100, isolation: 'isolate' } },
         h(
           'div',
           { className: 'gb-deck-head' },
@@ -6953,6 +6953,7 @@ window.__ModuleLoader__.load({
               captureBusy,
               onUndo: undoSnapshot,
               onCreateTeam: addSpecialist,
+              theme,
             })
           : null,
         botEditor

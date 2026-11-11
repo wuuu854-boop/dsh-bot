@@ -1,5 +1,9 @@
 # Changelog
 
+## 4.13.2 — 2026-11-11
+
+- Fix: the right computer deck now follows warm/ink themes instead of forcing a dark inline background.
+
 ## 4.13.1 — 2026-11-11
 
 - Polish: template menu closes on outside click / Escape; replay closes with Escape.
