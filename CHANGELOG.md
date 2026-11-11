@@ -1,5 +1,12 @@
 # Changelog
 
+## 4.7.2 — 2026-11-11
+
+- Add: first-run welcome and Team tab offer a one-click **添加专家团队** action when only the Boss exists.
+- Add: model warning has a **重新检测** button backed by `POST /model/refresh`.
+- Fix: model connection failures now return an actionable message instead of a raw task error.
+- Polish: first-run guidance explains that specialists are optional.
+
 ## 4.7.1 — 2026-11-11
 
 - Fix: a fresh install starts with exactly one bot, **老大 (lead)**. The full specialist team is only added when the user clicks **团队模板**.

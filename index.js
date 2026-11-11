@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '4.7.1'
+const VERSION = '4.7.2'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -5905,6 +5905,17 @@ export function apply(ctx) {
         return json(res, 200, { ok: true, ...(await botCatalog(url.searchParams.get('refresh') === '1')) })
       }
 
+      if (req.method === 'POST' && sub === '/model/refresh') {
+        modelProbe = null
+        const ready = await ensureDefaultModel()
+        return json(res, 200, {
+          ok: true,
+          modelReady: ready,
+          model: activeBot().model || selection?.model || null,
+          provider: activeBot().provider || selection?.provider || null,
+        })
+      }
+
       if (req.method === 'GET' && sub === '/state') {
         const threadId = url.searchParams.get('thread') || state.lastThreadId
         const thread = threadId ? threadById(threadId) : null
@@ -6595,7 +6606,16 @@ export function apply(ctx) {
           }
           return
         }
-        const rec = await ensureAgent(thread)
+        let rec
+        try {
+          rec = await ensureAgent(thread)
+        } catch (error) {
+          json(res, 502, {
+            ok: false,
+            error: `模型连接失败：${messageOf(error)}。请检查 DSH 的模型 / API 配置。`,
+          })
+          return
+        }
         const running = rec.agent.status === 'running'
         rec.pendingQuestion = null
         rec.autoContinueCount = 0

@@ -26,6 +26,8 @@ window.__ModuleLoader__.load({
         welcomeTitle: '把活交给我。',
         welcomeSub: '一句话交代。剩下的，我在你的电脑上做完。',
         welcomeFoot: '终端 · 文件 · 网络 · 子代理 · 后台任务',
+        welcomeTeamCta: '添加专家团队',
+        welcomeTeamHint: '需要磁盘清理、大学事务等专家时，再一键添加。',
         suggestion1: '看看我的电脑现在在忙什么',
         suggestion2: '把下载文件夹整理一下',
         suggestion3: '给这个项目做一次体检',
@@ -128,6 +130,8 @@ window.__ModuleLoader__.load({
         replyYou: '你',
         modelMissing: '还没有可用模型',
         modelMissingHint: '请先在 DSH 设置里接入 API 并选择默认模型，再发任务。',
+        modelRetry: '重新检测',
+        modelConnected: '模型已连接',
         quoteJump: '跳到原消息',
         quote: '引用',
         pinMessage: '置顶',
@@ -514,6 +518,8 @@ window.__ModuleLoader__.load({
         welcomeTitle: 'Give me the work.',
         welcomeSub: 'One sentence. I will finish it on your computer.',
         welcomeFoot: 'Terminal · Files · Web · Subagents · Background jobs',
+        welcomeTeamCta: 'Add a specialist team',
+        welcomeTeamHint: 'Add disk cleanup, university, or other specialists only when you need them.',
         suggestion1: 'See what my computer is busy with',
         suggestion2: 'Clean up my Downloads folder',
         suggestion3: 'Run a health check on this project',
@@ -616,6 +622,8 @@ window.__ModuleLoader__.load({
         replyYou: 'You',
         modelMissing: 'No model connected',
         modelMissingHint: 'Connect an API and choose a default model in DSH settings before sending a task.',
+        modelRetry: 'Retry',
+        modelConnected: 'Model connected',
         quoteJump: 'Jump to the original message',
         quote: 'Quote',
         pinMessage: 'Pin',
@@ -1994,7 +2002,7 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function Welcome({ t, onSend }) {
+    function Welcome({ t, onSend, onCreateTeam, showTeamCta }) {
       const suggestions = [
         ['suggestion1', 'spark'],
         ['suggestion2', 'folder'],
@@ -2025,6 +2033,19 @@ window.__ModuleLoader__.load({
             ),
           ),
         ),
+        showTeamCta && onCreateTeam
+          ? h(
+              'button',
+              { type: 'button', className: 'gb-welcome-team', onClick: onCreateTeam },
+              h(Icon, { name: 'agents', size: 16 }),
+              h(
+                'span',
+                { className: 'gb-welcome-team-text' },
+                h('strong', null, t('welcomeTeamCta')),
+                h('small', null, t('welcomeTeamHint')),
+              ),
+            )
+          : null,
         h('div', { className: 'gb-welcome-foot' }, t('welcomeFoot')),
       )
     }
@@ -3824,7 +3845,7 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function TeamTab({ team, roster, assignments, onToast, t }) {
+    function TeamTab({ team, roster, assignments, onToast, onCreateTeam, t }) {
       const agents = Array.isArray(team) ? team : []
       const members = Array.isArray(roster) ? roster : []
       const [filter, setFilter] = useState('all')
@@ -3925,6 +3946,14 @@ window.__ModuleLoader__.load({
                   ),
                 ),
               ),
+          members.length <= 1 && onCreateTeam
+            ? h(
+                'button',
+                { type: 'button', className: 'gb-small-btn gb-team-add', onClick: onCreateTeam },
+                h(Icon, { name: 'agents', size: 12 }),
+                t('welcomeTeamCta'),
+              )
+            : null,
         ),
         h(
           'div',
@@ -4803,7 +4832,7 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function ComputerPanel({ snap, t, tab, setTab, onClose, onToast, onReset, botId, onOpenThread, onRefresh, onRunSkill, onDeleteSkill, onCaptureSkill, skillBusy, captureBusy, onUndo }) {
+    function ComputerPanel({ snap, t, tab, setTab, onClose, onToast, onReset, botId, onOpenThread, onRefresh, onRunSkill, onDeleteSkill, onCaptureSkill, skillBusy, captureBusy, onUndo, onCreateTeam }) {
       const [computer, setComputer] = useState(null)
       const [refreshTick, setRefreshTick] = useState(0)
 
@@ -4886,7 +4915,7 @@ window.__ModuleLoader__.load({
           : tab === 'activity'
             ? h(ActivityTab, { snap, t, onRetry: onReset, onUndo })
             : tab === 'team'
-              ? h(TeamTab, { team: snap.team, roster: snap.roster, assignments: snap.assignments, onToast, t })
+              ? h(TeamTab, { team: snap.team, roster: snap.roster, assignments: snap.assignments, onToast, onCreateTeam, t })
               : tab === 'routines'
                 ? h(RoutinesTab, {
                     snap,
@@ -5714,6 +5743,17 @@ window.__ModuleLoader__.load({
         }
       }, [showToast, t])
 
+      const retryModel = useCallback(async () => {
+        try {
+          await apiPost('/model/refresh', {})
+          const boot = await apiGet('/bootstrap')
+          setSnap(boot)
+          showToast(boot.modelReady ? t('modelConnected') : t('modelMissingHint'))
+        } catch (error) {
+          showToast(error.message)
+        }
+      }, [showToast, t])
+
       const insertMention = useCallback((name) => {
         setDraft((previous) => {
           const base = previous && !previous.endsWith(' ') ? `${previous} ` : previous
@@ -6426,6 +6466,11 @@ window.__ModuleLoader__.load({
                   h('strong', null, t('modelMissing')),
                   h('span', null, t('modelMissingHint')),
                 ),
+                h(
+                  'button',
+                  { type: 'button', className: 'gb-small-btn', onClick: retryModel },
+                  t('modelRetry'),
+                ),
               )
             : null,
           pinnedList.length > 0
@@ -6542,7 +6587,7 @@ window.__ModuleLoader__.load({
                       : h('span', { className: 'gb-history-end' }, t('noMoreHistory')),
                   )
                 : null,
-              empty ? h(Welcome, { t, onSend: send }) : content,
+              empty ? h(Welcome, { t, onSend: send, onCreateTeam: createTeam, showTeamCta: (snap.bots || []).length <= 1 }) : content,
               !empty && running ? h('div', { className: 'gb-chat-spacer' }) : null,
             ),
           ),
@@ -6642,6 +6687,7 @@ window.__ModuleLoader__.load({
               skillBusy,
               captureBusy,
               onUndo: undoSnapshot,
+              onCreateTeam: createTeam,
             })
           : null,
         botEditor
@@ -7076,6 +7122,13 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 .gb-chip:hover { transform: translateY(-1px); border-color: var(--gb-line-strong); background: color-mix(in srgb, var(--gb-panel-2) 62%, transparent); color: var(--gb-text); }
 .gb-chip:hover svg { color: var(--gb-signal); }
 .gb-welcome-foot { margin-top: 26px; font-family: "Cascadia Code", Consolas, monospace; font-size: 9px; letter-spacing: .04em; color: var(--gb-faint); }
+.gb-welcome-team { display: inline-flex; align-items: center; gap: 9px; margin-top: 14px; padding: 9px 12px; border: 1px solid color-mix(in srgb, var(--gb-signal) 28%, var(--gb-line)); border-radius: 10px; background: color-mix(in srgb, var(--gb-signal) 6%, transparent); color: var(--gb-text); text-align: left; }
+.gb-welcome-team:hover { border-color: color-mix(in srgb, var(--gb-signal) 50%, var(--gb-line)); background: color-mix(in srgb, var(--gb-signal) 10%, transparent); }
+.gb-welcome-team > svg { color: var(--gb-signal); }
+.gb-welcome-team-text { display: flex; flex-direction: column; gap: 2px; }
+.gb-welcome-team-text strong { font-size: 10px; font-weight: 600; }
+.gb-welcome-team-text small { color: var(--gb-faint); font-size: 8px; }
+.gb-team-add { margin-top: 8px; }
 
 /* messages */
 .gb-user { display: flex; justify-content: flex-end; margin: 20px 0; animation: gb-fade .28s ease both; }
