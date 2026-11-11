@@ -1,4 +1,4 @@
-# DSH Bot v4.8.0
+# DSH Bot v4.9.0
 
 **An open-source GrokBot alternative that runs a real bot team on your own Windows machine, inside DeepSeek Harness.**
 

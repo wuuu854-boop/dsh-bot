@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.9.0 — 2026-11-11
+
+- Add: Edge `read` now selects the largest document, reports `textLength` / `controlsCount`, and supports `wait`, `scroll`, `back`, `forward`, `reload`.
+- Change: every web page (articles, search results, documents, homework, forms) is read through UI Automation first; screenshots are only for empty/canvas/PDF/image/captcha pages.
+- Change: `type --index` supports forms without stable control names.
+
 ## 4.8.0 — 2026-11-11
 
 - Add: Edge UI Automation commands `read`, `click`, `type`, and `select`; bots now read page text and controls instead of taking screenshots by default.

@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '4.8.0'
+const VERSION = '4.9.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -4069,9 +4069,11 @@ export function apply(ctx) {
       '',
       '## 浏览器任务（默认底层，不走视觉）',
       `- 默认用 Edge + UI Automation：python "${edgeScript}" read 读取页面全文和控件；click/type/select 直接操作控件。`,
+      `- 所有网页内容（文章、搜索、文档、作业、表单）都先 read；只要 read.textLength > 0，就不要截图。`,
       `- 只打开一次：python "${edgeScript}" open <url>；之后用 read/click/type/select；不要每一步重新 open，也不要反复开新窗口。`,
+      `- 长页面用 python "${edgeScript}" scroll down 分页读取，再 read；不要截图滚动。`,
       '- 表单/作业：一次 read 拿到 text + controls；按控件 name 填写/选择，再 click 提交；提交后再 read 一次确认结果。',
-      '- 只有 canvas、PDF、图片题、验证码，或 UIA 读不到内容时，才 screenshot + read_image；截图不是默认路径。',
+      '- 只有 read.textLength = 0，或页面明确是 canvas、PDF、图片题、验证码时，才 screenshot + read_image；截图不是默认路径。',
       '- 禁止“先截图看看再说”；能 read 就不截图，能 click/type 就不模拟鼠标坐标。',
       `- Clash / 系统代理：${proxyScript}`,
       `- 权限模式：${bot.privilege === 'admin' ? '完全权限 + 管理员' : '标准（文件沙箱）'}`,

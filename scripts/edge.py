@@ -16,8 +16,14 @@ Commands:
   navigate URL
   activate
   read [--limit 200]
+  wait [--timeout 8]
+  scroll [down|up|top|bottom] [--pages N]
+  back
+  forward
+  reload
   click --name TEXT [--role Button]
   type --name TEXT --text VALUE
+  type --index N --text VALUE
   select --name TEXT
   screenshot [PATH]
   monitors
@@ -118,9 +124,10 @@ def open_url(url, new_window=False):
         args.append("--new-tab")
     args.append(url)
     subprocess.Popen(args, close_fds=True)
-    time.sleep(1.2)
+    time.sleep(0.9)
     window = activate_edge()
-    return {"ok": True, "url": url, "window": window, "windows": edge_windows()}
+    page = wait_ready(8)
+    return {"ok": True, "url": url, "window": window, "page": page, "windows": edge_windows()}
 
 
 def navigate(url):
@@ -132,8 +139,47 @@ def navigate(url):
     computer.type_text(url)
     time.sleep(0.2)
     computer.press_combo("enter")
-    time.sleep(0.8)
-    return {"ok": True, "url": url, "windows": edge_windows()}
+    return {"ok": True, "url": url, "page": wait_ready(8), "windows": edge_windows()}
+
+
+def read_page(limit=200):
+    return uia_run("read", limit=limit)
+
+
+def wait_ready(timeout=8):
+    deadline = time.time() + timeout
+    last = None
+    while time.time() < deadline:
+        last = read_page(40)
+        if last.get("ok") and (int(last.get("textLength") or 0) > 0 or int(last.get("controlsCount") or 0) > 0):
+            return last
+        time.sleep(0.5)
+    return last or {"ok": False, "error": "page did not become readable"}
+
+
+def page_summary(page):
+    if not page:
+        return None
+    return {
+        "title": page.get("title"),
+        "url": page.get("url"),
+        "textLength": page.get("textLength"),
+        "controlsCount": page.get("controlsCount"),
+    }
+
+
+def scroll_page(direction="down", pages=1):
+    activate_edge()
+    key = {
+        "down": "pagedown",
+        "up": "pageup",
+        "top": "ctrl+home",
+        "bottom": "ctrl+end",
+    }.get(str(direction).lower(), "pagedown")
+    for _ in range(max(1, int(pages))):
+        computer.press_combo(key)
+        time.sleep(0.25)
+    return {"ok": True, "direction": direction, "pages": pages, "page": read_page(80)}
 
 
 UIA_BODY = r'''
@@ -168,8 +214,16 @@ function Get-Value($e) {
 }
 $action = [string]$payload.action
 $limit = if ($payload.limit) { [int]$payload.limit } else { 200 }
+$docs = @()
+foreach ($e in $all) { if ((Get-Role $e) -eq 'Document') { $docs += $e } }
 $doc = $null
-foreach ($e in $all) { if ((Get-Role $e) -eq 'Document') { $doc = $e; break } }
+$bestLength = -1
+foreach ($d in $docs) {
+  try {
+    $t = $d.GetCurrentPattern([System.Windows.Automation.TextPattern]::Pattern).DocumentRange.GetText(-1)
+    if ($t.Length -gt $bestLength) { $bestLength = $t.Length; $doc = $d }
+  } catch {}
+}
 $pageAll = if ($doc) { $doc.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition) } else { $all }
 $url = ''
 foreach ($e in $all) {
@@ -182,10 +236,10 @@ if ($action -eq 'read') {
   $text = ''
   if ($doc) {
     try {
-      $tp = $doc.GetCurrentPattern([System.Windows.Automation.TextPattern]::Pattern)
-      $text = $tp.DocumentRange.GetText(-1)
+      $text = $doc.GetCurrentPattern([System.Windows.Automation.TextPattern]::Pattern).DocumentRange.GetText(-1)
     } catch {}
   }
+  $fullLength = $text.Length
   if ($text.Length -gt 20000) { $text = $text.Substring(0, 20000) }
   $items = @()
   foreach ($e in $pageAll) {
@@ -207,7 +261,15 @@ if ($action -eq 'read') {
     }
     if ($items.Count -ge $limit) { break }
   }
-  [pscustomobject]@{ ok = $true; title = $win.Current.Name; url = $url; text = $text; controls = @($items) } | ConvertTo-Json -Depth 5 -Compress
+  [pscustomobject]@{
+    ok = $true
+    title = $win.Current.Name
+    url = $url
+    textLength = $fullLength
+    controlsCount = $items.Count
+    text = $text
+    controls = @($items)
+  } | ConvertTo-Json -Depth 5 -Compress
   exit 0
 }
 $target = $null
@@ -339,10 +401,21 @@ def main():
         return emit(navigate(normalize_url(args[0])))
     if command == "read":
         limit = int(flag(args, "limit", "200") or 200)
-        result = uia_run("read", limit=limit)
+        result = read_page(limit)
         if result.get("ok"):
             activate_edge()
         return emit(result)
+    if command == "wait":
+        timeout = float(flag(args, "timeout", "8") or 8)
+        return emit(wait_ready(timeout))
+    if command == "scroll":
+        direction = args[0] if args else "down"
+        pages = int(flag(args, "pages", "1") or 1)
+        return emit(scroll_page(direction, pages))
+    if command in ("back", "forward", "reload"):
+        activate_edge()
+        computer.press_combo({"back": "alt+left", "forward": "alt+right", "reload": "f5"}[command])
+        return emit({"ok": True, "action": command, "page": wait_ready(8)})
     if command in ("click", "select"):
         name = flag(args, "name", "")
         role = flag(args, "role", "RadioButton" if command == "select" else "")
@@ -356,9 +429,10 @@ def main():
     if command == "type":
         name = flag(args, "name", "")
         text = flag(args, "text", "")
-        if not name:
-            fail("type requires --name and --text")
-        result = uia_run("type", name=name, text=text, role="Edit")
+        index = flag(args, "index", None)
+        if not name and index is None:
+            fail("type requires --name or --index, plus --text")
+        result = uia_run("type", name=name, text=text, role="Edit", index=index)
         if not result.get("ok"):
             return emit(result)
         if result.get("method") == "click-fallback":
