@@ -136,6 +136,10 @@ window.__ModuleLoader__.load({
         replayPause: '暂停',
         replayStep: '回放进度',
         modelMissing: '还没有可用模型',
+        theme: '界面主题',
+        themeDark: '暗色',
+        themeWarm: '暖色',
+        themeInk: '水墨',
         modelMissingHint: '请先在 DSH 设置里接入 API 并选择默认模型，再发任务。',
         modelRetry: '重新检测',
         modelConnected: '模型已连接',
@@ -645,6 +649,10 @@ window.__ModuleLoader__.load({
         replayPause: 'Pause',
         replayStep: 'Replay position',
         modelMissing: 'No model connected',
+        theme: 'Theme',
+        themeDark: 'Dark',
+        themeWarm: 'Warm',
+        themeInk: 'Ink',
         modelMissingHint: 'Connect an API and choose a default model in DSH settings before sending a task.',
         modelRetry: 'Retry',
         modelConnected: 'Model connected',
@@ -2902,7 +2910,7 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function TopBar({ thread, model, running, channel, onManage, onRename, onSearch, onExport, onPins, onReplay, archived, onArchive, t }) {
+    function TopBar({ thread, model, running, channel, onManage, onRename, onSearch, onExport, onPins, onReplay, archived, onArchive, theme, onTheme, t }) {
       const members = channel?.members || []
       const [editing, setEditing] = useState(false)
       const [draft, setDraft] = useState('')
@@ -3041,6 +3049,24 @@ window.__ModuleLoader__.load({
               )
             : null,
           h(
+            'div',
+            { className: 'gb-theme-switch', role: 'group', 'aria-label': t('theme') },
+            [
+              ['dark', 'themeDark'],
+              ['warm', 'themeWarm'],
+              ['ink', 'themeInk'],
+            ].map(([id, label]) =>
+              h('button', {
+                key: id,
+                type: 'button',
+                className: `gb-theme-dot is-${id}${theme === id ? ' is-active' : ''}`,
+                title: t(label),
+                'aria-label': t(label),
+                onClick: () => onTheme?.(id),
+              }),
+            ),
+          ),
+          h(
             'span',
             { className: 'gb-topbar-pill' },
             h('span', { className: 'gb-signal' }),
@@ -3062,6 +3088,7 @@ window.__ModuleLoader__.load({
       onSend,
       onStop,
       running,
+      theme,
       t,
       inputRef,
       sendMode,
@@ -3181,11 +3208,25 @@ window.__ModuleLoader__.load({
       }, [onUpload])
       return h(
         'div',
-        { className: 'gb-composer-wrap' },
+        {
+          className: 'gb-composer-wrap',
+          style:
+            theme === 'warm'
+              ? { background: 'linear-gradient(to top, #f4ead8 58%, transparent)' }
+              : theme === 'ink'
+                ? { background: 'linear-gradient(to top, #f0eee7 58%, transparent)' }
+                : undefined,
+        },
         h(
           'div',
           {
             className: `gb-composer${running ? ' is-running' : ''}${dragging ? ' is-dragging' : ''}`,
+            style:
+              theme === 'warm'
+                ? { background: '#3a2a1c' }
+                : theme === 'ink'
+                  ? { background: '#26241f' }
+                  : undefined,
             onDragEnter: (event) => {
               if (Array.from(event.dataTransfer?.types || []).includes('Files')) {
                 event.preventDefault()
@@ -3300,6 +3341,12 @@ window.__ModuleLoader__.load({
             {
               ref: inputRef,
               className: 'gb-input',
+              style:
+                theme === 'warm'
+                  ? { background: 'transparent', color: '#fff6e8' }
+                  : theme === 'ink'
+                    ? { background: 'transparent', color: '#f4f1e8' }
+                    : undefined,
               value,
               rows: 1,
               placeholder: running ? t('inputBusy') : t('inputPlaceholder'),
@@ -5354,6 +5401,13 @@ window.__ModuleLoader__.load({
       const [pinnedOpen, setPinnedOpen] = useState(false)
       const [pinsOpen, setPinsOpen] = useState(false)
       const [replayOpen, setReplayOpen] = useState(false)
+      const [theme, setTheme] = useState(() => {
+        try {
+          return localStorage.getItem('dsh-bot-theme') || 'dark'
+        } catch {
+          return 'dark'
+        }
+      })
       const [pinsList, setPinsList] = useState([])
       const [pinsBusy, setPinsBusy] = useState(false)
       const [sending, setSending] = useState(false)
@@ -5554,6 +5608,15 @@ window.__ModuleLoader__.load({
         element.addEventListener('scroll', onScroll, { passive: true })
         return () => element.removeEventListener('scroll', onScroll)
       }, [booted])
+
+      useEffect(() => {
+        try {
+          localStorage.setItem('dsh-bot-theme', theme)
+        } catch {
+          /* theme is optional */
+        }
+        document.documentElement.dataset.dshBotTheme = theme
+      }, [theme])
 
       useEffect(() => {
         const running = Boolean(snap?.thread?.running)
@@ -6568,7 +6631,7 @@ window.__ModuleLoader__.load({
 
       return h(
         'div',
-        { className: `gb-root${railOpen ? ' is-rail-open' : ''}${rightOpen ? ' is-deck-open' : ''}` },
+        { className: `gb-root${railOpen ? ' is-rail-open' : ''}${rightOpen ? ' is-deck-open' : ''}`, 'data-theme': theme },
         h('style', null, CSS),
         h('div', { className: 'gb-stage', 'aria-hidden': true }),
         railOpen
@@ -6613,6 +6676,8 @@ window.__ModuleLoader__.load({
             onReplay: (snap.items || []).some((item) => (item.kind === 'user' || item.kind === 'assistant') && String(item.text || '').trim())
               ? () => setReplayOpen(true)
               : null,
+            theme,
+            onTheme: setTheme,
             archived: thread?.archived === true,
             onArchive: channel?.meeting ? null : archiveThread,
             t,
@@ -6813,6 +6878,7 @@ window.__ModuleLoader__.load({
             onSend: send,
             onStop: stop,
             running,
+            theme,
             t,
             inputRef,
             sendMode,
@@ -7102,6 +7168,113 @@ window.__ModuleLoader__.load({
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
+
+:root[data-dsh-bot-theme="warm"] {
+  --gb-bg: #f4ead8;
+  --gb-panel: #fff8ec;
+  --gb-panel-2: #efe0c8;
+  --gb-overlay: #fffaf0;
+  --gb-line: #e0cdb0;
+  --gb-line-strong: #c6a87f;
+  --gb-text: #2f2418;
+  --gb-muted: #7a6954;
+  --gb-faint: #a08c73;
+  --gb-accent: #d9772f;
+  --gb-signal: #c26422;
+  --gb-error: #b83a2f;
+  --gb-warn: #a86b1f;
+  --gb-success: #4c7a4a;
+  color-scheme: light;
+}
+:root[data-dsh-bot-theme="ink"] {
+  --gb-bg: #f0eee7;
+  --gb-panel: #fbfaf6;
+  --gb-panel-2: #e7e3d9;
+  --gb-overlay: #fdfcf8;
+  --gb-line: #d3cec1;
+  --gb-line-strong: #b7b0a0;
+  --gb-text: #1d1c19;
+  --gb-muted: #6f6b62;
+  --gb-faint: #999388;
+  --gb-accent: #a33b2e;
+  --gb-signal: #9e3a2d;
+  --gb-error: #a83228;
+  --gb-warn: #8a6a2a;
+  --gb-success: #456b4a;
+  color-scheme: light;
+}
+:root[data-dsh-bot-theme="warm"] .gb-deck,
+:root[data-dsh-bot-theme="warm"] .gb-rail { background: #fff8ec !important; }
+:root[data-dsh-bot-theme="ink"] .gb-deck,
+:root[data-dsh-bot-theme="ink"] .gb-rail { background: #fbfaf6 !important; }
+:root[data-dsh-bot-theme="warm"] .gb-composer {
+  --gb-text: #fff6e8;
+  --gb-muted: #d8c4a6;
+  --gb-faint: #b9a487;
+  --gb-line: #6b5238;
+  --gb-line-strong: #8a6a48;
+  --gb-panel: #3a2a1c;
+  --gb-panel-2: #4a3524;
+  background: #3a2a1c !important;
+}
+:root[data-dsh-bot-theme="ink"] .gb-composer {
+  --gb-text: #f4f1e8;
+  --gb-muted: #c9c3b7;
+  --gb-faint: #a9a295;
+  --gb-line: #4a463d;
+  --gb-line-strong: #706a5e;
+  --gb-panel: #26241f;
+  --gb-panel-2: #35322b;
+  background: #26241f !important;
+}
+:root[data-dsh-bot-theme="warm"] .gb-composer-wrap { background: linear-gradient(to top, #f4ead8 58%, transparent) !important; }
+:root[data-dsh-bot-theme="ink"] .gb-composer-wrap { background: linear-gradient(to top, #f0eee7 58%, transparent) !important; }
+:root[data-dsh-bot-theme="warm"] .gb-main,
+:root[data-dsh-bot-theme="ink"] .gb-main,
+:root[data-dsh-bot-theme="warm"] .gb-topbar,
+:root[data-dsh-bot-theme="ink"] .gb-topbar { background: var(--gb-bg) !important; }
+:root[data-dsh-bot-theme="warm"] .gb-root,
+:root[data-dsh-bot-theme="ink"] .gb-root {
+  --gb-bg: inherit;
+  --gb-panel: inherit;
+  --gb-panel-2: inherit;
+  --gb-overlay: inherit;
+  --gb-line: inherit;
+  --gb-line-strong: inherit;
+  --gb-text: inherit;
+  --gb-muted: inherit;
+  --gb-faint: inherit;
+  --gb-accent: inherit;
+  --gb-signal: inherit;
+  --gb-error: inherit;
+  --gb-warn: inherit;
+  --gb-success: inherit;
+  background-color: var(--gb-bg) !important;
+}
+.gb-root[data-theme="warm"] .gb-stage,
+.gb-root[data-theme="ink"] .gb-stage,
+.gb-root[data-theme="warm"] .gb-main,
+.gb-root[data-theme="ink"] .gb-main,
+.gb-root[data-theme="warm"] .gb-topbar,
+.gb-root[data-theme="ink"] .gb-topbar { background: var(--gb-bg) !important; }
+.gb-root[data-theme="warm"] .gb-rail,
+.gb-root[data-theme="ink"] .gb-rail,
+.gb-root[data-theme="warm"] .gb-deck,
+.gb-root[data-theme="ink"] .gb-deck { background: var(--gb-panel) !important; }
+.gb-root[data-theme="warm"] .gb-composer,
+.gb-root[data-theme="ink"] .gb-composer { background: var(--gb-panel) !important; }
+.gb-root[data-theme="warm"] .gb-modal,
+.gb-root[data-theme="ink"] .gb-modal { background: var(--gb-panel); }
+.gb-root[data-theme="warm"] .gb-pending,
+.gb-root[data-theme="ink"] .gb-pending { background: var(--gb-panel-2); }
+.gb-root[data-theme="warm"] .gb-screen,
+.gb-root[data-theme="ink"] .gb-screen { background: var(--gb-panel-2); }
+.gb-theme-switch { display: flex; align-items: center; gap: 3px; padding: 2px; border: 1px solid var(--gb-line); border-radius: 999px; }
+.gb-theme-dot { width: 12px; height: 12px; padding: 0; border: 1px solid color-mix(in srgb, var(--gb-line-strong) 70%, transparent); border-radius: 50%; }
+.gb-theme-dot.is-dark { background: #101110; }
+.gb-theme-dot.is-warm { background: linear-gradient(135deg, #fff3df 0 48%, #c26422 48% 100%); }
+.gb-theme-dot.is-ink { background: linear-gradient(135deg, #f7f4ec 0 48%, #33312b 48% 100%); }
+.gb-theme-dot.is-active { box-shadow: 0 0 0 2px var(--gb-signal); }
 
 .gb-root *, .gb-root *::before, .gb-root *::after { box-sizing: border-box; }
 .gb-root, .gb-root * { -webkit-app-region: no-drag; }

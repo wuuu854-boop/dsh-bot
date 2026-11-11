@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.13.0 — 2026-11-11
+
+- Add: three UI themes — dark, warm paper, and ink-wash — selectable from the top bar and persisted in localStorage.
+- Add: `docs/DISTILLATION.md` with high-star project research and adopted/rejected patterns.
+- Theme: warm uses cream/terracotta with a dark-brown composer; ink uses rice-paper grey with ink black and cinnabar.
+
 ## 4.12.0 — 2026-11-11
 
 - Change: no preset team is deployed. A fresh install has only the Boss; “添加专家” opens a blank editor so each user defines their own roles.

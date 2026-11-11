@@ -24,9 +24,10 @@ DSH Bot 不是聊天壳，而是把一台 Windows 电脑上的真实工作拆给
 ### 老大 + 专家团队
 
 - **Boss/lead**：唯一需要你对话的 Bot；`bot_delegate` 派活，回执自动回到它。
-- **专家/member**：磁盘清理、大学事务、软件盘点等，各自有 workspace、memory、persona、权限和模型。
+- **专家/member**：按自己的需要添加，例如磁盘清理、大学事务、软件盘点；每个都有 workspace、memory、persona、权限和模型。
 - **自建员工**：没有对口成员时，Boss 用 `bot_hire` 创建新 Bot（角色、头像、persona、workspace、模型）并立即派活。
 - **派活可观测**：卡片显示状态、步数、耗时、tokens；失败/中断可一键重试，最多 3 次。
+- **主题切换**：顶栏三色圆点，暗色 / 暖色 / 水墨，刷新后保持。
 - **对话回放**：顶栏「回放」按时间线重播当前对话，支持播放/暂停、进度拖动；长任务可以像看录像一样复盘。
 - **任务模板**：输入框「模板」提供网页作业、网页速读、磁盘清理、今日复盘四套提示词，点一下填入再补 URL/细节。
 - **健康检查**：`GET /health` 返回版本、运行时长、状态大小、模型状态和最近错误；`GET /doctor` 逐项检查 Python / Edge / 模型 / 磁盘 / 状态目录。
@@ -168,6 +169,7 @@ node scripts/e2e-team.mjs --yes  # 可选：真实模型直答 + 派活回执（
 
 - [docs/API.md](docs/API.md)：全部 HTTP 路由、请求体、安全边界
 - [docs/TEAM.md](docs/TEAM.md)：按需添加专家与角色设计
+- [docs/DISTILLATION.md](docs/DISTILLATION.md)：高星项目蒸馏清单
 - [docs/COMPETITIVE.md](docs/COMPETITIVE.md)：同类项目调研
 - [CHANGELOG.md](CHANGELOG.md)：版本历史
 
