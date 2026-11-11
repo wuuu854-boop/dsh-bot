@@ -227,9 +227,10 @@ window.__ModuleLoader__.load({
         pinnedList: '置顶列表',
         pinnedClearAll: '全部取消置顶',
         searchTitle: '搜索消息',
-        searchPlaceholder: '搜索当前会话…',
-        searchEmpty: '没有匹配的消息',
-        searchHint: '输入关键词搜索当前会话',
+        searchPlaceholder: '搜索会话、记忆，或输入命令…',
+        searchEmpty: '没有匹配的消息或记忆',
+        searchHint: 'Ctrl K 打开命令中心；输入关键词搜索全部会话与记忆',
+        commandTitle: '命令中心',
         searchNotLoaded: '这条消息在更早的历史里，请先加载更早',
         searchScopeThread: '本会话',
         searchScopeAll: '全部会话',
@@ -832,9 +833,10 @@ window.__ModuleLoader__.load({
         pinnedList: 'Pinned list',
         pinnedClearAll: 'Clear all pins',
         searchTitle: 'Search messages',
-        searchPlaceholder: 'Search this conversation…',
-        searchEmpty: 'No matching messages',
-        searchHint: 'Type to search this conversation',
+        searchPlaceholder: 'Search chats, memory, or type a command…',
+        searchEmpty: 'No matching messages or memories',
+        searchHint: 'Ctrl K opens the command center; type to search all chats and memory',
+        commandTitle: 'Command center',
         searchNotLoaded: 'That message is in earlier history; load earlier first',
         searchScopeThread: 'This chat',
         searchScopeAll: 'All chats',
@@ -6785,6 +6787,11 @@ window.__ModuleLoader__.load({
 
       useEffect(() => {
         const onKeyDown = (event) => {
+          if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+            event.preventDefault()
+            setSearchScope('all')
+            setSearchOpen(true)
+          }
           if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f') {
             event.preventDefault()
             setSearchOpen(true)
@@ -6808,6 +6815,16 @@ window.__ModuleLoader__.load({
       const openSearchResult = useCallback(
         async (item) => {
           setSearchOpen(false)
+          if (item.kind === 'memory') {
+            await selectBot(item.botId)
+            setTab('memory')
+            setRightOpen(true)
+            return
+          }
+          if (item.kind === 'thread') {
+            await openThread(item.threadId)
+            return
+          }
           if (item.threadId && item.threadId !== threadId) {
             await openThread(item.threadId)
             setTimeout(() => {
@@ -6819,7 +6836,7 @@ window.__ModuleLoader__.load({
             if (!jumpToMessage(item.id)) showToast(t('searchNotLoaded'))
           }, 60)
         },
-        [jumpToMessage, openThread, showToast, t, threadId],
+        [jumpToMessage, openThread, selectBot, showToast, t, threadId],
       )
 
       const exportThread = useCallback(async () => {
@@ -7226,6 +7243,60 @@ window.__ModuleLoader__.load({
           }),
         )
       }
+      const quickActions = [
+        {
+          id: 'new',
+          icon: 'plus',
+          label: t('newTask'),
+          hint: 'Ctrl N',
+          run: () => {
+            setSearchOpen(false)
+            createTask()
+          },
+        },
+        {
+          id: 'specialist',
+          icon: 'agents',
+          label: t('teamTemplate'),
+          hint: '',
+          run: () => {
+            setSearchOpen(false)
+            addSpecialist()
+          },
+        },
+        {
+          id: 'memory',
+          icon: 'brain',
+          label: t('memoryTitle'),
+          hint: '',
+          run: () => {
+            setSearchOpen(false)
+            openMemory()
+          },
+        },
+        {
+          id: 'guide',
+          icon: 'help',
+          label: t('guideOpen'),
+          hint: '',
+          run: () => {
+            setSearchOpen(false)
+            setGuideStep(0)
+            setGuideOpen(true)
+          },
+        },
+        {
+          id: 'theme',
+          icon: 'sparkles',
+          label: t('theme'),
+          hint: '',
+          run: () => {
+            const order = ['dark', 'warm', 'ink', 'aurora', 'ember']
+            setTheme(order[(order.indexOf(theme) + 1) % order.length])
+            setSearchOpen(false)
+          },
+        },
+      ]
       const updateInfo = snap?.update
       const updateVisible = Boolean(updateInfo?.available && updateInfo.latest && updateInfo.latest !== dismissedUpdate)
       const openUpdate = () => {
@@ -7680,33 +7751,68 @@ window.__ModuleLoader__.load({
                   { className: 'gb-search-results' },
                   searchBusy
                     ? h('div', { className: 'gb-search-empty' }, h(Spinner, { size: 14 }))
-                    : searchResults.length === 0
+                    : !searchQuery.trim()
                       ? h(
-                          'p',
-                          { className: 'gb-search-empty' },
-                          searchQuery.trim() ? t('searchEmpty') : t('searchHint'),
-                        )
-                      : searchResults.map((item) =>
+                          'div',
+                          { className: 'gb-command-list' },
                           h(
-                            'button',
-                            {
-                              key: `${item.threadId || 'current'}:${item.id}`,
-                              type: 'button',
-                              className: 'gb-search-item',
-                              onClick: () => openSearchResult(item),
-                            },
+                            'div',
+                            { className: 'gb-command-head' },
+                            h(Icon, { name: 'sparkles', size: 12 }),
+                            h('span', null, t('commandTitle')),
+                            h('kbd', null, 'Ctrl K'),
+                          ),
+                          quickActions.map((action) =>
                             h(
-                              'span',
-                              { className: 'gb-search-meta' },
-                              `${searchScope === 'all' ? `${item.threadTitle || ''} · ` : ''}${item.kind === 'user' ? t('replyYou') : item.speaker?.name || ''} · ${formatClock(item.time)}`,
-                            ),
-                            h(
-                              'span',
-                              { className: 'gb-search-text' },
-                              highlightText(snippetAround(item.text, searchQuery), searchQuery),
+                              'button',
+                              {
+                                key: action.id,
+                                type: 'button',
+                                className: 'gb-command-item',
+                                onClick: action.run,
+                              },
+                              h(Icon, { name: action.icon, size: 14 }),
+                              h('span', null, action.label),
+                              action.hint ? h('kbd', null, action.hint) : null,
                             ),
                           ),
-                        ),
+                          h('p', { className: 'gb-search-hint' }, t('searchHint')),
+                        )
+                      : searchResults.length === 0
+                        ? h(
+                            'p',
+                            { className: 'gb-search-empty' },
+                            t('searchEmpty'),
+                          )
+                        : searchResults.map((item) => {
+                            const isMemory = item.kind === 'memory'
+                            const isThread = item.kind === 'thread'
+                            const meta = isMemory
+                              ? `${item.botName || ''} · ${t('memory')}`
+                              : isThread
+                                ? `${t('tasks')} · ${item.threadTitle || item.title || ''}`
+                                : `${searchScope === 'all' ? `${item.threadTitle || ''} · ` : ''}${item.kind === 'user' ? t('replyYou') : item.speaker?.name || ''} · ${formatClock(item.time)}`
+                            const text = isMemory
+                              ? item.snippet
+                              : isThread
+                                ? item.title
+                                : snippetAround(item.text, searchQuery)
+                            return h(
+                              'button',
+                              {
+                                key: `${item.kind || 'message'}:${item.threadId || item.botId || 'current'}:${item.id}`,
+                                type: 'button',
+                                className: `gb-search-item is-${item.kind || 'message'}`,
+                                onClick: () => openSearchResult(item),
+                              },
+                              h('span', { className: 'gb-search-meta' }, meta),
+                              h(
+                                'span',
+                                { className: 'gb-search-text' },
+                                highlightText(text, searchQuery),
+                              ),
+                            )
+                          }),
                 ),
               ),
             )
@@ -8277,6 +8383,16 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 .gb-search-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--gb-muted); font-size: 9px; }
 .gb-search-text mark { border-radius: 2px; background: color-mix(in srgb, var(--gb-signal) 32%, transparent); color: var(--gb-text); }
 .gb-search-empty { padding: 16px; color: var(--gb-faint); font-size: 9px; text-align: center; }
+.gb-command-list { display: flex; flex-direction: column; gap: 3px; padding: 4px; }
+.gb-command-head { display: flex; align-items: center; gap: 7px; padding: 6px 8px 8px; color: var(--gb-faint); font-size: 8px; letter-spacing: .08em; text-transform: uppercase; }
+.gb-command-head span { flex: 1; }
+.gb-command-item { display: flex; align-items: center; gap: 9px; width: 100%; padding: 9px 9px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--gb-text); font-size: 11px; text-align: left; transition: background .15s ease, border-color .15s ease, transform .15s ease; }
+.gb-command-item:hover { background: color-mix(in srgb, var(--gb-panel-2) 70%, transparent); border-color: var(--gb-line); transform: translateX(2px); }
+.gb-command-item > svg { color: var(--gb-signal); flex: none; }
+.gb-command-item > span { flex: 1; }
+.gb-search-hint { margin: 6px 8px 4px; color: var(--gb-faint); font-size: 8px; line-height: 1.6; }
+.gb-search-item.is-memory { border-left: 2px solid color-mix(in srgb, var(--gb-signal) 55%, transparent); }
+.gb-search-item.is-thread { border-left: 2px solid color-mix(in srgb, var(--gb-accent) 55%, transparent); }
 .gb-chat-inner { max-width: 880px; margin: 0 auto; padding: 30px 38px 10px; }
 .gb-chat-inner.is-empty { display: flex; align-items: center; min-height: 100%; padding-top: 0; padding-bottom: 0; }
 .gb-chat-spacer { height: 14px; }

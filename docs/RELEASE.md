@@ -1,4 +1,4 @@
-# DSH Bot v4.27.0
+# DSH Bot v5.0.0
 
 **An open-source GrokBot alternative that runs a real bot team on your own Windows machine, inside DeepSeek Harness.**
 
@@ -8,12 +8,16 @@ You talk to one **Boss**. It decides what to do, hires a specialist when nobody 
 
 ## Highlights
 
+- **Command center** — `Ctrl+K` opens quick actions (new task, add specialist, memory, guide, theme) plus global search across messages, thread titles and all bot memories.
+- **Task difficulty + five themes** — simple / standard / hard changes reasoning depth and verification; dark, warm, ink, Aurora and Ember are switchable and persisted.
+- **Local workbench** — OCR fallback, isolated browser profile/workspace, local memory full-text search, multi-browser UIA and the course runner are bundled.
+
 - **Boss + specialists** — `老大` is the only bot you talk to. `bot_delegate` assigns work; receipts come back automatically; assignment cards show steps, duration and tokens.
 - **Self-hiring** — if no teammate fits, the Boss uses `bot_hire` to create one (workspace, memory, model, persona) and delegates immediately. Test run: hired `软件盘点` and produced a 469-row installed-software inventory.
 - **Daily stand-up** — first DSH open of the day creates a ☀️ group with every bot; each reports from its own 36-hour run history; the Boss writes the minutes. Configurable: off, weekdays only, or only when there was work.
 - **Group chats** — 2–8 bots in one channel, `@name` routing, `bot_dispatch`, speaker-attributed replies, persisted group transcript.
 - **Git-backed memory** — each bot's memory is a Git repo with history, diff and one-click restore.
-- **Model policy** — bots follow the DSH default model, with per-assignment `effort` / `model` overrides.
+- **Model + effort** — every bot uses the current latest model; only reasoning effort differs (lead `max`, members `high`; `low` is clamped).
 - **Browser coverage** — Edge / Chrome / Brave / Chromium are selected automatically (active browser first), with `--browser` and `DSH_BOT_BROWSER` overrides; normal pages use UI Automation text + controls before any screenshot.
 - **Semantic PC control** — `uia.py` lists the accessibility tree and invokes/selects/toggles controls by name; `computer.py` exposes window process/DPI, window-only screenshots, clipboard, launch and wait-window. UIA 2x coordinates are normalized, screenshots are fallback only.
 - **New-user guide** — first launch shows a 4-step guide (how to ask, specialists on demand, templates/memory/voice, browser and approval behavior); the sidebar keeps a “使用指引” entry.

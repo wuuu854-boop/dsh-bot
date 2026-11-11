@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '4.27.0'
+const VERSION = '5.0.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -6634,6 +6634,13 @@ export function apply(ctx) {
           ? state.threads.filter((thread) => thread.kind !== 'member' && thread.archived !== true)
           : [requireThread(threadIdParam)]
         const matches = []
+        const memoryMatches = []
+        const snippet = (text, query, radius = 100) => {
+          const lowerText = String(text || '').toLowerCase()
+          const index = lowerText.indexOf(String(query || '').toLowerCase())
+          if (index < 0) return ''
+          return String(text).slice(Math.max(0, index - radius), index + String(query).length + radius).replace(/\s+/g, ' ').trim()
+        }
         for (const thread of targets) {
           const title = thread.title || (thread.kind === 'group' ? '群聊' : '未命名会话')
           if (thread.kind === 'group') {
@@ -6662,12 +6669,42 @@ export function apply(ctx) {
           }
         }
         matches.sort((left, right) => (right.time || 0) - (left.time || 0))
+        if (scopeAll) {
+          for (const bot of state.bots) {
+            const text = readMemory(bot)
+            if (!String(text || '').toLowerCase().includes(lower)) continue
+            memoryMatches.push({
+              kind: 'memory',
+              id: `memory-${bot.id}`,
+              botId: bot.id,
+              botName: bot.name,
+              title: `${bot.name} · ${bot.tagline || '记忆'}`,
+              snippet: snippet(text, query, 120),
+              time: 0,
+            })
+          }
+          for (const thread of targets) {
+            const title = thread.title || (thread.kind === 'group' ? '群聊' : '未命名会话')
+            if (!title.toLowerCase().includes(lower)) continue
+            if (memoryMatches.some((item) => item.id === `thread-${thread.id}`)) continue
+            memoryMatches.push({
+              kind: 'thread',
+              id: `thread-${thread.id}`,
+              threadId: thread.id,
+              threadTitle: title,
+              title,
+              snippet: snippet(title, query, 60),
+              time: thread.updatedAt || 0,
+            })
+          }
+        }
+        const combined = [...memoryMatches, ...matches]
         return json(res, 200, {
           ok: true,
           q: query,
           scope: scopeAll ? 'all' : 'thread',
-          total: matches.length,
-          results: matches.slice(0, limit),
+          total: combined.length,
+          results: combined.slice(0, limit),
         })
       }
 

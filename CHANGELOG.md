@@ -1,5 +1,13 @@
 # Changelog
 
+## 5.0.0 — 2026-11-11
+
+- Add: command center on `Ctrl+K` with quick actions (new task, add specialist, memory, guide, theme) and global search.
+- Add: global search now covers chat messages, thread titles and every bot's long-term memory; memory results open the memory deck.
+- Add: five themes (dark, warm, ink, Aurora, Ember) and task difficulty controls (simple/standard/hard) with persisted per-thread behavior.
+- Add: local OCR, isolated workbench, local memory search, multi-browser/UIA control and course runner are bundled into the v5 workbench.
+- Fix: exact accessible-name matching in `uia.py`, native DSH approval awareness, model/difficulty migration, and empty-send state mutation.
+
 ## 4.27.0 — 2026-11-11
 
 - Changed: task difficulty now changes behavior, not only effort — simple asks for the shortest result, standard executes/verifies, hard decomposes risks and cross-checks.
