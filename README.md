@@ -28,7 +28,7 @@ DSH Bot 不是聊天壳，而是把一台 Windows 电脑上的真实工作拆给
 - **自建员工**：没有对口成员时，Boss 用 `bot_hire` 创建新 Bot（角色、头像、persona、workspace、模型）并立即派活。
 - **派活可观测**：卡片显示状态、步数、耗时、tokens；失败/中断可一键重试，最多 3 次。
 - **主题切换**：顶栏三色圆点，暗色 / 暖色 / 水墨；三种主题的对话气泡、输入区和标题字体各自不同，刷新后保持。
-- **智慧职教适配**：`edge.py read --all` 同时读取主页面和 iframe，`click --all --verify` 检测点击后是否有变化；无变化直接返回 `stalled`，提示换 frame/滚动/等待，不再循环点。
+- **智慧职教 / 刷课适配**：`course.py status` 判断视频/PPT/题目/下一回合，`play` 播放、`ppt` 翻页、`question` 读题、`answer` 作答、`next` 进入下一回合；每次点击验证是否变化，无变化禁止循环。
 - **失败可处理**：任务失败会显示“这次没做成”，给出已尝试步骤，并提供重试、换办法、复制诊断，不用重开对话。
 - **权限确认**：新 Bot 默认标准权限；标准模式下敏感操作走 DSH 授权弹窗，切换到管理员必须勾选风险确认，输入区会持续显示“管理员权限”标记。
 - **语音输入**：麦克风按钮调用 Windows 系统听写（Win+H），说完再点一次结束；不依赖浏览器语音 API。
@@ -146,8 +146,12 @@ node scripts/bot_cli.mjs retry --assignment <id>
 python scripts/edge.py open https://example.com
 python scripts/edge.py read
 python scripts/edge.py read --all
-python scripts/edge.py click --all --verify --name "继续学习"
-python scripts/edge.py wait-change --timeout 6
+python scripts/course.py status
+python scripts/course.py play
+python scripts/course.py ppt
+python scripts/course.py question
+python scripts/course.py answer --choice 2 --submit
+python scripts/course.py next
 python scripts/edge.py scroll down
 python scripts/edge.py type --name "学号" --text "123"
 python scripts/edge.py click --name "提交"

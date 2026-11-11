@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.19.0 — 2026-11-11
+
+- Add: `scripts/course.py` state machine for self-paced course pages — `status` classifies video / PPT / quiz / next, `play`, `ppt`, `question`, `answer --choice --submit`, and `next`.
+- Add: exam/proctored-page guard; a course page containing 考试/监考/交卷/倒计时 is refused instead of auto-answered.
+- Add: same-page/action guard: after repeated stalled clicks, `course.py` blocks further repeats and asks for a different route.
+- Add: 大学搜题酱 workflow distilled into read question → verify answer → fill → next; no extension code/API copied.
+- Add: `edge.py read --all`, cross-iframe `click --all --verify`, `wait-change`; `course.py` uses them for ICVE/智慧职教.
+
 ## 4.18.0 — 2026-11-11
 
 - Fix: surface DSH `approval/request` inside the Bot UI with a card; the agent no longer spins silently while waiting.
