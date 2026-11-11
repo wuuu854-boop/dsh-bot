@@ -81,6 +81,13 @@ window.__ModuleLoader__.load({
         stopDone: '已停止',
         stopping: '停止中…',
         hint: 'Enter 发送 · Shift + Enter 换行',
+        difficulty: '任务难度',
+        difficultySimple: '简单',
+        difficultyStandard: '标准',
+        difficultyHard: '困难',
+        difficultySimpleHint: '直接给结果，少绕路',
+        difficultyStandardHint: '完整执行并验证',
+        difficultyHardHint: '深入分析，多一步核验',
         localAccess: '本地电脑',
         computer: '电脑',
         activity: '活动',
@@ -205,6 +212,8 @@ window.__ModuleLoader__.load({
         themeDark: '暗色',
         themeWarm: '暖色',
         themeInk: '水墨',
+        themeAurora: '极光',
+        themeEmber: '余烬',
         modelMissingHint: '请先在 DSH 设置里接入 API 并选择默认模型，再发任务。',
         modelRetry: '重新检测',
         modelConnected: '模型已连接',
@@ -677,6 +686,13 @@ window.__ModuleLoader__.load({
         stopDone: 'Stopped',
         stopping: 'Stopping…',
         hint: 'Enter to send · Shift + Enter for a new line',
+        difficulty: 'Task difficulty',
+        difficultySimple: 'Simple',
+        difficultyStandard: 'Standard',
+        difficultyHard: 'Hard',
+        difficultySimpleHint: 'Give the result with minimal detours',
+        difficultyStandardHint: 'Execute fully and verify',
+        difficultyHardHint: 'Deeper analysis with extra checks',
         localAccess: 'Local computer',
         computer: 'Computer',
         activity: 'Activity',
@@ -801,6 +817,8 @@ window.__ModuleLoader__.load({
         themeDark: 'Dark',
         themeWarm: 'Warm',
         themeInk: 'Ink',
+        themeAurora: 'Aurora',
+        themeEmber: 'Ember',
         modelMissingHint: 'Connect an API and choose a default model in DSH settings before sending a task.',
         modelRetry: 'Retry',
         modelConnected: 'Model connected',
@@ -2987,6 +3005,11 @@ window.__ModuleLoader__.load({
                           : thread.kind === 'group'
                             ? `${t('groupMembersCount', { n: (thread.members || []).length })} · ${formatRelative(thread.updatedAt, t)}`
                             : formatRelative(thread.updatedAt, t),
+                        h(
+                          'span',
+                          { className: `gb-thread-difficulty is-${thread.difficulty || 'standard'}` },
+                          t(thread.difficulty === 'simple' ? 'difficultySimple' : thread.difficulty === 'hard' ? 'difficultyHard' : 'difficultyStandard'),
+                        ),
                       ),
                     ),
                   ),
@@ -3300,6 +3323,8 @@ window.__ModuleLoader__.load({
     }
 
     function TopBar({ thread, model, running, channel, onManage, onRename, onSearch, onExport, onPins, onReplay, archived, onArchive, theme, onTheme, t }) {
+      const difficulty = ['simple', 'standard', 'hard'].includes(thread?.difficulty) ? thread.difficulty : 'standard'
+      const difficultyKey = `difficulty${difficulty.charAt(0).toUpperCase()}${difficulty.slice(1)}`
       const members = channel?.members || []
       const [editing, setEditing] = useState(false)
       const [draft, setDraft] = useState('')
@@ -3349,6 +3374,7 @@ window.__ModuleLoader__.load({
               channel
                 ? h('span', null, t('groupMembersCount', { n: members.length }))
                 : h('span', { className: 'gb-mono' }, model || t('modelAuto')),
+              h('span', { className: `gb-difficulty-pill is-${difficulty}`, title: t('difficulty') }, t(difficultyKey)),
             ),
           ),
           channel
@@ -3444,6 +3470,8 @@ window.__ModuleLoader__.load({
               ['dark', 'themeDark'],
               ['warm', 'themeWarm'],
               ['ink', 'themeInk'],
+              ['aurora', 'themeAurora'],
+              ['ember', 'themeEmber'],
             ].map(([id, label]) =>
               h('button', {
                 key: id,
@@ -3498,6 +3526,8 @@ window.__ModuleLoader__.load({
       members,
       quote,
       onClearQuote,
+      difficulty,
+      onDifficulty,
     }) {
       const [dragging, setDragging] = useState(false)
       const [templatesOpen, setTemplatesOpen] = useState(false)
@@ -3527,6 +3557,11 @@ window.__ModuleLoader__.load({
         { title: 'templateCheckup', prompt: 'templateCheckupPrompt', icon: 'activity' },
         { title: 'templateVocational', prompt: 'templateVocationalPrompt', icon: 'computer' },
       ]
+      const difficultyOptions = [
+        { id: 'simple', label: 'difficultySimple' },
+        { id: 'standard', label: 'difficultyStandard' },
+        { id: 'hard', label: 'difficultyHard' },
+      ]
       const applyTemplate = (template) => {
         const base = String(value || '').trim()
         onChange(base ? `${base}\n${t(template.prompt)}` : t(template.prompt))
@@ -3553,7 +3588,7 @@ window.__ModuleLoader__.load({
       }, [templatesOpen])
       const submit = () => {
         const text = String(value || '').trim()
-        if (text || attached.length > 0) onSend(text, attached)
+        if (text || attached.length > 0) onSend(text, attached, difficulty)
       }
 
       const filesFromClipboard = (event) => {
@@ -3881,6 +3916,25 @@ window.__ModuleLoader__.load({
             admin
               ? h('span', { className: 'gb-admin-pill', title: t('adminModeHint') }, t('adminMode'))
               : null,
+            h(
+              'div',
+              { className: 'gb-difficulty', role: 'group', 'aria-label': t('difficulty') },
+              h('span', { className: 'gb-difficulty-label' }, t('difficulty')),
+              difficultyOptions.map((option) =>
+                h(
+                  'button',
+                  {
+                    key: option.id,
+                    type: 'button',
+                    className: `gb-difficulty-btn is-${option.id}${difficulty === option.id ? ' is-active' : ''}`,
+                    onClick: () => onDifficulty?.(option.id),
+                    title: t(`${option.label}Hint`),
+                    'aria-pressed': difficulty === option.id,
+                  },
+                  t(option.label),
+                ),
+              ),
+            ),
             h(
               'button',
               { type: 'button', className: 'gb-foot-btn gb-template-toggle', onClick: () => setTemplatesOpen((open) => !open), title: t('templateTitle') },
@@ -5507,7 +5561,7 @@ window.__ModuleLoader__.load({
 
       return h(
         'aside',
-        { className: 'gb-deck', 'aria-label': t('localComputer'), style: { background: theme === 'warm' ? '#fff8ec' : theme === 'ink' ? '#fbfaf6' : '#0a0b09', zIndex: 100, isolation: 'isolate' } },
+        { className: 'gb-deck', 'aria-label': t('localComputer'), style: { background: theme === 'warm' ? '#fff8ec' : theme === 'ink' ? '#fbfaf6' : theme === 'aurora' ? '#0b1220' : theme === 'ember' ? '#180f0b' : '#0a0b09', zIndex: 100, isolation: 'isolate' } },
         h(
           'div',
           { className: 'gb-deck-head' },
@@ -5841,6 +5895,13 @@ window.__ModuleLoader__.load({
           return 'dark'
         }
       })
+      const [difficulty, setDifficulty] = useState(() => {
+        try {
+          return localStorage.getItem('dsh-bot-difficulty') || 'standard'
+        } catch {
+          return 'standard'
+        }
+      })
       const [pinsList, setPinsList] = useState([])
       const [dismissedUpdate, setDismissedUpdate] = useState(() => {
         try {
@@ -6102,6 +6163,21 @@ window.__ModuleLoader__.load({
         }
         document.documentElement.dataset.dshBotTheme = theme
       }, [theme])
+
+      useEffect(() => {
+        try {
+          localStorage.setItem('dsh-bot-difficulty', difficulty)
+        } catch {
+          /* difficulty is optional */
+        }
+      }, [difficulty])
+
+      useEffect(() => {
+        const saved = snap?.thread?.difficulty
+        if (saved === 'simple' || saved === 'standard' || saved === 'hard') {
+          setDifficulty(saved)
+        }
+      }, [threadId, snap?.thread?.difficulty])
 
       useEffect(() => {
         const running = Boolean(snap?.thread?.running)
@@ -6816,7 +6892,7 @@ window.__ModuleLoader__.load({
       )
 
       const send = useCallback(
-        async (raw, extraFiles) => {
+        async (raw, extraFiles, level = difficulty) => {
           const text = String(raw || '').trim()
           const files = Array.isArray(extraFiles) ? extraFiles : attachments
           if ((!text && files.length === 0) || !threadId || sending) return
@@ -6827,10 +6903,10 @@ window.__ModuleLoader__.load({
           requestNotifications()
           setSending(true)
           setDraft('')
-          setPending({ text: text || '请查看附件。', at: Date.now() })
+          setPending({ text: text || '请查看附件。', at: Date.now(), difficulty: level })
           stickRef.current = true
           try {
-            await apiPost('/send', { threadId, text: messageText, replyTo: quoteTarget?.id || null })
+            await apiPost('/send', { threadId, text: messageText, replyTo: quoteTarget?.id || null, difficulty: level })
             setAttachments([])
             setQuoteTarget(null)
             setTimeout(() => {
@@ -6846,7 +6922,7 @@ window.__ModuleLoader__.load({
             setSending(false)
           }
         },
-        [attachments, requestNotifications, sending, showToast, t, threadId, quoteTarget],
+        [attachments, difficulty, requestNotifications, sending, showToast, t, threadId, quoteTarget],
       )
 
       const stop = useCallback(async () => {
@@ -7454,6 +7530,8 @@ window.__ModuleLoader__.load({
             theme,
             t,
             inputRef,
+            difficulty,
+            onDifficulty: setDifficulty,
             sendMode,
             attachments,
             onUpload: uploadFiles,
@@ -7794,10 +7872,48 @@ window.__ModuleLoader__.load({
   --gb-success: #456b4a;
   color-scheme: light;
 }
+:root[data-dsh-bot-theme="aurora"] {
+  --gb-bg: #070b14;
+  --gb-panel: #0d1422;
+  --gb-panel-2: #131d2e;
+  --gb-overlay: #172338;
+  --gb-line: #203049;
+  --gb-line-strong: #324866;
+  --gb-text: #edf5ff;
+  --gb-muted: #94a8c2;
+  --gb-faint: #637894;
+  --gb-accent: #67e8f9;
+  --gb-signal: #6ee7b7;
+  --gb-error: #fb7185;
+  --gb-warn: #fbbf24;
+  --gb-success: #34d399;
+  color-scheme: dark;
+}
+:root[data-dsh-bot-theme="ember"] {
+  --gb-bg: #120d0a;
+  --gb-panel: #1b1310;
+  --gb-panel-2: #261a15;
+  --gb-overlay: #30211a;
+  --gb-line: #3b2921;
+  --gb-line-strong: #5a4032;
+  --gb-text: #fff4e8;
+  --gb-muted: #c3a895;
+  --gb-faint: #8f7464;
+  --gb-accent: #ff8a4c;
+  --gb-signal: #ffb454;
+  --gb-error: #ff6b6b;
+  --gb-warn: #ffd166;
+  --gb-success: #9ae6b4;
+  color-scheme: dark;
+}
 :root[data-dsh-bot-theme="warm"] .gb-deck,
 :root[data-dsh-bot-theme="warm"] .gb-rail { background: #fff8ec !important; }
 :root[data-dsh-bot-theme="ink"] .gb-deck,
 :root[data-dsh-bot-theme="ink"] .gb-rail { background: #fbfaf6 !important; }
+:root[data-dsh-bot-theme="aurora"] .gb-deck,
+:root[data-dsh-bot-theme="aurora"] .gb-rail { background: #0d1422 !important; }
+:root[data-dsh-bot-theme="ember"] .gb-deck,
+:root[data-dsh-bot-theme="ember"] .gb-rail { background: #1b1310 !important; }
 :root[data-dsh-bot-theme="warm"] .gb-main {
   background:
     radial-gradient(900px 500px at 82% -8%, color-mix(in srgb, #d9772f 8%, transparent), transparent 66%),
@@ -7809,6 +7925,18 @@ window.__ModuleLoader__.load({
     radial-gradient(1100px 620px at 78% -12%, rgba(30, 28, 24, .07), transparent 62%),
     radial-gradient(700px 500px at 8% 110%, rgba(30, 28, 24, .05), transparent 66%),
     repeating-linear-gradient(90deg, rgba(40, 38, 32, .018) 0 1px, transparent 1px 5px),
+    var(--gb-bg) !important;
+}
+:root[data-dsh-bot-theme="aurora"] .gb-main {
+  background:
+    radial-gradient(900px 560px at 80% -10%, rgba(103, 232, 249, .09), transparent 64%),
+    radial-gradient(700px 500px at 8% 112%, rgba(110, 231, 183, .06), transparent 70%),
+    var(--gb-bg) !important;
+}
+:root[data-dsh-bot-theme="ember"] .gb-main {
+  background:
+    radial-gradient(900px 540px at 82% -8%, rgba(255, 138, 76, .10), transparent 64%),
+    radial-gradient(700px 500px at 6% 112%, rgba(255, 180, 84, .05), transparent 70%),
     var(--gb-bg) !important;
 }
 :root[data-dsh-bot-theme="warm"] .gb-user-bubble {
@@ -7881,6 +8009,40 @@ window.__ModuleLoader__.load({
   --gb-success: inherit;
   background-color: var(--gb-bg) !important;
 }
+.gb-root[data-theme="aurora"] {
+  --gb-bg: #070b14;
+  --gb-panel: #0d1422;
+  --gb-panel-2: #131d2e;
+  --gb-overlay: #172338;
+  --gb-line: #203049;
+  --gb-line-strong: #324866;
+  --gb-text: #edf5ff;
+  --gb-muted: #94a8c2;
+  --gb-faint: #637894;
+  --gb-accent: #67e8f9;
+  --gb-signal: #6ee7b7;
+  --gb-error: #fb7185;
+  --gb-warn: #fbbf24;
+  --gb-success: #34d399;
+  color-scheme: dark;
+}
+.gb-root[data-theme="ember"] {
+  --gb-bg: #120d0a;
+  --gb-panel: #1b1310;
+  --gb-panel-2: #261a15;
+  --gb-overlay: #30211a;
+  --gb-line: #3b2921;
+  --gb-line-strong: #5a4032;
+  --gb-text: #fff4e8;
+  --gb-muted: #c3a895;
+  --gb-faint: #8f7464;
+  --gb-accent: #ff8a4c;
+  --gb-signal: #ffb454;
+  --gb-error: #ff6b6b;
+  --gb-warn: #ffd166;
+  --gb-success: #9ae6b4;
+  color-scheme: dark;
+}
 .gb-root[data-theme="warm"] .gb-stage,
 .gb-root[data-theme="ink"] .gb-stage,
 .gb-root[data-theme="warm"] .gb-main,
@@ -7908,6 +8070,8 @@ window.__ModuleLoader__.load({
 .gb-theme-dot.is-dark { background: #101110; }
 .gb-theme-dot.is-warm { background: linear-gradient(135deg, #fff3df 0 48%, #c26422 48% 100%); }
 .gb-theme-dot.is-ink { background: linear-gradient(135deg, #f7f4ec 0 48%, #33312b 48% 100%); }
+.gb-theme-dot.is-aurora { background: linear-gradient(135deg, #0d1422 0 48%, #6ee7b7 48% 100%); }
+.gb-theme-dot.is-ember { background: linear-gradient(135deg, #1b1310 0 48%, #ff8a4c 48% 100%); }
 .gb-theme-dot.is-active { box-shadow: 0 0 0 2px var(--gb-signal); }
 
 .gb-root *, .gb-root *::before, .gb-root *::after { box-sizing: border-box; }
@@ -7971,6 +8135,9 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 .gb-thread-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .gb-thread-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; line-height: 1.25; }
 .gb-thread-meta { font-size: 9px; color: var(--gb-faint); }
+.gb-thread-difficulty { margin-left: 5px; padding: 0 4px; border: 1px solid var(--gb-line); border-radius: 999px; font-size: 7px; line-height: 11px; }
+.gb-thread-difficulty.is-simple { color: var(--gb-signal); }
+.gb-thread-difficulty.is-hard { color: var(--gb-warn); }
 .gb-thread.is-running .gb-thread-meta { color: color-mix(in srgb, var(--gb-signal) 80%, var(--gb-muted)); }
 .gb-thread-delete { display: none; place-items: center; width: 24px; height: 24px; margin-right: 4px; border: 0; border-radius: 6px; background: transparent; color: var(--gb-faint); }
 .gb-thread:hover .gb-thread-delete { display: grid; }
@@ -8301,6 +8468,9 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 .gb-send-btn { display: grid; place-items: center; width: 31px; height: 31px; border: 0; border-radius: 8px; background: var(--gb-text) !important; color: var(--gb-bg) !important; transition: transform .14s ease, opacity .14s ease; }
 .gb-send-btn:hover:not(:disabled) { transform: translateY(-1px); }
 .gb-send-btn:disabled { opacity: .25; }
+.gb-composer:focus-within { border-color: color-mix(in srgb, var(--gb-signal) 38%, var(--gb-line)); box-shadow: 0 18px 55px rgba(0,0,0,.26), 0 0 0 3px color-mix(in srgb, var(--gb-signal) 10%, transparent); }
+.gb-user-bubble { animation: gb-rise .22s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes gb-rise { from { opacity: 0; transform: translateY(7px) scale(.985) } to { opacity: 1; transform: none } }
 .gb-stop-btn { display: flex; align-items: center; gap: 5px; height: 31px; padding: 0 9px; border: 1px solid color-mix(in srgb, var(--gb-error) 35%, var(--gb-line)); border-radius: 8px; background: color-mix(in srgb, var(--gb-error) 8%, transparent); color: var(--gb-error); font-size: 10px; }
 .gb-stop-btn:hover { background: color-mix(in srgb, var(--gb-error) 14%, transparent); }
 .gb-composer-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 880px; margin: 8px auto 0; padding: 0 4px; font-size: 8.5px; color: var(--gb-faint); }
@@ -8310,6 +8480,16 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 .gb-foot-icon { width: 20px; padding: 0; justify-content: center; }
 .gb-rail-toggle { display: none !important; }
 .gb-foot-btn:hover { color: var(--gb-text); border-color: var(--gb-line-strong); background: var(--gb-panel-2); }
+.gb-difficulty { display: inline-flex; align-items: center; gap: 2px; height: 22px; padding: 2px; border: 1px solid var(--gb-line); border-radius: 999px; background: color-mix(in srgb, var(--gb-panel-2) 55%, transparent); }
+.gb-difficulty-label { padding: 0 5px; color: var(--gb-faint); font-size: 7.5px; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+.gb-difficulty-btn { height: 16px; padding: 0 7px; border: 0; border-radius: 999px; background: transparent; color: var(--gb-faint); font-size: 8px; letter-spacing: .02em; cursor: pointer; transition: color .16s ease, background .16s ease, transform .16s ease; }
+.gb-difficulty-btn:hover { color: var(--gb-text); }
+.gb-difficulty-btn.is-active { color: var(--gb-bg); background: var(--gb-signal); box-shadow: 0 1px 6px color-mix(in srgb, var(--gb-signal) 20%, transparent); }
+.gb-difficulty-btn.is-hard.is-active { background: var(--gb-warn); }
+.gb-difficulty-btn:active { transform: scale(.94); }
+.gb-difficulty-pill { display: inline-flex; align-items: center; height: 15px; padding: 0 6px; margin-left: 2px; border: 1px solid var(--gb-line); border-radius: 999px; font-size: 8px; letter-spacing: .04em; color: var(--gb-muted); }
+.gb-difficulty-pill.is-simple { color: var(--gb-signal); border-color: color-mix(in srgb, var(--gb-signal) 38%, var(--gb-line)); }
+.gb-difficulty-pill.is-hard { color: var(--gb-warn); border-color: color-mix(in srgb, var(--gb-warn) 42%, var(--gb-line)); }
 .gb-composer-note { font-family: "Cascadia Code", Consolas, monospace; }
 
 /* quality / checkpoint / skills */

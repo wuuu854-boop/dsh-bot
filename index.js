@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '4.25.0'
+const VERSION = '4.26.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -125,6 +125,14 @@ function clampEffort(value, role) {
   if (value === 'max') return 'max'
   if (role === 'lead') return 'max'
   return 'high'
+}
+
+function normalizeDifficulty(value) {
+  return value === 'simple' || value === 'hard' ? value : 'standard'
+}
+
+function effortForDifficulty(value) {
+  return normalizeDifficulty(value) === 'hard' ? 'max' : 'high'
 }
 
 function newSessionId() {
@@ -431,6 +439,7 @@ export function apply(ctx) {
           modelProvider: typeof thread.modelProvider === 'string' ? thread.modelProvider : null,
           modelName: typeof thread.modelName === 'string' ? thread.modelName : null,
           reasoningEffort: typeof thread.reasoningEffort === 'string' ? thread.reasoningEffort : null,
+          difficulty: normalizeDifficulty(thread.difficulty),
           error: typeof thread.error === 'string' ? thread.error : null,
           checkpoint: normalizeCheckpoint(thread.checkpoint),
         }))
@@ -1030,6 +1039,7 @@ export function apply(ctx) {
       modelProvider: null,
       modelName: null,
       reasoningEffort: null,
+      difficulty: 'standard',
       routineId,
       skillId: null,
       error: null,
@@ -3182,7 +3192,9 @@ export function apply(ctx) {
     return `${lines.join('\n')}\n\n用户消息：\n${text}`
   }
 
-  async function sendToGroup(group, text, replyTo = '') {
+  async function sendToGroup(group, text, replyTo = '', difficulty = 'standard') {
+    const level = normalizeDifficulty(difficulty)
+    group.difficulty = level
     const members = groupMembers(group)
     let targets = groupTargets(group, text)
     let relay = false
@@ -3221,6 +3233,8 @@ export function apply(ctx) {
       try {
         const child = memberThreadFor(group, bot.id)
         if (!child) throw new Error('成员线程不可用')
+        child.difficulty = level
+        child.reasoningEffort = effortForDifficulty(level)
         const rec = await ensureAgent(child)
         const running = rec.agent.status === 'running'
         const quotePrefix = quoted
@@ -4173,16 +4187,19 @@ export function apply(ctx) {
       for (const thread of state.threads) {
         const owner = botById(thread.botId)
         if (!owner) continue
-        const effort = clampEffort(thread.reasoningEffort || owner.reasoningEffort, owner.role)
+        const difficulty = normalizeDifficulty(thread.difficulty)
+        const effort = effortForDifficulty(difficulty)
         if (
           thread.modelProvider !== provider ||
           thread.modelName !== model ||
           thread.model !== model ||
+          thread.difficulty !== difficulty ||
           thread.reasoningEffort !== effort
         ) {
           thread.modelProvider = provider
           thread.modelName = model
           thread.model = model
+          thread.difficulty = difficulty
           thread.reasoningEffort = effort
           changed = true
         }
@@ -5463,6 +5480,8 @@ export function apply(ctx) {
       created: thread.created,
       error: thread.error || (rec?.lastError?.message ?? null),
       model: rec?.transcript.model || botById(thread.botId).model || selection?.model || null,
+      reasoningEffort: thread.reasoningEffort || null,
+      difficulty: normalizeDifficulty(thread.difficulty),
     }
     if (isGroup(thread)) {
       const members = groupMemberView(thread)
@@ -6876,6 +6895,7 @@ export function apply(ctx) {
         const body = await readBody(req)
         const thread = requireThread(body.threadId)
         const text = String(body.text || '').trim()
+        const difficulty = normalizeDifficulty(body.difficulty)
         if (!text) {
           json(res, 400, { ok: false, error: '消息不能为空' })
           return
@@ -6884,6 +6904,8 @@ export function apply(ctx) {
           json(res, 400, { ok: false, error: '消息太长' })
           return
         }
+        thread.difficulty = difficulty
+        thread.reasoningEffort = effortForDifficulty(difficulty)
         await ensureDefaultModel()
         if (!agentOptions(thread)) {
           json(res, 409, {
@@ -6894,7 +6916,7 @@ export function apply(ctx) {
         }
         if (isGroup(thread)) {
           try {
-            const result = await sendToGroup(thread, text, body.replyTo)
+            const result = await sendToGroup(thread, text, body.replyTo, difficulty)
             json(res, 200, result)
           } catch (error) {
             json(res, error?.statusCode || 500, { ok: false, error: messageOf(error) })

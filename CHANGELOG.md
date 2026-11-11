@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.26.0 — 2026-11-11
+
+- Add: task difficulty selector (简单 / 标准 / 困难) in the composer; simple/standard map to `high`, hard to `max`; persisted per thread and shown in the title bar and task list.
+- Add: Aurora and Ember themes, with theme-scoped variables, new theme dots, and dark/light color-scheme handling.
+- Polish: composer focus ring, send/button hover motion, message rise animation, compact difficulty pills.
+- Fix: thread difficulty/effort survives reload and old threads migrate consistently; empty sends no longer mutate difficulty.
+- Fix: `uia.py` now prefers exact accessible names and supports `--exact`, preventing clicks on long thread titles that merely contain the target word.
+
 ## 4.25.0 — 2026-11-11
 
 - Changed: every bot now uses the same current latest model (DeepSeek V4.1 Flash) instead of mixing Flash and older Pro routes.

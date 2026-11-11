@@ -32,7 +32,9 @@ DSH Bot 不是聊天壳，而是把一台 Windows 电脑上的真实工作拆给
 - **本地隔离工作台**：没有云电脑也能隔离实验——Windows Sandbox 可用时开一次性桌面，否则用独立浏览器 profile + 独立工作区；日常 Cookie 和下载不受影响。
 - **OCR 兜底**：canvas/PDF/图片题用 `computer.py window-shot` + `ocr.py` 本地 Tesseract，不默认全屏截图；中文需安装 chi_sim 语言包。
 - **深度调研/电脑体检/隔离工作台模板**：从输入框旁模板直接套用，不需要记命令。
-- **新手上路**：首次打开自动显示 4 步指引（怎么交代、专家按需添加、模板/记忆/语音、浏览器与授权行为）；侧边栏「使用指引」可随时重看。
+- **任务难度**：发送前可选「简单 / 标准 / 困难」；简单/标准用 `high`，困难用 `max`，并显示在标题栏和任务列表里。
+- **多主题**：暗色、暖色、水墨、极光、余烬五套风格，顶部色点即时切换并记住选择。
+- **新手引导**：首次打开自动显示 4 步指引（怎么交代、专家按需添加、模板/记忆/语音、浏览器与授权行为）；侧边栏「使用指引」可随时重看。
 - **语义控件优先**：`computer.py windows` 看窗口/进程/DPI，`uia.py list/click/type` 按无障碍控件操作；截图和坐标只用于 canvas/PDF/图片按钮；UIA 的 2x 坐标会自动归一化。
 - **窗口级截图/剪贴板/启动**：`window-shot` 只截目标窗口，`clipboard get/set`、`launch`、`wait-window` 不截全屏。
 - **智慧职教 / 刷课适配**：`course.py status` 判断视频/PPT/题目/下一回合，`play` 播放、`ppt` 翻页、`question` 读题、`answer` 作答、`next` 进入下一回合；每次点击验证是否变化，无变化禁止循环。
@@ -163,7 +165,7 @@ python scripts/course.py answer --choice 2 --submit
 python scripts/course.py next
 python scripts/computer.py windows
 python scripts/uia.py list --window "窗口标题" --interactive
-python scripts/uia.py click --window "窗口标题" --name "提交"
+python scripts/uia.py click --window "窗口标题" --name "提交" --exact
 python scripts/computer.py window-shot "窗口标题" out.png
 python scripts/ocr.py image out.png --lang eng
 python scripts/sandbox.py status

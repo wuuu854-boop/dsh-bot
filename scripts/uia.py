@@ -7,9 +7,9 @@ canvas/PDF/image-only surfaces.
 
 Commands:
   list  [--window TITLE] [--limit 240] [--role Button] [--interactive]
-  click --window TITLE --name TEXT [--role Button] [--index N]
-  type  --window TITLE --name TEXT --text VALUE
-  focus --window TITLE --name TEXT [--role Button]
+  click --window TITLE --name TEXT [--role Button] [--index N] [--exact]
+  type  --window TITLE --name TEXT --text VALUE [--exact]
+  focus --window TITLE --name TEXT [--role Button] [--exact]
   wait  --window TITLE --name TEXT [--timeout 8]
 
 Every command prints one JSON object.
@@ -113,7 +113,8 @@ if ($payload.action -eq 'list') {
   exit 0
 }
 $wanted = [string]$payload.name
-$candidates = @()
+$exactCandidates = @()
+$partialCandidates = @()
 foreach ($e in $all) {
   try {
     $name = [string]$e.Current.Name
@@ -121,10 +122,11 @@ foreach ($e in $all) {
     $r = $e.Current.BoundingRectangle
     if ($r.Width -le 0 -or $r.Height -le 0) { continue }
     if ($payload.role -and $role.ToLower() -notlike "*$(([string]$payload.role).ToLower())*") { continue }
-    if ($name -eq $wanted) { $candidates += $e; continue }
-    if ($name -like "*$wanted*") { $candidates += $e }
+    if ($name -eq $wanted) { $exactCandidates += $e; continue }
+    if ($name -like "*$wanted*") { $partialCandidates += $e }
   } catch {}
 }
+$candidates = if ($exactCandidates.Count -gt 0) { $exactCandidates } elseif ($payload.exact) { @() } else { $partialCandidates }
 if ($candidates.Count -eq 0) {
   [pscustomobject]@{ ok = $false; error = "element not found: $wanted"; window = [string]$window.Current.Name } | ConvertTo-Json -Compress
   exit 0
@@ -279,6 +281,7 @@ def main():
                 "name": name,
                 "role": role,
                 "index": int(flag(args, "index", "0") or 0),
+                "exact": has(args, "exact"),
             }
         )
         if result.get("ok"):
@@ -307,6 +310,7 @@ def main():
                 "name": name,
                 "role": role or "Edit",
                 "index": int(flag(args, "index", "0") or 0),
+                "exact": has(args, "exact"),
             }
         )
         if result.get("ok"):
