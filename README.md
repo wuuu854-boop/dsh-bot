@@ -28,6 +28,9 @@ DSH Bot 不是聊天壳，而是把一台 Windows 电脑上的真实工作拆给
 - **自建员工**：没有对口成员时，Boss 用 `bot_hire` 创建新 Bot（角色、头像、persona、workspace、模型）并立即派活。
 - **派活可观测**：卡片显示状态、步数、耗时、tokens；失败/中断可一键重试，最多 3 次。
 - **主题切换**：顶栏三色圆点，暗色 / 暖色 / 水墨；三种主题的对话气泡、输入区和标题字体各自不同，刷新后保持。
+- **本地隔离工作台**：没有云电脑也能隔离实验——Windows Sandbox 可用时开一次性桌面，否则用独立浏览器 profile + 独立工作区；日常 Cookie 和下载不受影响。
+- **OCR 兜底**：canvas/PDF/图片题用 `computer.py window-shot` + `ocr.py` 本地 Tesseract，不默认全屏截图；中文需安装 chi_sim 语言包。
+- **深度调研/电脑体检/隔离工作台模板**：从输入框旁模板直接套用，不需要记命令。
 - **新手上路**：首次打开自动显示 4 步指引（怎么交代、专家按需添加、模板/记忆/语音、浏览器与授权行为）；侧边栏「使用指引」可随时重看。
 - **语义控件优先**：`computer.py windows` 看窗口/进程/DPI，`uia.py list/click/type` 按无障碍控件操作；截图和坐标只用于 canvas/PDF/图片按钮；UIA 的 2x 坐标会自动归一化。
 - **窗口级截图/剪贴板/启动**：`window-shot` 只截目标窗口，`clipboard get/set`、`launch`、`wait-window` 不截全屏。
@@ -161,6 +164,10 @@ python scripts/computer.py windows
 python scripts/uia.py list --window "窗口标题" --interactive
 python scripts/uia.py click --window "窗口标题" --name "提交"
 python scripts/computer.py window-shot "窗口标题" out.png
+python scripts/ocr.py image out.png --lang eng
+python scripts/sandbox.py status
+python scripts/sandbox.py create --name 课程实验
+python scripts/sandbox.py open --name 课程实验
 python scripts/edge.py scroll down
 python scripts/edge.py type --name "学号" --text "123"
 python scripts/edge.py click --name "提交"

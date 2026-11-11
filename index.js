@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '4.21.0'
+const VERSION = '4.22.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -151,6 +151,8 @@ export function apply(ctx) {
   const browserScript = path.join(packageDir, 'scripts', 'browser.py')
   const edgeScript = path.join(packageDir, 'scripts', 'edge.py')
   const uiaScript = path.join(packageDir, 'scripts', 'uia.py')
+  const ocrScript = path.join(packageDir, 'scripts', 'ocr.py')
+  const sandboxScript = path.join(packageDir, 'scripts', 'sandbox.py')
 
   try {
     fs.mkdirSync(stateDir, { recursive: true })
@@ -3920,6 +3922,8 @@ export function apply(ctx) {
       '- 你能通过终端、文件和网络操作这台电脑，也能操作图形界面；但不要“先截图猜坐标”。',
       `- GUI 控制：先 python "${computerScript}" windows 看窗口的 process / pid / dpi，再用 python "${uiaScript}" list --window <标题> 拿无障碍控件；用 uia.py click/type 按控件名操作。只有 canvas、PDF、图片题、游戏等没有控件树时，才用 computer.py screenshot + 坐标点击兜底。`,
       `- UIA 坐标已由 uia.py 归一化（UIA 2x → Win32 屏幕坐标）；不要自己再乘/除缩放。窗口截图用 python "${computerScript}" window-shot <标题> <png>，不要默认截整个桌面。`,
+      `- 图片/PDF/canvas/验证码等没有控件树时：先 window-shot，再 python "${ocrScript}" window <标题> --lang eng（有中文包用 eng+chi_sim）；OCR 只是兜底，能 read 就不 OCR。`,
+      `- 需要隔离环境或不想污染日常浏览器：python "${sandboxScript}" status / create --name <任务> / open --name <任务>；没有 Windows Sandbox 时自动用独立浏览器 profile + 独立工作区，不要声称是云电脑。`,
       `- 默认浏览器：Edge / Chrome / Brave / Chromium / Firefox 自动选择，用户正在用的优先；用 python "${edgeScript}" status 查看，必要时加 --browser chrome|brave|firefox。`,
       `- 打开应用先找桌面版：python "${appsScript}" find <名字>；有就 python "${appsScript}" launch <名字>。只有没有桌面版时才用浏览器（默认 Edge）。不要用浏览器打开已有桌面版的豆包、ChatGPT、Claude 等。`,
       `- 使用国外 AI（ChatGPT / Claude / Copilot / Gemini / Grok）前，先 python "${proxyScript}" ensure；必须看到 verified=true、purity.clean=true、chineseCountry=false、chineseOrg=false，且 country/loc 不是 CN/HK/MO/TW、三次出口稳定、directIp 为空或不同。ensure 会在异常时自动启动 Clash、写系统代理、切换非 CN 节点并重验；仍失败就停，不得用浏览器/直连/computer.py 绕过。verified=false 或 apps.py 返回 PROXY_NOT_VERIFIED 时立即停，把错误原样告诉用户。apps.py 返回 CONTAINMENT_NOT_INSTALLED / CONTAINMENT_BROKEN / CONTAINMENT_UNSUPPORTED 时同样立即停，让用户双击桌面「DSH 国外AI硬隔离」并点 UAC。用户已明确没有住宅 IP，接受低风险商业 IP：purity.residential=false/server=true 不应阻止，也不要反复提醒或为此主动切节点；只要 clean=true 且上述国家/org/黑名单/稳定性都过关就放行。国内 AI（豆包 / Kimi / WorkBuddy / 天禧AI / DeepSeek）不强制开代理。`,

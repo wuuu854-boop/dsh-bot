@@ -1,5 +1,13 @@
 # Changelog
 
+## 4.22.0 — 2026-11-11
+
+- Add: `scripts/ocr.py` local Tesseract OCR fallback (image/window/screen, word boxes, language detection and Chinese-language hint).
+- Add: `scripts/sandbox.py` local isolated workbench; Windows Sandbox when available, otherwise a dedicated browser profile + workspace.
+- Add: task templates for deep research, isolated workbench, image/OCR, and read-only PC checkup.
+- Add: `docs/ALL_IN_ONE.md` high-star feature map (n8n, MarkItDown, Dify, browser-use, Whisper, OpenHands, Tesseract, Mem0, AutoGen, CrewAI, Langfuse, GPT-Researcher, Stagehand, Letta) and explicit non-goals.
+- Changed: GUI prompt documents OCR and isolated-workbench fallbacks; first-run guide/templates expose the new capabilities.
+
 ## 4.21.0 — 2026-11-11
 
 - Add: `scripts/uia.py` accessibility-tree inventory and semantic actions (`list`/`click`/`type`/`focus`/`wait`), preferring Invoke/Select/Toggle over coordinates.
