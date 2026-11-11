@@ -1,4 +1,4 @@
-# DSH Bot v5.0.0
+# DSH Bot v5.1.0
 
 **An open-source GrokBot alternative that runs a real bot team on your own Windows machine, inside DeepSeek Harness.**
 
@@ -7,6 +7,8 @@ You talk to one **Boss**. It decides what to do, hires a specialist when nobody 
 ![Architecture](architecture.svg)
 
 ## Highlights
+
+- **Creative Studio** — `studio.py` generates real PPTX, DOCX, XLSX, playable single-file games, WAV+MIDI music and posters locally; templates and a creative capability map are included.
 
 - **Command center** — `Ctrl+K` opens quick actions (new task, add specialist, memory, guide, theme) plus global search across messages, thread titles and all bot memories.
 - **Task difficulty + five themes** — simple / standard / hard changes reasoning depth and verification; dark, warm, ink, Aurora and Ember are switchable and persisted.

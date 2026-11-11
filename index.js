@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '5.0.0'
+const VERSION = '5.1.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -168,6 +168,7 @@ export function apply(ctx) {
   const ocrScript = path.join(packageDir, 'scripts', 'ocr.py')
   const sandboxScript = path.join(packageDir, 'scripts', 'sandbox.py')
   const memorySearchScript = path.join(packageDir, 'scripts', 'memory_search.py')
+  const studioScript = path.join(packageDir, 'scripts', 'studio.py')
 
   try {
     fs.mkdirSync(stateDir, { recursive: true })
@@ -3952,6 +3953,7 @@ export function apply(ctx) {
       `- UIA 坐标已由 uia.py 归一化（UIA 2x → Win32 屏幕坐标）；不要自己再乘/除缩放。窗口截图用 python "${computerScript}" window-shot <标题> <png>，不要默认截整个桌面。`,
       `- 图片/PDF/canvas/验证码等没有控件树时：先 window-shot，再 python "${ocrScript}" window <标题> --lang eng（有中文包用 eng+chi_sim）；OCR 只是兜底，能 read 就不 OCR。`,
       `- 需要隔离环境或不想污染日常浏览器：python "${sandboxScript}" status / create --name <任务> / open --name <任务>；没有 Windows Sandbox 时自动用独立浏览器 profile + 独立工作区，不要声称是云电脑。`,
+      `- 创作交付：PPT/文档/表格/游戏/音乐/海报用 python "${studioScript}"；先问清主题、受众、页数/时长/风格，再生成实际文件并打开检查。不要只给 Markdown 或口头方案。`,
       `- 默认浏览器：Edge / Chrome / Brave / Chromium / Firefox 自动选择，用户正在用的优先；用 python "${edgeScript}" status 查看，必要时加 --browser chrome|brave|firefox。`,
       `- 打开应用先找桌面版：python "${appsScript}" find <名字>；有就 python "${appsScript}" launch <名字>。只有没有桌面版时才用浏览器（默认 Edge）。不要用浏览器打开已有桌面版的豆包、ChatGPT、Claude 等。`,
       `- 使用国外 AI（ChatGPT / Claude / Copilot / Gemini / Grok）前，先 python "${proxyScript}" ensure；必须看到 verified=true、purity.clean=true、chineseCountry=false、chineseOrg=false，且 country/loc 不是 CN/HK/MO/TW、三次出口稳定、directIp 为空或不同。ensure 会在异常时自动启动 Clash、写系统代理、切换非 CN 节点并重验；仍失败就停，不得用浏览器/直连/computer.py 绕过。verified=false 或 apps.py 返回 PROXY_NOT_VERIFIED 时立即停，把错误原样告诉用户。apps.py 返回 CONTAINMENT_NOT_INSTALLED / CONTAINMENT_BROKEN / CONTAINMENT_UNSUPPORTED 时同样立即停，让用户双击桌面「DSH 国外AI硬隔离」并点 UAC。用户已明确没有住宅 IP，接受低风险商业 IP：purity.residential=false/server=true 不应阻止，也不要反复提醒或为此主动切节点；只要 clean=true 且上述国家/org/黑名单/稳定性都过关就放行。国内 AI（豆包 / Kimi / WorkBuddy / 天禧AI / DeepSeek）不强制开代理。`,
@@ -5492,7 +5494,7 @@ export function apply(ctx) {
       live: Boolean(rec),
       created: thread.created,
       error: thread.error || (rec?.lastError?.message ?? null),
-      model: rec?.transcript.model || botById(thread.botId).model || selection?.model || null,
+      model: botById(thread.botId).model || rec?.transcript.model || selection?.model || null,
       reasoningEffort: thread.reasoningEffort || null,
       difficulty: normalizeDifficulty(thread.difficulty),
     }

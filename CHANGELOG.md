@@ -1,5 +1,13 @@
 # Changelog
 
+## 5.1.0 — 2026-11-11
+
+- Add: `scripts/studio.py` Creative Studio — PPT (themes/cover/stats/quote), DOCX from Markdown, XLSX with formatting/chart, single-file HTML games (snake/memory/runner), WAV + MIDI music, and poster PNG.
+- Add: creative task templates for PPT, documents, sheets, games and music.
+- Add: `docs/CREATIVE_STUDIO.md` high-star map (Presenton, PPTAgent, Slidev, Marp, python-docx, MarkItDown, XlsxWriter, Phaser, Three.js, ACE-Step, Audiocraft, Magenta, ComfyUI, Remotion, FFmpeg).
+- Fix: template menu scrolls with many entries; thread header shows the bot's current latest model instead of historical model labels.
+- Polish: PPT content panels, poster theme accent, runner/snake game geometry.
+
 ## 5.0.0 — 2026-11-11
 
 - Add: command center on `Ctrl+K` with quick actions (new task, add specialist, memory, guide, theme) and global search.

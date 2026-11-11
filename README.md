@@ -32,6 +32,7 @@ DSH Bot 不是聊天壳，而是把一台 Windows 电脑上的真实工作拆给
 - **本地隔离工作台**：没有云电脑也能隔离实验——Windows Sandbox 可用时开一次性桌面，否则用独立浏览器 profile + 独立工作区；日常 Cookie 和下载不受影响。
 - **OCR 兜底**：canvas/PDF/图片题用 `computer.py window-shot` + `ocr.py` 本地 Tesseract，不默认全屏截图；中文需安装 chi_sim 语言包。
 - **深度调研/电脑体检/隔离工作台模板**：从输入框旁模板直接套用，不需要记命令。
+- **创作工作室**：一份 `studio.py` 覆盖 PPT、Word 文档、Excel 表格、单文件小游戏、WAV+MIDI 音乐和海报；模板直接告诉 Bot 怎么生成并验收。
 - **命令中心**：`Ctrl+K` 打开，快速新建任务、添加专家、打开记忆/指引/主题，并全局搜索消息、任务标题和所有 Bot 记忆。
 - **任务难度**：发送前可选「简单 / 标准 / 困难」；简单/标准用 `high`，困难用 `max`，并显示在标题栏和任务列表里。
 - **多主题**：暗色、暖色、水墨、极光、余烬五套风格，顶部色点即时切换并记住选择。
@@ -174,6 +175,11 @@ python scripts/sandbox.py create --name 课程实验
 python scripts/sandbox.py open --name 课程实验
 python scripts/memory_search.py stats
 python scripts/memory_search.py search --query "智慧职教"
+python scripts/studio.py ppt --out deck.pptx --spec deck.json
+python scripts/studio.py doc --out report.docx --markdown report.md
+python scripts/studio.py sheet --out data.xlsx --csv data.csv --title "月度数据"
+python scripts/studio.py game --out game.html --kind snake --title "霓虹贪吃蛇"
+python scripts/studio.py music --out theme.wav --style lofi --seconds 20
 python scripts/edge.py scroll down
 python scripts/edge.py type --name "学号" --text "123"
 python scripts/edge.py click --name "提交"

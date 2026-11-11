@@ -509,6 +509,16 @@ window.__ModuleLoader__.load({
         templateOcrPrompt: '当前页面或图片没有可读控件树时：先用 python scripts/computer.py window-shot <窗口标题> <png> 截目标窗口，再用 python scripts/ocr.py window <窗口标题> --lang eng（有中文包时 eng+chi_sim）；根据 OCR 文本再决定操作。不要默认全屏截图。',
         templateCheckup: '电脑体检',
         templateCheckupPrompt: '做一次只读电脑体检：python scripts/computer.py screen / windows、查看磁盘剩余、内存/CPU、启动项和异常进程；输出一份带数据的报告，不要删除文件、不要改设置。需要清理时只给建议，等用户确认。',
+        templatePpt: '做 PPT',
+        templatePptPrompt: '为 <主题> 做一份真正可用的 PPT：先确认受众、页数、风格（midnight/warm/mono/aurora/ember），然后用 python scripts/studio.py ppt --out <路径.pptx> --spec <spec.json> 生成；spec 至少包含 title、subtitle、theme、slides（bullets/stats/quote/section）。生成后检查页数，给我文件路径、每页要点和讲稿提示。',
+        templateDoc: '写文档',
+        templateDocPrompt: '把 <主题/素材> 写成 docx：先整理 Markdown（标题、段落、表格、列表），再用 python scripts/studio.py doc --out <路径.docx> --markdown <文件.md> 生成；检查标题、表格和段落，给我文件路径和 3 条修改建议。',
+        templateSheet: '做表格',
+        templateSheetPrompt: '把 <数据/CSV> 做成带样式的 xlsx：先整理 CSV 或 JSON，再用 python scripts/studio.py sheet --out <路径.xlsx> --csv <文件.csv> --title <标题> 生成；检查行数、表头、数字格式和图表，给我文件路径与数据摘要。',
+        templateGame: '做小游戏',
+        templateGamePrompt: '做一个可直接玩的单文件 HTML 小游戏：用 python scripts/studio.py game --out <路径.html> --kind snake|memory|runner --title <标题> 生成；然后打开检查，给我玩法、操作键和文件路径。需要更多关卡/美术/音效时在生成物上继续迭代。',
+        templateMusic: '做音乐',
+        templateMusicPrompt: '生成一段 <风格：lofi/upbeat/ambient> 的本地音乐：用 python scripts/studio.py music --out <路径.wav> --style <风格> --seconds <秒数> 生成 wav + mid；给出时长、BPM、文件路径。说明这是本地合成，不是云端模型；需要重新编曲就改参数重生成。',
         templateVocational: '智慧职教 / 刷课',
         templateVocationalPrompt: '打开智慧职教课程页 <粘贴 URL>。先用 python scripts/course.py status 判断页面：视频用 course.py play，PPT 用 course.py ppt，题目用 course.py question 读取题干和选项，再用 course.py answer --choice N --submit 作答，完成后 course.py next 进入下一回合。每次动作后必须重新 status；如果 click 返回 changed:false/stalled:true，禁止重复点击，先 read --all 检查 iframe、scroll、wait-change，仍无变化就停下说明卡点。检测到考试/监考/交卷页面必须停止，不自动作答。',
         imageRefreshed: '画面已刷新',
@@ -1115,6 +1125,16 @@ window.__ModuleLoader__.load({
         templateOcrPrompt: 'When a page/image has no usable control tree: capture the target window with python scripts/computer.py window-shot <title> <png>, then run python scripts/ocr.py window <title> --lang eng (use eng+chi_sim if installed); act on the OCR text. Do not default to full-screen screenshots.',
         templateCheckup: 'PC checkup',
         templateCheckupPrompt: 'Do a read-only PC checkup: python scripts/computer.py screen / windows, inspect disk free space, memory/CPU, startup entries and abnormal processes; write a data-backed report without deleting files or changing settings. If cleanup is needed, recommend and wait for confirmation.',
+        templatePpt: 'Make a deck',
+        templatePptPrompt: 'Build a real PPT about <topic>: confirm audience, slide count and theme (midnight/warm/mono/aurora/ember), then run python scripts/studio.py ppt --out <deck.pptx> --spec <spec.json>; spec needs title, subtitle, theme and slides (bullets/stats/quote/section). Verify slide count and return the path, per-slide points and speaker notes.',
+        templateDoc: 'Write a document',
+        templateDocPrompt: 'Turn <topic/material> into a DOCX: prepare Markdown first, then run python scripts/studio.py doc --out <report.docx> --markdown <report.md>. Verify headings, tables and paragraphs; return the path and 3 revision suggestions.',
+        templateSheet: 'Make a sheet',
+        templateSheetPrompt: 'Turn <data/CSV> into a styled XLSX: prepare CSV/JSON, then run python scripts/studio.py sheet --out <data.xlsx> --csv <data.csv> --title <title>. Verify row count, header, number formats and chart; return the path and a short data summary.',
+        templateGame: 'Make a game',
+        templateGamePrompt: 'Build a playable single-file HTML game: run python scripts/studio.py game --out <game.html> --kind snake|memory|runner --title <title>, then open and verify it. Return controls and the path. Iterate on the generated file for levels/art/sound.',
+        templateMusic: 'Make music',
+        templateMusicPrompt: 'Generate local <style: lofi/upbeat/ambient> music: run python scripts/studio.py music --out <theme.wav> --style <style> --seconds <seconds> to produce WAV + MIDI. Return duration, BPM and path. State that it is local synthesis, not a cloud model; regenerate with new parameters for another arrangement.',
         templateVocational: 'Vocational course',
         templateVocationalPrompt: 'Open the vocational course page <URL>. Run python scripts/course.py status to detect the phase: videos use course.py play, slides use course.py ppt, quizzes use course.py question then course.py answer --choice N --submit, and course.py next advances to the next round. Re-run status after every action. If a click returns changed:false/stalled:true, do not repeat it: read --all, check iframes, scroll, wait-change, then stop and report the blocker. Stop immediately on exam/proctored/submit-exam pages.',
         imageRefreshed: 'Preview refreshed',
@@ -3557,6 +3577,11 @@ window.__ModuleLoader__.load({
         { title: 'templateWorkbench', prompt: 'templateWorkbenchPrompt', icon: 'computer' },
         { title: 'templateOcr', prompt: 'templateOcrPrompt', icon: 'file' },
         { title: 'templateCheckup', prompt: 'templateCheckupPrompt', icon: 'activity' },
+        { title: 'templatePpt', prompt: 'templatePptPrompt', icon: 'file' },
+        { title: 'templateDoc', prompt: 'templateDocPrompt', icon: 'file' },
+        { title: 'templateSheet', prompt: 'templateSheetPrompt', icon: 'activity' },
+        { title: 'templateGame', prompt: 'templateGamePrompt', icon: 'play' },
+        { title: 'templateMusic', prompt: 'templateMusicPrompt', icon: 'speaker' },
         { title: 'templateVocational', prompt: 'templateVocationalPrompt', icon: 'computer' },
       ]
       const difficultyOptions = [
@@ -8544,7 +8569,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 /* composer */
 .gb-composer-wrap { flex: none; padding: 10px 38px 14px; background: linear-gradient(to top, var(--gb-bg) 58%, transparent); }
 .gb-composer { position: relative; max-width: 880px; margin: 0 auto; padding: 11px 13px 8px; border: 1px solid var(--gb-line); border-radius: 15px; background: color-mix(in srgb, var(--gb-panel) 76%, transparent); box-shadow: 0 16px 50px rgba(0,0,0,.22), 0 0 0 1px color-mix(in srgb, #fff 2%, transparent) inset; transition: border-color .18s ease, box-shadow .18s ease; }
-.gb-template-menu { position: absolute; left: 8px; bottom: calc(100% - 3px); z-index: 40; width: min(340px, 88vw); padding: 6px; border: 1px solid var(--gb-line-strong); border-radius: 11px; background: var(--gb-panel); box-shadow: 0 18px 50px rgba(0,0,0,.45); }
+.gb-template-menu { position: absolute; left: 8px; bottom: calc(100% - 3px); z-index: 40; width: min(340px, 88vw); max-height: min(420px, 58vh); overflow: auto; padding: 6px; border: 1px solid var(--gb-line-strong); border-radius: 11px; background: var(--gb-panel); box-shadow: 0 18px 50px rgba(0,0,0,.45); }
 .gb-template-head { display: flex; align-items: center; gap: 6px; padding: 5px 7px 7px; color: var(--gb-signal); font-size: 9px; letter-spacing: .04em; }
 .gb-template-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 8px; border: 0; border-radius: 7px; background: transparent; color: var(--gb-text); text-align: left; font-size: 10px; }
 .gb-template-item:hover { background: color-mix(in srgb, var(--gb-signal) 8%, transparent); color: var(--gb-signal); }
