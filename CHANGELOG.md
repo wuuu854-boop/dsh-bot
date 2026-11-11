@@ -1,5 +1,14 @@
 # Changelog
 
+## 4.18.0 — 2026-11-11
+
+- Fix: surface DSH `approval/request` inside the Bot UI with a card; the agent no longer spins silently while waiting.
+- Fix: standard bots are explicitly put on `workspace-write` + `ask` instead of inheriting the host’s `danger-full-access` / never-ask policy; admin bots use `danger-full-access` + `never`.
+- Add: `edge.py read --all` reads main document plus iframe documents; `click --all --verify` reports `changed:false/stalled:true` instead of silently repeating.
+- Add: 智慧职教 (ICVE) adapter hint and task template; page URLs on icve.com.cn get a site-specific read hint.
+- Add: `/approval` decision endpoint; approval card shows bot, tool, reason and “AI 已暂停” state; working strip says “等你确认后继续”.
+- Add: approval timeout/cancellation cleanup when a run is stopped, disposed or aborted.
+
 ## 4.17.0 — 2026-11-11
 
 - Theme: warm and ink now have distinct conversation bubbles, assistant borders, input surfaces, header typography and paper/ink textures.

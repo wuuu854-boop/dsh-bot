@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '4.17.0'
+const VERSION = '4.18.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -3994,6 +3994,7 @@ export function apply(ctx) {
       '- 表单/作业：一次 read 拿到 text + controls；按控件 name 填写/选择，再 click 提交；提交后再 read 一次确认结果。',
       '- 只有 read.textLength = 0，或页面明确是 canvas、PDF、图片题、验证码时，才 screenshot + read_image；截图不是默认路径。',
       '- 禁止“先截图看看再说”；能 read 就不截图，能 click/type 就不模拟鼠标坐标。',
+      '- 智慧职教 / ICVE：必须先用 `edge.py read --all` 读主页面和 iframe；点击用 `edge.py click --all --verify`。返回 `changed:false` / `stalled:true` 时禁止重复点击，先检查新 frame、滚动、等待；仍无变化就停下并报告卡点，不能循环。',
       `- Clash / 系统代理：${proxyScript}`,
       `- 权限模式：${bot.privilege === 'admin' ? '完全权限 + 管理员' : '标准（文件沙箱）'}`,
       `- 任务模式：${bot.autonomy === 'unattended' ? '无人值守（不打断用户）' : '交互（必要时可拍板）'}`,
@@ -4168,26 +4169,49 @@ export function apply(ctx) {
 
   function applyAgentPrivilege(agent, thread) {
     const bot = botById(thread.botId)
-    if (bot.privilege !== 'admin') return { ok: true, mode: 'standard' }
     const presets = ctx.get('permissionPresets')
-    if (!presets?.set) return { ok: false, mode: 'admin', error: 'PERMISSION_SERVICE_UNAVAILABLE' }
+    const approval = ctx.get('approval')
+    if (!presets?.set) return { ok: false, mode: bot.privilege === 'admin' ? 'admin' : 'standard', error: 'PERMISSION_SERVICE_UNAVAILABLE' }
     try {
-      presets.set(agent.session, 'danger-full-access')
-      return { ok: true, mode: 'admin' }
+      if (bot.privilege === 'admin') {
+        presets.set(agent.session, 'danger-full-access')
+        try {
+          approval?.setPolicy?.(agent, 'never')
+        } catch {
+          /* admin mode still works without an approval policy override */
+        }
+        return { ok: true, mode: 'admin' }
+      }
+      const defaultPreset = presets.catalog?.()?.defaultPreset || 'workspace-write'
+      const preset = defaultPreset === 'danger-full-access' ? 'workspace-write' : defaultPreset
+      presets.set(agent.session, preset)
+      try {
+        approval?.setPolicy?.(agent, 'ask')
+      } catch {
+        /* the host default may already be ask */
+      }
+      return { ok: true, mode: 'standard' }
     } catch (error) {
-      return { ok: false, mode: 'admin', error: messageOf(error) }
+      return { ok: false, mode: bot.privilege === 'admin' ? 'admin' : 'standard', error: messageOf(error) }
     }
   }
 
   function applyLivePrivilege(bot) {
     const presets = ctx.get('permissionPresets')
+    const approval = ctx.get('approval')
     if (!presets?.set) return { ok: false, error: 'PERMISSION_SERVICE_UNAVAILABLE' }
     const defaultPreset = presets.catalog?.()?.defaultPreset || 'workspace-write'
+    const standardPreset = defaultPreset === 'danger-full-access' ? 'workspace-write' : defaultPreset
     const result = { ok: true, updated: 0 }
     for (const rec of live.values()) {
       if (rec.thread.botId !== bot.id) continue
       try {
-        presets.set(rec.agent.session, bot.privilege === 'admin' ? 'danger-full-access' : defaultPreset)
+        presets.set(rec.agent.session, bot.privilege === 'admin' ? 'danger-full-access' : standardPreset)
+        try {
+          approval?.setPolicy?.(rec.agent, bot.privilege === 'admin' ? 'never' : 'ask')
+        } catch {
+          /* policy override is optional */
+        }
         rec.privilegeError = null
         result.updated += 1
       } catch (error) {
@@ -4297,6 +4321,14 @@ export function apply(ctx) {
       openedAt: now(),
     }
     live.set(thread.id, rec)
+    try {
+      rec.approvalOff = rec.agent.ctx.on('approval/request', (request, next) =>
+        handleApprovalRequest(rec, request, next),
+      )
+      approvalAgentListeners += 1
+    } catch {
+      rec.approvalOff = null
+    }
     thread.error = null
     try {
       const tools = rec.agent.ctx?.tools
@@ -4796,6 +4828,7 @@ export function apply(ctx) {
 
   async function cancelLiveRec(rec) {
     if (!rec) return false
+    settleApproval(rec, 'cancelled')
     try {
       rec.agent.cancel({ kind: 'user' })
     } catch {
@@ -4819,6 +4852,12 @@ export function apply(ctx) {
   function disposeRec(threadId) {
     const rec = live.get(threadId)
     if (!rec) return Promise.resolve()
+    settleApproval(rec, 'cancelled')
+    try {
+      rec.approvalOff?.()
+    } catch {
+      /* listener already disposed */
+    }
     try {
       closeRun(rec, 'interrupted', now(), '会话关闭')
     } catch {
@@ -5251,6 +5290,20 @@ export function apply(ctx) {
   }
 
   const offs = []
+  let approvalListenerCount = 0
+  let approvalAgentListeners = 0
+  try {
+    const approvalService = ctx.get('approval')
+    const approvalCtx = approvalService?.ctx || ctx.root || ctx
+    offs.push(
+      approvalCtx.on('approval/request', (request, next) =>
+        handleApprovalRequest(recForAgent(request?.agent), request, next),
+      ),
+    )
+    approvalListenerCount += 1
+  } catch {
+    approvalListenerCount = 0
+  }
   offs.push(ctx.on('agent/assistant-stream', (...args) => {
     const payload = payloadOf(args)
     if (!payload) return
@@ -5276,7 +5329,10 @@ export function apply(ctx) {
     const payload = payloadOf(args)
     if (!payload) return
     const rec = recForAgent(payload.agent)
-    if (rec) live.delete(rec.thread.id)
+    if (rec) {
+      settleApproval(rec, 'cancelled')
+      live.delete(rec.thread.id)
+    }
   }))
   ctx.effect(() => {
     return () => {
@@ -5459,6 +5515,68 @@ export function apply(ctx) {
     }
   }
 
+  function publicApproval(pending, rec) {
+    const bot = rec ? botById(rec.thread.botId) : null
+    return {
+      id: pending.id,
+      createdAt: pending.createdAt,
+      toolName: pending.toolName,
+      callId: pending.callId || null,
+      reason: pending.reason || '',
+      botId: bot?.id || null,
+      botName: bot?.name || null,
+      botEmoji: bot?.emoji || null,
+    }
+  }
+
+  function settleApproval(rec, outcome) {
+    const pending = rec?.pendingApproval
+    if (!pending) return false
+    rec.pendingApproval = null
+    try {
+      pending.finish(outcome)
+    } catch {
+      /* the request may already be settled */
+    }
+    return true
+  }
+
+  function handleApprovalRequest(rec, request, next) {
+    if (!rec) return next()
+    return new Promise((resolve) => {
+      const id = `approval-${crypto.randomUUID()}`
+      let settled = false
+      const finish = (outcome) => {
+        if (settled) return
+        settled = true
+        if (rec.pendingApproval?.id === id) rec.pendingApproval = null
+        try {
+          request.signal?.removeEventListener?.('abort', onAbort)
+        } catch {
+          /* already removed */
+        }
+        resolve(['allowed-once', 'rejected', 'cancelled'].includes(outcome) ? outcome : 'cancelled')
+      }
+      const onAbort = () => finish('cancelled')
+      rec.pendingApproval = {
+        id,
+        toolName: String(request?.toolName || 'tool'),
+        callId: request?.callId || null,
+        reason: String(request?.reason || ''),
+        createdAt: now(),
+        finish,
+      }
+      rec.thread.updatedAt = now()
+      try {
+        if (request?.signal?.aborted) return finish('cancelled')
+        request?.signal?.addEventListener?.('abort', onAbort, { once: true })
+      } catch {
+        /* approval still works without cancellation */
+      }
+      saveStateSoon()
+    })
+  }
+
   function publicQuestion(pending) {
     return {
       id: pending.id,
@@ -5519,6 +5637,7 @@ export function apply(ctx) {
     const items = []
     const streams = []
     const questions = []
+    const approvals = []
     const totals = {
       turns: 0,
       toolCalls: 0,
@@ -5577,6 +5696,9 @@ export function apply(ctx) {
       if (rec.pendingQuestion) {
         questions.push({ ...publicQuestion(rec.pendingQuestion), botId: bot.id, speaker })
       }
+      if (rec.pendingApproval) {
+        approvals.push(publicApproval(rec.pendingApproval, rec))
+      }
     }
     items.sort(
       (left, right) =>
@@ -5630,6 +5752,8 @@ export function apply(ctx) {
       streams,
       question: questions[0] || null,
       questions,
+      approval: approvals[0] || null,
+      approvals,
       checkpoint: null,
       quality: qualityForGroup(group),
       skills: skillsForBot(leader.id).slice(0, 40).map(publicSkill),
@@ -5707,6 +5831,7 @@ export function apply(ctx) {
       items,
       stream: publicStream(rec),
       question: rec?.pendingQuestion ? publicQuestion(rec.pendingQuestion) : null,
+      approval: rec?.pendingApproval ? publicApproval(rec.pendingApproval, rec) : null,
       checkpoint: thread.checkpoint || null,
       quality: qualityForBot(bot.id),
       skills: skillsForBot(bot.id).slice(0, 40).map(publicSkill),
@@ -5979,6 +6104,10 @@ export function apply(ctx) {
           assignments: state.assignments.length,
           liveAgents: live.size,
           modelReady: Boolean(agentOptions()),
+          approvalService: Boolean(ctx.get('approval')),
+          approvalListenerCount,
+          approvalAgentListeners,
+          permissionService: Boolean(ctx.get('permissionPresets')),
           provider: activeBot().provider || selection?.provider || null,
           model: activeBot().model || selection?.model || null,
           updateAvailable: publicUpdate().available,
@@ -7096,6 +7225,34 @@ export function apply(ctx) {
         fs.writeFileSync(target, buffer)
         json(res, 200, { ok: true, path: target, name: safeName, bytes: buffer.length })
         return
+      }
+
+      if (req.method === 'POST' && sub === '/approval') {
+        const body = await readBody(req)
+        const thread = requireThread(body.threadId)
+        let rec = live.get(thread.id)
+        let targetThread = thread
+        if (isGroup(thread)) {
+          const children = memberThreadsOf(thread)
+          const child = children.find((item) => live.get(item.id)?.pendingApproval?.id === body.approvalId)
+          rec = child ? live.get(child.id) : null
+          targetThread = child || thread
+        }
+        const pending = rec?.pendingApproval
+        if (!pending || pending.id !== body.approvalId) {
+          json(res, 409, { ok: false, error: '这个授权请求已经结束' })
+          return
+        }
+        const decision = String(body.decision || body.outcome || '').toLowerCase()
+        if (!['allowed-once', 'allow', 'allowed', 'rejected', 'reject', 'denied'].includes(decision)) {
+          json(res, 400, { ok: false, error: '授权决定无效' })
+          return
+        }
+        const outcome = ['allowed-once', 'allow', 'allowed'].includes(decision) ? 'allowed-once' : 'rejected'
+        settleApproval(rec, outcome)
+        targetThread.updatedAt = now()
+        saveStateSoon()
+        return json(res, 200, snapshot(thread))
       }
 
       if (req.method === 'POST' && sub === '/answer') {

@@ -15,13 +15,14 @@ Commands:
   open URL [--new-window]
   navigate URL
   activate
-  read [--limit 200]
+  read [--limit 200] [--all]
   wait [--timeout 8]
+  wait-change [--timeout 6]
   scroll [down|up|top|bottom] [--pages N]
   back
   forward
   reload
-  click --name TEXT [--role Button]
+  click --name TEXT [--role Button] [--all] [--verify]
   type --name TEXT --text VALUE
   type --index N --text VALUE
   select --name TEXT
@@ -142,8 +143,74 @@ def navigate(url):
     return {"ok": True, "url": url, "page": wait_ready(8), "windows": edge_windows()}
 
 
-def read_page(limit=200):
-    return uia_run("read", limit=limit)
+def read_page(limit=200, all_frames=False):
+    return uia_run("read", limit=limit, all=all_frames)
+
+
+def click_with_verify(action, name, role, index, all_frames, timeout=2.5):
+    before = read_page(160, all_frames)
+    before_sig = page_signature(before)
+    result = uia_run(action, name=name, role=role, index=index, all=all_frames)
+    if not result.get("ok"):
+        return result
+    deadline = time.time() + timeout
+    after = before
+    while time.time() < deadline:
+        time.sleep(0.35)
+        after = read_page(160, all_frames)
+        if after.get("ok") and page_signature(after) != before_sig:
+            return {
+                **result,
+                "changed": True,
+                "before": {"textLength": before.get("textLength"), "controlsCount": before.get("controlsCount")},
+                "after": {"textLength": after.get("textLength"), "controlsCount": after.get("controlsCount")},
+            }
+    return {
+        **result,
+        "changed": False,
+        "stalled": True,
+        "warning": "点击后页面没有可见变化，不要重复点击；先 read --all、检查 frame、滚动或等待。",
+        "before": {"textLength": before.get("textLength"), "controlsCount": before.get("controlsCount")},
+        "after": {"textLength": after.get("textLength"), "controlsCount": after.get("controlsCount")},
+    }
+
+
+def page_signature(page):
+    controls = page.get("controls") if isinstance(page, dict) else None
+    return (
+        int(page.get("textLength") or 0) if isinstance(page, dict) else 0,
+        tuple(
+            (str(item.get("name") or ""), str(item.get("value") or ""), str(item.get("role") or ""), bool(item.get("enabled")))
+            for item in (controls or [])
+        ),
+    )
+
+
+def wait_change(timeout=6):
+    before = read_page(160, True)
+    if not before.get("ok"):
+        return before
+    before_sig = page_signature(before)
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        time.sleep(0.45)
+        after = read_page(160, True)
+        if after.get("ok") and page_signature(after) != before_sig:
+            return {
+                "ok": True,
+                "changed": True,
+                "before": {"textLength": before.get("textLength"), "controlsCount": before.get("controlsCount")},
+                "after": {"textLength": after.get("textLength"), "controlsCount": after.get("controlsCount")},
+                "page": after,
+            }
+    after = read_page(160, True)
+    return {
+        "ok": True,
+        "changed": False,
+        "before": {"textLength": before.get("textLength"), "controlsCount": before.get("controlsCount")},
+        "after": {"textLength": after.get("textLength"), "controlsCount": after.get("controlsCount")},
+        "page": after,
+    }
 
 
 def wait_ready(timeout=8):
@@ -151,7 +218,7 @@ def wait_ready(timeout=8):
     last = None
     while time.time() < deadline:
         last = read_page(40)
-        if last.get("ok") and (int(last.get("textLength") or 0) > 0 or int(last.get("controlsCount") or 0) > 0):
+        if last.get("ok") and (int(last.get("textLength") or 0) >= 40 or int(last.get("controlsCount") or 0) >= 1):
             return last
         time.sleep(0.5)
     return last or {"ok": False, "error": "page did not become readable"}
@@ -233,48 +300,83 @@ foreach ($e in $all) {
   }
 }
 if ($action -eq 'read') {
-  $text = ''
-  if ($doc) {
-    try {
-      $text = $doc.GetCurrentPattern([System.Windows.Automation.TextPattern]::Pattern).DocumentRange.GetText(-1)
-    } catch {}
-  }
-  $fullLength = $text.Length
-  if ($text.Length -gt 20000) { $text = $text.Substring(0, 20000) }
+  $readDocs = if ($payload.all) { $docs } else { @($doc) }
+  $textParts = @()
   $items = @()
-  foreach ($e in $pageAll) {
-    $role = Get-Role $e
-    if ($role -notin @('Edit','Button','RadioButton','CheckBox','ComboBox','ListItem','Hyperlink','MenuItem','TabItem')) { continue }
-    $nm = [string]$e.Current.Name
-    if ([string]::IsNullOrWhiteSpace($nm)) { continue }
-    $r = $e.Current.BoundingRectangle
-    if ($r.Width -le 0 -or $r.Height -le 0) { continue }
-    $items += [pscustomobject]@{
-      name = $nm
-      role = $role
-      value = (Get-Value $e)
-      enabled = $e.Current.IsEnabled
-      x = [int]$r.X
-      y = [int]$r.Y
-      w = [int]$r.Width
-      h = [int]$r.Height
+  $documents = @()
+  $frameIndex = 0
+  foreach ($d in $readDocs) {
+    if (-not $d) { $frameIndex++; continue }
+    $frameText = ''
+    try {
+      $frameText = $d.GetCurrentPattern([System.Windows.Automation.TextPattern]::Pattern).DocumentRange.GetText(-1)
+    } catch {}
+    $frameControls = @()
+    foreach ($e in $d.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition)) {
+      $role = Get-Role $e
+      if ($role -notin @('Edit','Button','RadioButton','CheckBox','ComboBox','ListItem','Hyperlink','MenuItem','TabItem')) { continue }
+      $nm = [string]$e.Current.Name
+      if ([string]::IsNullOrWhiteSpace($nm)) { continue }
+      $r = $e.Current.BoundingRectangle
+      if ($r.Width -le 0 -or $r.Height -le 0) { continue }
+      $entry = [pscustomobject]@{
+        frame = $frameIndex
+        name = $nm
+        role = $role
+        value = (Get-Value $e)
+        enabled = $e.Current.IsEnabled
+        x = [int]$r.X
+        y = [int]$r.Y
+        w = [int]$r.Width
+        h = [int]$r.Height
+      }
+      $frameControls += $entry
+      $items += $entry
+      if ($items.Count -ge $limit) { break }
     }
+    $textParts += $frameText
+    $frameTextShort = if ($frameText.Length -gt 8000) { $frameText.Substring(0, 8000) } else { $frameText }
+    $documents += [pscustomobject]@{
+      index = $frameIndex
+      title = $d.Current.Name
+      textLength = $frameText.Length
+      controlsCount = $frameControls.Count
+      text = $frameTextShort
+      controls = @($frameControls)
+    }
+    $frameIndex++
     if ($items.Count -ge $limit) { break }
   }
+  $text = ($textParts | Where-Object { $_ }) -join "`n`n--- frame ---`n`n"
+  $fullLength = $text.Length
+  if ($text.Length -gt 20000) { $text = $text.Substring(0, 20000) }
   [pscustomobject]@{
     ok = $true
     title = $win.Current.Name
     url = $url
     textLength = $fullLength
     controlsCount = $items.Count
+    framesCount = $docs.Count
     text = $text
     controls = @($items)
-  } | ConvertTo-Json -Depth 5 -Compress
+    documents = @($documents)
+  } | ConvertTo-Json -Depth 6 -Compress
   exit 0
 }
 $target = $null
 $seen = 0
-$scopeAll = if ($payload.chrome) { $all } else { $pageAll }
+if ($payload.all) {
+  $scopeAll = @()
+  foreach ($d in $docs) {
+    foreach ($e in $d.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition)) {
+      $scopeAll += $e
+    }
+  }
+} elseif ($payload.chrome) {
+  $scopeAll = $all
+} else {
+  $scopeAll = $pageAll
+}
 foreach ($e in $scopeAll) {
   $role = Get-Role $e
   $nm = [string]$e.Current.Name
@@ -401,13 +503,23 @@ def main():
         return emit(navigate(normalize_url(args[0])))
     if command == "read":
         limit = int(flag(args, "limit", "200") or 200)
-        result = read_page(limit)
+        result = read_page(limit, "--all" in args)
+        if "icve.com.cn" in str(result.get("url") or ""):
+            result["adapter"] = "icve"
+            result["siteHint"] = (
+                "智慧职教：任务/视频/作业常在 iframe。先看 documents 的 frame；"
+                "点击用 click --all --verify，changed:false 时禁止重复点击，"
+                "先检查新 frame、scroll、wait-change，仍无变化就停下报告卡点。"
+            )
         if result.get("ok"):
             activate_edge()
         return emit(result)
     if command == "wait":
         timeout = float(flag(args, "timeout", "8") or 8)
         return emit(wait_ready(timeout))
+    if command == "wait-change":
+        timeout = float(flag(args, "timeout", "6") or 6)
+        return emit(wait_change(timeout))
     if command == "scroll":
         direction = args[0] if args else "down"
         pages = int(flag(args, "pages", "1") or 1)
@@ -422,7 +534,11 @@ def main():
         index = flag(args, "index", None)
         if not name and index is None:
             fail(f"{command} requires --name or --index")
-        result = uia_run("click", name=name, role=role, index=index)
+        all_frames = "--all" in args
+        if "--verify" in args:
+            result = click_with_verify("click", name, role, index, all_frames)
+        else:
+            result = uia_run("click", name=name, role=role, index=index, all=all_frames)
         if result.get("ok"):
             activate_edge()
         return emit(result)
@@ -432,7 +548,7 @@ def main():
         index = flag(args, "index", None)
         if not name and index is None:
             fail("type requires --name or --index, plus --text")
-        result = uia_run("type", name=name, text=text, role="Edit", index=index)
+        result = uia_run("type", name=name, text=text, role="Edit", index=index, all="--all" in args)
         if not result.get("ok"):
             return emit(result)
         if result.get("method") == "click-fallback":

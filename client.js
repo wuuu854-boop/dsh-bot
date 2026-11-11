@@ -77,6 +77,10 @@ window.__ModuleLoader__.load({
         stopSpeak: '停止朗读',
         reasoning: '思考',
         reasoningHide: '收起思考',
+        stalledHint: '90 秒没有新进展，可能卡在授权或等待中。',
+        stalledWait: '继续等',
+        waitingForInput: '等你确认后继续',
+        waitingForInputHint: 'AI 已暂停，不会继续执行',
         working: '正在操作电脑',
         workingOn: '正在',
         thinking: '正在思考下一步',
@@ -460,6 +464,8 @@ window.__ModuleLoader__.load({
         templateCleanupPrompt: '只盘点 C 盘和 E 盘的空间、缓存、旧备份、回收站和重复文件，输出可清理清单与预计释放空间；不要删除任何文件，等我确认。',
         templateReview: '今日复盘',
         templateReviewPrompt: '汇总最近 24 小时团队各 Bot 的运行记录：完成了什么、失败/中断了什么、下一步建议。不要重新执行任务。',
+        templateVocational: '智慧职教',
+        templateVocationalPrompt: '打开智慧职教课程任务页 <粘贴 URL>。先运行 python scripts/edge.py read --all，分别看主页面和 iframe；视频/作业/测验通常在 iframe。点击用 python scripts/edge.py click --all --verify --name "..."；如果返回 changed:false 或 stalled:true，禁止重复点击，先 read --all 检查新出现的 frame、scroll、wait-change，仍无变化就停下并说明卡在哪一步，不要循环点击。',
         imageRefreshed: '画面已刷新',
         context: '上下文',
         thinkingDone: '思考完成',
@@ -472,11 +478,11 @@ window.__ModuleLoader__.load({
         questionHint: '回答后它会继续。',
         questionSubmitting: '提交中',
         approvalKicker: '需要授权',
-        approvalTitle: 'DSH 请求执行工具',
+        approvalTitle: 'AI 正在等你授权',
         approvalAllow: '允许一次',
         approvalDeny: '拒绝',
         approvalReason: '原因',
-        approvalHint: '这次决定只影响当前调用。',
+        approvalHint: 'AI 已暂停，不会继续执行；这次决定只影响当前调用。',
         stoppedByUser: '你停止了这一轮',
         retryHint: '让 DSH 继续',
         offlineHint: '后台没有响应，正在重试…',
@@ -628,6 +634,10 @@ window.__ModuleLoader__.load({
         stopSpeak: 'Stop reading',
         reasoning: 'Thinking',
         reasoningHide: 'Hide thinking',
+        stalledHint: 'No progress for 90 seconds; it may be stuck waiting for approval.',
+        stalledWait: 'Keep waiting',
+        waitingForInput: 'Waiting for your decision',
+        waitingForInputHint: 'The AI is paused and will not continue',
         working: 'Working the computer',
         workingOn: 'Working',
         thinking: 'Thinking about the next step',
@@ -1011,6 +1021,8 @@ window.__ModuleLoader__.load({
         templateCleanupPrompt: 'Only inventory C: and E: for space, caches, old backups, recycle bin and duplicates. Output a cleanup list and estimated reclaim; delete nothing until I confirm.',
         templateReview: 'Daily review',
         templateReviewPrompt: 'Summarize the team runs from the last 24 hours: what completed, what failed or was interrupted, and next actions. Do not re-run tasks.',
+        templateVocational: 'Vocational education',
+        templateVocationalPrompt: 'Open the vocational-education course task page <URL>. Run python scripts/edge.py read --all and inspect the main document plus each iframe; videos/quizzes often live in an iframe. Click with python scripts/edge.py click --all --verify --name "...". If it returns changed:false or stalled:true, do not click again: read --all for new frames, scroll, wait-change, then stop and report the blocker if nothing changes.',
         imageRefreshed: 'Preview refreshed',
         context: 'Context',
         thinkingDone: 'Thought',
@@ -1023,11 +1035,11 @@ window.__ModuleLoader__.load({
         questionHint: 'It will continue after you answer.',
         questionSubmitting: 'Submitting',
         approvalKicker: 'APPROVAL NEEDED',
-        approvalTitle: 'DSH wants to run a tool',
+        approvalTitle: 'The AI is waiting for your approval',
         approvalAllow: 'Allow once',
         approvalDeny: 'Reject',
         approvalReason: 'Reason',
-        approvalHint: 'This decision applies to this call only.',
+        approvalHint: 'The AI is paused and will not continue; this decision applies to this call only.',
         stoppedByUser: 'You stopped this turn',
         retryHint: 'Let DSH continue',
         offlineHint: 'Backend is not answering, retrying…',
@@ -2198,7 +2210,16 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function WorkingStrip({ items, t }) {
+    function WorkingStrip({ items, t, waiting }) {
+      if (waiting) {
+        return h(
+          'div',
+          { className: 'gb-working-strip is-waiting' },
+          h(Icon, { name: 'alert', size: 14 }),
+          h('span', null, t('waitingForInput')),
+          h('span', { className: 'gb-working-target' }, t('waitingForInputHint')),
+        )
+      }
       const running = [...items].reverse().find((item) => item.kind === 'activity' && item.status === 'running')
       const recent = items
         .filter((item) => item.kind === 'activity' && item.status === 'success')
@@ -3303,6 +3324,7 @@ window.__ModuleLoader__.load({
         { title: 'templateRead', prompt: 'templateReadPrompt', icon: 'search' },
         { title: 'templateCleanup', prompt: 'templateCleanupPrompt', icon: 'trash' },
         { title: 'templateReview', prompt: 'templateReviewPrompt', icon: 'activity' },
+        { title: 'templateVocational', prompt: 'templateVocationalPrompt', icon: 'computer' },
       ]
       const applyTemplate = (template) => {
         const base = String(value || '').trim()
@@ -5457,7 +5479,7 @@ window.__ModuleLoader__.load({
               h(
                 'div',
                 { className: 'gb-pending-body' },
-                h('div', { className: 'gb-pending-reason' }, h('span', null, `${t('tool_default')} · `), h('b', null, approval.toolName)),
+                h('div', { className: 'gb-pending-reason' }, h('span', null, `${approval.botName || t('tool_default')} · `), h('b', null, toolLabel(approval.toolName, t))),
                 approval.reason ? h('p', null, approval.reason) : null,
                 h('div', { className: 'gb-pending-hint' }, t('approvalHint')),
               ),
@@ -5610,6 +5632,8 @@ window.__ModuleLoader__.load({
           return ''
         }
       })
+      const [stalled, setStalled] = useState(false)
+      const progressRef = useRef({ at: Date.now(), key: '' })
       const [pinsBusy, setPinsBusy] = useState(false)
       const [sending, setSending] = useState(false)
       const [stopping, setStopping] = useState(false)
@@ -5694,6 +5718,26 @@ window.__ModuleLoader__.load({
         element.scrollTop = element.scrollHeight - anchor.height + anchor.top
         historyAnchorRef.current = null
       }, [olderItems.length])
+
+      useEffect(() => {
+        const key = `${snap?.items?.length || 0}:${snap?.stream?.text?.length || 0}:${snap?.approval?.id || ''}:${snap?.question?.id || ''}`
+        if (progressRef.current.key !== key) {
+          progressRef.current = { at: Date.now(), key }
+          setStalled(false)
+        }
+      }, [snap?.items?.length, snap?.stream?.text, snap?.approval?.id, snap?.question?.id])
+
+      useEffect(() => {
+        const isRunning = Boolean(snap?.thread?.running)
+        if (!isRunning) {
+          setStalled(false)
+          return undefined
+        }
+        const timer = setInterval(() => {
+          if (Date.now() - progressRef.current.at > 90_000) setStalled(true)
+        }, 5_000)
+        return () => clearInterval(timer)
+      }, [snap?.thread?.running])
 
       const loadEarlier = useCallback(async () => {
         const channelId = snap?.channel?.id
@@ -5799,7 +5843,7 @@ window.__ModuleLoader__.load({
         const element = scrollRef.current
         if (!element) return
         if (stickRef.current) element.scrollTop = element.scrollHeight
-      }, [snap?.items?.length, snap?.stream?.text, pending])
+      }, [snap?.items?.length, snap?.stream?.text, snap?.approval?.id, snap?.question?.id, pending])
 
       useEffect(() => {
         const element = scrollRef.current
@@ -6826,7 +6870,9 @@ window.__ModuleLoader__.load({
         }
       }
       if (pendingItem) content.push(h(UserMessage, { key: 'pending', item: pendingItem, pending: true, t }))
-      if (running && !ghost && !pendingItem) content.push(h(WorkingStrip, { key: 'working', items, t }))
+      if (running && !ghost && !pendingItem) {
+        content.push(h(WorkingStrip, { key: 'working', items, t, waiting: Boolean(snap.approval || snap.question) }))
+      }
 
       const empty = items.length === 0 && !ghost && !pending && !running
       const sendMode = running ? 'steer' : 'followup'
@@ -6947,6 +6993,16 @@ window.__ModuleLoader__.load({
                 ),
                 h('button', { type: 'button', className: 'gb-small-btn', onClick: openUpdate }, t('updateDownload')),
                 h('button', { type: 'button', className: 'gb-icon-btn', onClick: dismissUpdate, 'aria-label': t('updateLater') }, h(Icon, { name: 'close', size: 13 })),
+              )
+            : null,
+          stalled && running
+            ? h(
+                'div',
+                { className: 'gb-stall-banner' },
+                h(Icon, { name: 'alert', size: 14 }),
+                h('span', null, t('stalledHint')),
+                h('button', { type: 'button', className: 'gb-small-btn', onClick: () => { progressRef.current = { at: Date.now(), key: progressRef.current.key }; setStalled(false) } }, t('stalledWait')),
+                h('button', { type: 'button', className: 'gb-small-btn', onClick: stop }, t('stop')),
               )
             : null,
           offline
@@ -7723,6 +7779,9 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 .gb-problem-details pre { max-height: 180px; margin: 6px 0 0; overflow: auto; padding: 7px; border-radius: 6px; background: color-mix(in srgb, var(--gb-panel-2) 60%, transparent); color: var(--gb-muted); font-size: 8.5px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .gb-update-banner { display: flex; align-items: center; gap: 9px; width: calc(100% - 76px); max-width: 880px; margin: 0 auto 6px; padding: 7px 9px; border: 1px solid color-mix(in srgb, var(--gb-signal) 34%, var(--gb-line)); border-radius: 8px; background: color-mix(in srgb, var(--gb-signal) 8%, transparent); color: var(--gb-text); }
 .gb-update-banner > svg { flex: none; color: var(--gb-signal); }
+.gb-stall-banner { display: flex; align-items: center; gap: 8px; width: calc(100% - 76px); max-width: 880px; margin: 0 auto 6px; padding: 7px 9px; border: 1px solid color-mix(in srgb, var(--gb-warn) 40%, var(--gb-line)); border-radius: 8px; background: color-mix(in srgb, var(--gb-warn) 8%, transparent); color: var(--gb-warn); font-size: 9px; }
+.gb-stall-banner > svg { flex: none; }
+.gb-stall-banner > span { flex: 1; }
 .gb-update-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; font-size: 9px; }
 .gb-update-text strong { font-size: 9px; }
 .gb-update-text span { color: var(--gb-muted); }
@@ -7909,6 +7968,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 .gb-notice.is-warn { color: var(--gb-warn); border-color: color-mix(in srgb, var(--gb-warn) 26%, var(--gb-line)); }
 .gb-notice-text { flex: 1; min-width: 0; }
 .gb-working-strip { display: flex; align-items: center; gap: 8px; margin: 16px 0 16px 38px; padding: 9px 12px; border: 1px dashed color-mix(in srgb, var(--gb-signal) 30%, var(--gb-line)); border-radius: 9px; color: var(--gb-muted); font-size: 10.5px; }
+.gb-working-strip.is-waiting { color: var(--gb-warn); border-color: color-mix(in srgb, var(--gb-warn) 45%, var(--gb-line)); background: color-mix(in srgb, var(--gb-warn) 7%, transparent); }
 .gb-working-target { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--gb-faint); font-family: "Cascadia Code", Consolas, monospace; font-size: 9px; }
 .gb-spinner { display: inline-block; border: 1.4px solid color-mix(in srgb, currentColor 24%, transparent); border-top-color: currentColor; border-radius: 50%; animation: gb-spin .8s linear infinite; }
 
