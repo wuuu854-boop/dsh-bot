@@ -1,5 +1,11 @@
 # Changelog
 
+## 5.23.0 — 2026-11-12
+
+- Add: “保存并运行” in the routine form — creates/updates the routine, immediately runs it, and opens the resulting thread.
+- Add: image lightbox download action; the file endpoint supports UTF-8 `Content-Disposition` attachments.
+- Verified: routine create/run/delete APIs; template fill flow; download headers; QQ remains default-off.
+
 ## 5.22.0 — 2026-11-12
 
 - Add: image lightbox download action; `/file?download=1` now returns `Content-Disposition: attachment` with a UTF-8 filename.

@@ -416,6 +416,7 @@ window.__ModuleLoader__.load({
         routineDeleteConfirm: '删除这个例程？已经跑过的任务会保留。',
         routineCreate: '创建',
         routineSave: '保存',
+        routineSaveRun: '保存并运行',
         routineSaved: '例程已保存',
         routineDeleted: '例程已删除',
         routineRunning: '已开始',
@@ -1058,6 +1059,7 @@ window.__ModuleLoader__.load({
         routineDeleteConfirm: 'Delete this routine? Finished tasks are kept.',
         routineCreate: 'Create',
         routineSave: 'Save',
+        routineSaveRun: 'Save & run',
         routineSaved: 'Routine saved',
         routineDeleted: 'Routine deleted',
         routineRunning: 'Started',
@@ -5305,7 +5307,7 @@ window.__ModuleLoader__.load({
         return { kind, expression, time_zone: 'Asia/Shanghai' }
       }
 
-      const save = async () => {
+      const save = async (runAfter = false) => {
         if (busy) return
         if (!String(title || '').trim()) {
           setError(t('routineNameRequired'))
@@ -5326,11 +5328,17 @@ window.__ModuleLoader__.load({
             schedule: buildSchedule(),
             enabled: true,
           }
-          if (editing?.id) await apiPost('/routine/update', payload)
-          else await apiPost('/routine/create', payload)
+          const result = editing?.id
+            ? await apiPost('/routine/update', payload)
+            : await apiPost('/routine/create', payload)
           setEditing(null)
           await onRefresh?.()
           onToast?.(t('routineSaved'))
+          if (runAfter && result?.routine?.id) {
+            const run = await apiPost('/routine/run', { id: result.routine.id })
+            onToast?.(t('routineRunning'))
+            if (run?.threadId) await onOpenThread?.(run.threadId)
+          }
         } catch (caught) {
           setError(caught?.message || String(caught))
         } finally {
@@ -5509,7 +5517,13 @@ window.__ModuleLoader__.load({
                   h('button', { type: 'button', className: 'gb-ghost-btn', onClick: () => setEditing(null), disabled: busy }, t('cancel')),
                   h(
                     'button',
-                    { type: 'button', className: 'gb-primary-btn', onClick: save, disabled: busy },
+                    { type: 'button', className: 'gb-ghost-btn', onClick: () => save(true), disabled: busy },
+                    h(Icon, { name: 'play', size: 12 }),
+                    t('routineSaveRun'),
+                  ),
+                  h(
+                    'button',
+                    { type: 'button', className: 'gb-primary-btn', onClick: () => save(false), disabled: busy },
                     busy ? h(Spinner, { size: 12 }) : h(Icon, { name: 'check', size: 12 }),
                     t('routineSave'),
                   ),
@@ -9580,7 +9594,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '5.22.0',
+              version: '5.23.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -9601,7 +9615,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '5.22.0',
+                version: '5.23.0',
               },
               null,
               2,

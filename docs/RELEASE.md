@@ -1,4 +1,5 @@
-# DSH Bot v5.22.0
+# DSH Bot v5.23.0
+
 
 
 
@@ -21,6 +22,9 @@ You talk to one **Boss**. It decides what to do, hires a specialist when nobody 
 ![Architecture](architecture.svg)
 
 ## Highlights
+
+- **Save & run routines** — a new “保存并运行” action creates/updates the routine, runs it immediately, and opens the resulting thread.
+- **Lightbox download** — image preview now downloads through a UTF-8 attachment response.
 
 - **Lightbox download** — the image preview now has a download action; the file endpoint supports `Content-Disposition` with a UTF-8 filename.
 
