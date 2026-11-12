@@ -1,4 +1,5 @@
-# DSH Bot v5.31.0
+# DSH Bot v5.32.0
+
 
 
 
@@ -30,6 +31,8 @@ You talk to one **Boss**. It decides what to do, hires a specialist when nobody 
 ![Architecture](architecture.svg)
 
 ## Highlights
+
+- **File-serving hardening** — `/file` rejects symlinks and verifies the real path stays inside uploads; traversal probes return 404.
 
 - **Docs consistency** — README now describes the real five-theme picker, attachment grouping/lightbox and group routing; stale three-dot claim removed.
 

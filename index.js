@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '5.31.0'
+const VERSION = '5.32.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -7562,7 +7562,18 @@ export function apply(ctx) {
         }
         let stat
         try {
+          const linkStat = fs.lstatSync(target)
+          if (linkStat.isSymbolicLink()) {
+            json(res, 403, { ok: false, error: '拒绝访问符号链接' })
+            return
+          }
           stat = fs.statSync(target)
+          const realRoot = fs.realpathSync(uploadDir)
+          const realTarget = fs.realpathSync(target)
+          if (!realTarget.startsWith(`${realRoot}${path.sep}`)) {
+            json(res, 403, { ok: false, error: '拒绝访问' })
+            return
+          }
         } catch {
           json(res, 404, { ok: false, error: '文件不存在' })
           return

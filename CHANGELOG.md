@@ -1,5 +1,11 @@
 # Changelog
 
+## 5.32.0 — 2026-11-12
+
+- Harden: `/file` now rejects symbolic links and verifies the real path stays inside the uploads directory before serving.
+- Verified: `../package.json`, encoded backslash and encoded `../` requests return 404; a valid upload still returns 200 `image/png`.
+- No new feature surfaces; QQ remains default-off.
+
 ## 5.31.0 — 2026-11-12
 
 - Docs: fix stale README claims — the top bar is now a five-theme picker, not three dots; remove the duplicate theme bullet; document attachment grouping/lightbox and group routing.
