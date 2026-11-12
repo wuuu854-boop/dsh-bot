@@ -1,5 +1,12 @@
 # Changelog
 
+## 5.7.0 — 2026-11-12
+
+- Fix: stop noisy automatic skill capture from one-off prompts/delegation boilerplate; unused auto skills are dropped on load, while used/manual skills survive.
+- Fix: doctor now checks the actual DSH runtime Python and imports `pptx/docx/openpyxl/PIL`; this catches the “Python is available but creative generation fails” case.
+- Add: doctor `creative` check with the exact runtime Python and a clear fix.
+- Verified: runtime Python 3.12.14, `pptx/docx/openpyxl/PIL` import OK, manual skill capture still works, health/model ready.
+
 ## 5.6.0 — 2026-11-12
 
 - Fix: creative and course templates no longer emit relative `python scripts/...` commands. They are expanded at insertion time to the DSH runtime Python and absolute script paths.

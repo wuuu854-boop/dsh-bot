@@ -1,4 +1,4 @@
-# DSH Bot v5.6.0
+# DSH Bot v5.7.0
 
 
 **An open-source GrokBot alternative that runs a real bot team on your own Windows machine, inside DeepSeek Harness.**
@@ -8,6 +8,8 @@ You talk to one **Boss**. It decides what to do, hires a specialist when nobody 
 ![Architecture](architecture.svg)
 
 ## Highlights
+
+- **Cleaner skills + diagnostics** — noisy auto-captured skills are removed; `doctor` now validates the DSH runtime Python and pptx/docx/openpyxl/Pillow imports.
 
 - **Templates that actually run** — creative/course templates now expand to the DSH runtime Python and absolute script paths, so PPT/DOCX/XLSX/game/music commands do not fail on a Bot workspace or a Python without bundled libraries.
 

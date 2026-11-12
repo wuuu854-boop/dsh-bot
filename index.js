@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '5.6.0'
+const VERSION = '5.7.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -532,6 +532,10 @@ export function apply(ctx) {
       for (const item of Array.isArray(raw.skills) ? raw.skills : []) {
         const skill = normalizeSkill(item, botIds, new Set(threads.map((thread) => thread.id)))
         if (!skill) continue
+        // Auto-captured skills were created from one-off prompts/delegations and
+        // were mostly noise. Keep used ones so existing workflows survive, but
+        // drop unused auto entries on load.
+        if (skill.auto && !(Number(skill.uses) > 0) && !(Number(skill.successes) > 0)) continue
         skills.push(skill)
         if (skills.length >= MAX_SKILLS) break
       }
@@ -2339,37 +2343,9 @@ export function apply(ctx) {
   }
 
   function autoSkillFromRun(run) {
-    if (!run || run.status !== 'success' || run.toolCalls < 1 || run.verification?.status !== 'passed') return null
-    const prompt = textValue(run.prompt, 8_000)
-    if (!prompt || prompt.length < 8) return null
-    const key = skillKey(prompt)
-    const existing = state.skills.find((skill) => skill.botId === run.botId && skillKey(skill.prompt) === key)
-    if (existing) return existing
-    const title = firstLine(prompt).slice(0, 60) || '任务技能'
-    const steps = (run.tools || [])
-      .slice(0, 16)
-      .map((tool) => `${tool.name}${tool.args ? `: ${truncate(tool.args, 220)}` : ''}`)
-    const skill = {
-      id: `skill-${crypto.randomUUID()}`,
-      botId: run.botId,
-      title,
-      prompt,
-      steps,
-      workflow: (run.tools || []).map((tool) => ({ tool: tool.name, args: tool.args })),
-      params: extractSkillParams(run.prompt, run.tools),
-      createdAt: now(),
-      updatedAt: now(),
-      uses: 0,
-      successes: 0,
-      failures: 0,
-      lastUsedAt: 0,
-      sourceThreadId: run.threadId,
-      auto: true,
-    }
-    state.skills.unshift(skill)
-    if (state.skills.length > MAX_SKILLS) state.skills.length = MAX_SKILLS
-    saveStateSoon()
-    return skill
+    // Automatic skill capture produced noisy “skills” from one-off prompts and
+    // delegation boilerplate. Skills are now captured explicitly from the deck.
+    return null
   }
 
   function captureSkillForThread(threadId, runId) {
@@ -6146,7 +6122,7 @@ export function apply(ctx) {
           detail: stateDir,
           fix: '检查 DSH_HOME/storages/dsh-bot 的权限',
         })
-        const python = process.env.DSH_PYTHON || 'python'
+        const python = pythonExe
         let pythonDetail = ''
         let pythonOk = false
         try {
@@ -6166,6 +6142,26 @@ export function apply(ctx) {
           ok: pythonOk,
           detail: pythonDetail || python,
           fix: '安装 Python 3，或设置 DSH_PYTHON 指向 python.exe',
+        })
+        let creativeOk = false
+        let creativeDetail = ''
+        try {
+          creativeDetail = String(execFileSync(python, ['-c', 'import pptx, docx, openpyxl, PIL; print("ok")'], {
+            timeout: 8_000,
+            windowsHide: true,
+            encoding: 'utf8',
+            stdio: ['ignore', 'pipe', 'pipe'],
+          })).trim()
+          creativeOk = creativeDetail === 'ok'
+        } catch (error) {
+          creativeDetail = messageOf(error)
+        }
+        checks.push({
+          id: 'creative',
+          label: '创作依赖可用',
+          ok: creativeOk,
+          detail: creativeDetail || '缺少 python-pptx / python-docx / openpyxl / Pillow',
+          fix: `使用 DSH 运行时 Python（${python}），不要用系统 Python 安装创作依赖`,
         })
         const edgeCandidates = [
           process.env.ProgramFiles && path.join(process.env.ProgramFiles, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
