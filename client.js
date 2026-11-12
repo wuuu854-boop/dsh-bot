@@ -539,6 +539,8 @@ window.__ModuleLoader__.load({
         attachmentCopy: '复制路径',
         attachmentCopied: '已复制',
         attachmentPreview: '预览图片',
+        attachmentPrev: '上一张',
+        attachmentNext: '下一张',
         imageRefreshed: '画面已刷新',
         context: '上下文',
         thinkingDone: '思考完成',
@@ -1171,6 +1173,8 @@ window.__ModuleLoader__.load({
         attachmentCopy: 'Copy path',
         attachmentCopied: 'Copied',
         attachmentPreview: 'Preview image',
+        attachmentPrev: 'Previous image',
+        attachmentNext: 'Next image',
         imageRefreshed: 'Preview refreshed',
         context: 'Context',
         thinkingDone: 'Thought',
@@ -1332,6 +1336,7 @@ window.__ModuleLoader__.load({
       speakerOff: ['M4 10v4h4l5 4V6l-5 4H4z', 'M17 9l4 4', 'M21 9l-4 4'],
       chevronDown: ['m6 9 6 6 6-6'],
       chevronRight: ['m9 6 6 6-6 6'],
+      chevronLeft: ['m15 6-6 6 6 6'],
       arrowUp: ['M12 19V5', 'm5 12 7-7 7 7'],
       quote: ['M9 14 4 9l5-5', 'M4 9h9a7 7 0 0 1 7 7v2'],
       search: ['M10 17a7 7 0 1 0 0-14 7 7 0 0 0 0 14z', 'm16 16 5 5'],
@@ -1841,8 +1846,13 @@ window.__ModuleLoader__.load({
 
     function AttachmentCards({ items, t }) {
       const [copied, setCopied] = useState('')
-      const [preview, setPreview] = useState(null)
+      const [previewIndex, setPreviewIndex] = useState(-1)
       const closeRef = useRef(null)
+      const imageItems = items.filter((item) => {
+        const fileName = String(item.path || '').split(/[\\/]/).pop() || item.name
+        return /\.(png|jpe?g|gif|webp|bmp)$/i.test(fileName)
+      })
+      const preview = previewIndex >= 0 ? imageItems[previewIndex] || null : null
       const copy = async (item) => {
         const ok = await copyText(item.path)
         if (!ok) return
@@ -1852,12 +1862,24 @@ window.__ModuleLoader__.load({
       useEffect(() => {
         if (!preview) return undefined
         const onKey = (event) => {
-          if (event.key === 'Escape') setPreview(null)
+          if (event.key === 'Escape') setPreviewIndex(-1)
+          if (event.key === 'ArrowLeft' && imageItems.length > 1) {
+            event.preventDefault()
+            setPreviewIndex((index) => (index - 1 + imageItems.length) % imageItems.length)
+          }
+          if (event.key === 'ArrowRight' && imageItems.length > 1) {
+            event.preventDefault()
+            setPreviewIndex((index) => (index + 1) % imageItems.length)
+          }
         }
         window.addEventListener('keydown', onKey)
         closeRef.current?.focus?.()
         return () => window.removeEventListener('keydown', onKey)
-      }, [preview])
+      }, [Boolean(preview), imageItems.length])
+      const movePreview = (delta) => {
+        if (imageItems.length < 2) return
+        setPreviewIndex((index) => (index + delta + imageItems.length) % imageItems.length)
+      }
       const renderPreview = () => {
         if (!preview) return null
         const fileName = String(preview.path || '').split(/[\\/]/).pop() || preview.name
@@ -1869,26 +1891,62 @@ window.__ModuleLoader__.load({
             'aria-modal': 'true',
             'aria-label': preview.name,
             onMouseDown: (event) => {
-              if (event.target === event.currentTarget) setPreview(null)
+              if (event.target === event.currentTarget) setPreviewIndex(-1)
             },
           },
+          h(
+            'span',
+            { className: 'gb-attachment-lightbox-count' },
+            `${previewIndex + 1} / ${imageItems.length}`,
+          ),
+          imageItems.length > 1
+            ? h(
+                'button',
+                {
+                  type: 'button',
+                  className: 'gb-attachment-lightbox-nav is-prev',
+                  onClick: (event) => {
+                    event.stopPropagation()
+                    movePreview(-1)
+                  },
+                  'aria-label': t('attachmentPrev'),
+                },
+                h(Icon, { name: 'chevronLeft', size: 22 }),
+              )
+            : null,
+          imageItems.length > 1
+            ? h(
+                'button',
+                {
+                  type: 'button',
+                  className: 'gb-attachment-lightbox-nav is-next',
+                  onClick: (event) => {
+                    event.stopPropagation()
+                    movePreview(1)
+                  },
+                  'aria-label': t('attachmentNext'),
+                },
+                h(Icon, { name: 'chevronRight', size: 22 }),
+              )
+            : null,
+          h('img', {
+            key: fileName,
+            src: `${API_BASE}/file?name=${encodeURIComponent(fileName)}`,
+            alt: preview.name,
+            onClick: (event) => event.stopPropagation(),
+          }),
           h(
             'button',
             {
               type: 'button',
               ref: closeRef,
               className: 'gb-attachment-lightbox-close',
-              onClick: () => setPreview(null),
+              onClick: () => setPreviewIndex(-1),
               'aria-label': t('close'),
             },
             h(Icon, { name: 'close', size: 18 }),
             h('span', null, t('close')),
           ),
-          h('img', {
-            src: `${API_BASE}/file?name=${encodeURIComponent(fileName)}`,
-            alt: preview.name,
-            onClick: (event) => event.stopPropagation(),
-          }),
         )
         // Render at document.body so a transformed message bubble cannot trap
         // the fixed overlay inside the chat column.
@@ -1913,7 +1971,14 @@ window.__ModuleLoader__.load({
                     type: 'button',
                     className: 'gb-attachment-main',
                     'aria-label': isImage ? `${t('attachmentPreview')}: ${item.name}` : `${t('attachmentCopy')}: ${item.name}`,
-                    onClick: () => (isImage ? setPreview(item) : copy(item)),
+                    onClick: () => {
+                      if (!isImage) {
+                        copy(item)
+                        return
+                      }
+                      const imageIndex = imageItems.findIndex((image) => image.path === item.path)
+                      setPreviewIndex(imageIndex >= 0 ? imageIndex : 0)
+                    },
                   },
                   isImage
                     ? h('img', {
@@ -8810,6 +8875,11 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 .gb-attachment-lightbox img { max-width: min(92vw, 1200px); max-height: 82vh; border: 1px solid rgba(255,255,255,.14); border-radius: 12px; box-shadow: 0 28px 90px rgba(0,0,0,.55); object-fit: contain; }
 .gb-attachment-lightbox-close { position: absolute; right: 24px; bottom: 24px; display: inline-flex; align-items: center; gap: 6px; min-width: 34px; height: 34px; padding: 0 12px; border: 1px solid rgba(255,255,255,.2); border-radius: 999px; background: rgba(0,0,0,.55); color: #fff; font-size: 10px; }
 .gb-attachment-lightbox-close:hover { background: rgba(255,255,255,.14); }
+.gb-attachment-lightbox-count { position: absolute; left: 24px; bottom: 30px; color: rgba(255,255,255,.72); font-family: "Cascadia Code", Consolas, monospace; font-size: 10px; letter-spacing: .06em; }
+.gb-attachment-lightbox-nav { position: absolute; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid rgba(255,255,255,.2); border-radius: 999px; background: rgba(0,0,0,.5); color: #fff; }
+.gb-attachment-lightbox-nav:hover { background: rgba(255,255,255,.16); }
+.gb-attachment-lightbox-nav.is-prev { left: 22px; }
+.gb-attachment-lightbox-nav.is-next { right: 22px; }
 .gb-md p { margin: 0 0 12px; }
 .gb-md p:last-child { margin-bottom: 0; }
 .gb-md-heading { margin: 18px 0 8px; font-size: 15px; line-height: 1.4; font-weight: 650; letter-spacing: -.01em; }
@@ -9406,7 +9476,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '5.19.0',
+              version: '5.20.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -9427,7 +9497,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '5.19.0',
+                version: '5.20.0',
               },
               null,
               2,

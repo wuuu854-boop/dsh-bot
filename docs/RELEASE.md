@@ -1,4 +1,5 @@
-# DSH Bot v5.19.0
+# DSH Bot v5.20.0
+
 
 
 
@@ -18,6 +19,8 @@ You talk to one **Boss**. It decides what to do, hires a specialist when nobody 
 ![Architecture](architecture.svg)
 
 ## Highlights
+
+- **Multi-image lightbox** — left/right arrows, ArrowLeft/ArrowRight, wrap-around navigation and a `1 / N` counter, distilled from shadcn/Radix dialog patterns.
 
 - **Full-screen image lightbox** — portal-based dialog with Radix/shadcn semantics, Esc/backdrop close, visible labeled close button, and focus handling.
 - **Cleaner failure cards** — inline attachment markup is stripped too, so abort cards no longer leak raw paths.

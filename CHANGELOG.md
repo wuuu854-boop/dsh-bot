@@ -1,5 +1,12 @@
 # Changelog
 
+## 5.20.0 — 2026-11-12
+
+- Add: the image lightbox now supports multiple images — left/right arrow buttons, ArrowLeft/ArrowRight keys, a `1 / N` counter, and wrap-around navigation.
+- Polish: close button remains visible bottom-right with a focus outline; the counter sits bottom-left.
+- Distill: documented the lightbox interaction in `docs/UI_DESIGN.md` against shadcn/ui (127.9k), Radix Primitives (19.5k), Excalidraw (135.5k) and tldraw (51.4k).
+- Verified: two-image message opened at `1 / 2`, ArrowRight switched to the second image at `2 / 2`; test thread/uploads cleaned.
+
 ## 5.19.0 — 2026-11-12
 
 - Add: image attachment lightbox rendered through a document.body portal, so a transformed message bubble cannot trap the overlay in the chat column.
