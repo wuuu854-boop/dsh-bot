@@ -1,5 +1,11 @@
 # Changelog
 
+## 5.24.0 — 2026-11-12
+
+- Add: attachment labels now include the uploaded file size (for example `image.png · 64 KB`), using the existing byte formatter.
+- Verified: routine “保存并运行” through the actual UI — routine created, immediate run started, thread opened; test routine/thread cleaned.
+- QQ remains default-off.
+
 ## 5.23.0 — 2026-11-12
 
 - Add: “保存并运行” in the routine form — creates/updates the routine, immediately runs it, and opens the resulting thread.

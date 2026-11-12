@@ -7400,8 +7400,9 @@ window.__ModuleLoader__.load({
           const attachmentLines = files
             .map((file) => {
               const label = String(file.name || '附件').replace(/[\[\]]/g, '').trim() || '附件'
+              const size = Number(file.bytes) > 0 ? ` · ${formatBytes(Number(file.bytes))}` : ''
               const target = String(file.path || '').replace(/[<>]/g, '').trim()
-              return target ? `- [${label}](<${target}>)` : ''
+              return target ? `- [${label}${size}](<${target}>)` : ''
             })
             .filter(Boolean)
           const messageText =
@@ -9594,7 +9595,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '5.23.0',
+              version: '5.24.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -9615,7 +9616,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '5.23.0',
+                version: '5.24.0',
               },
               null,
               2,
