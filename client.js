@@ -4,6 +4,13 @@ window.__ModuleLoader__.load({
     const React = require('react')
     const h = React.createElement
     const { useState, useEffect, useRef, useMemo, useCallback } = React
+    const ReactDOM = (() => {
+      try {
+        return require('react-dom')
+      } catch {
+        return null
+      }
+    })()
 
     const NS = 'dsh-bot'
     const API_BASE = '/dsh-bot/api'
@@ -531,6 +538,7 @@ window.__ModuleLoader__.load({
         attachment: '附件',
         attachmentCopy: '复制路径',
         attachmentCopied: '已复制',
+        attachmentPreview: '预览图片',
         imageRefreshed: '画面已刷新',
         context: '上下文',
         thinkingDone: '思考完成',
@@ -1162,6 +1170,7 @@ window.__ModuleLoader__.load({
         attachment: 'Attachment',
         attachmentCopy: 'Copy path',
         attachmentCopied: 'Copied',
+        attachmentPreview: 'Preview image',
         imageRefreshed: 'Preview refreshed',
         context: 'Context',
         thinkingDone: 'Thought',
@@ -1832,42 +1841,106 @@ window.__ModuleLoader__.load({
 
     function AttachmentCards({ items, t }) {
       const [copied, setCopied] = useState('')
+      const [preview, setPreview] = useState(null)
+      const closeRef = useRef(null)
       const copy = async (item) => {
         const ok = await copyText(item.path)
         if (!ok) return
         setCopied(item.path)
         window.setTimeout(() => setCopied(''), 1400)
       }
+      useEffect(() => {
+        if (!preview) return undefined
+        const onKey = (event) => {
+          if (event.key === 'Escape') setPreview(null)
+        }
+        window.addEventListener('keydown', onKey)
+        closeRef.current?.focus?.()
+        return () => window.removeEventListener('keydown', onKey)
+      }, [preview])
+      const renderPreview = () => {
+        if (!preview) return null
+        const fileName = String(preview.path || '').split(/[\\/]/).pop() || preview.name
+        const dialog = h(
+          'div',
+          {
+            className: 'gb-attachment-lightbox',
+            role: 'dialog',
+            'aria-modal': 'true',
+            'aria-label': preview.name,
+            onMouseDown: (event) => {
+              if (event.target === event.currentTarget) setPreview(null)
+            },
+          },
+          h(
+            'button',
+            {
+              type: 'button',
+              ref: closeRef,
+              className: 'gb-attachment-lightbox-close',
+              onClick: () => setPreview(null),
+              'aria-label': t('close'),
+            },
+            h(Icon, { name: 'close', size: 18 }),
+            h('span', null, t('close')),
+          ),
+          h('img', {
+            src: `${API_BASE}/file?name=${encodeURIComponent(fileName)}`,
+            alt: preview.name,
+            onClick: (event) => event.stopPropagation(),
+          }),
+        )
+        // Render at document.body so a transformed message bubble cannot trap
+        // the fixed overlay inside the chat column.
+        return ReactDOM?.createPortal ? ReactDOM.createPortal(dialog, document.body) : dialog
+      }
       return h(
         'div',
-        { className: 'gb-attachments' },
-        items.map((item, index) =>
-          (() => {
-            const fileName = String(item.path || '').split(/[\\/]/).pop() || item.name
-            const isImage = /\.(png|jpe?g|gif|webp|bmp)$/i.test(fileName)
-            return h(
-              'button',
-              {
-                key: `${item.path}-${index}`,
-                type: 'button',
-                className: 'gb-attachment',
-                title: item.path,
-                'aria-label': `${t('attachmentCopy')}: ${item.name}`,
-                onClick: () => copy(item),
-              },
-              isImage
-                ? h('img', {
-                    className: 'gb-attachment-thumb',
-                    src: `${API_BASE}/file?name=${encodeURIComponent(fileName)}`,
-                    alt: '',
-                    loading: 'lazy',
-                  })
-                : h(Icon, { name: copied === item.path ? 'check' : 'paperclip', size: 12 }),
-              h('span', { className: 'gb-attachment-name' }, item.name),
-              h('span', { className: 'gb-attachment-action' }, copied === item.path ? t('attachmentCopied') : t('attachmentCopy')),
-            )
-          })(),
+        null,
+        h(
+          'div',
+          { className: 'gb-attachments' },
+          items.map((item, index) =>
+            (() => {
+              const fileName = String(item.path || '').split(/[\\/]/).pop() || item.name
+              const isImage = /\.(png|jpe?g|gif|webp|bmp)$/i.test(fileName)
+              return h(
+                'div',
+                { key: `${item.path}-${index}`, className: 'gb-attachment', title: item.path },
+                h(
+                  'button',
+                  {
+                    type: 'button',
+                    className: 'gb-attachment-main',
+                    'aria-label': isImage ? `${t('attachmentPreview')}: ${item.name}` : `${t('attachmentCopy')}: ${item.name}`,
+                    onClick: () => (isImage ? setPreview(item) : copy(item)),
+                  },
+                  isImage
+                    ? h('img', {
+                        className: 'gb-attachment-thumb',
+                        src: `${API_BASE}/file?name=${encodeURIComponent(fileName)}`,
+                        alt: '',
+                        loading: 'lazy',
+                      })
+                    : h(Icon, { name: 'paperclip', size: 12 }),
+                  h('span', { className: 'gb-attachment-name' }, item.name),
+                ),
+                h(
+                  'button',
+                  {
+                    type: 'button',
+                    className: 'gb-attachment-copy',
+                    onClick: () => copy(item),
+                    title: copied === item.path ? t('attachmentCopied') : t('attachmentCopy'),
+                    'aria-label': copied === item.path ? t('attachmentCopied') : t('attachmentCopy'),
+                  },
+                  h(Icon, { name: copied === item.path ? 'check' : 'copy', size: 11 }),
+                ),
+              )
+            })(),
+          ),
         ),
+        renderPreview(),
       )
     }
 
@@ -3351,7 +3424,8 @@ window.__ModuleLoader__.load({
     }
 
     function cleanProblemReason(value) {
-      const lines = String(value || '').split('\n')
+      const source = String(value || '').replace(/\s*附件[：:][\s\S]*$/, '')
+      const lines = source.split('\n')
       const kept = []
       let skipAttachments = false
       for (const line of lines) {
@@ -8724,13 +8798,18 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 .gb-model-tag { margin-left: 2px; padding: 2px 5px; border: 1px solid var(--gb-line); border-radius: 4px; font-family: "Cascadia Code", Consolas, monospace; font-size: 7.5px; letter-spacing: .06em; color: var(--gb-faint); }
 .gb-md { font-size: 14.3px; line-height: 1.76; word-break: break-word; }
 .gb-attachments { display: flex; flex-wrap: wrap; gap: 7px; margin: 2px 0 12px; }
-.gb-attachment { display: inline-flex; align-items: center; gap: 7px; max-width: min(100%, 360px); padding: 7px 9px; border: 1px solid var(--gb-line); border-radius: 8px; background: color-mix(in srgb, var(--gb-panel-2) 60%, transparent); color: var(--gb-text); font-size: 10px; text-align: left; }
+.gb-attachment { display: inline-flex; align-items: center; gap: 2px; max-width: min(100%, 400px); padding: 5px 6px 5px 9px; border: 1px solid var(--gb-line); border-radius: 8px; background: color-mix(in srgb, var(--gb-panel-2) 60%, transparent); color: var(--gb-text); font-size: 10px; }
 .gb-attachment:hover { border-color: color-mix(in srgb, var(--gb-signal) 45%, var(--gb-line)); background: color-mix(in srgb, var(--gb-panel-2) 85%, transparent); }
-.gb-attachment > svg { flex: none; color: var(--gb-signal); }
+.gb-attachment-main { display: inline-flex; align-items: center; gap: 7px; min-width: 0; padding: 2px 3px; border: 0; background: transparent; color: inherit; text-align: left; }
+.gb-attachment-main > svg { flex: none; color: var(--gb-signal); }
 .gb-attachment-thumb { width: 28px; height: 28px; flex: none; border-radius: 5px; object-fit: cover; background: var(--gb-panel); }
 .gb-attachment-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gb-attachment-action { flex: none; color: var(--gb-faint); font-size: 8px; }
-.gb-attachment:hover .gb-attachment-action { color: var(--gb-muted); }
+.gb-attachment-copy { display: grid; place-items: center; width: 22px; height: 22px; flex: none; padding: 0; border: 0; border-radius: 5px; background: transparent; color: var(--gb-faint); }
+.gb-attachment-copy:hover { color: var(--gb-text); background: color-mix(in srgb, var(--gb-line) 55%, transparent); }
+.gb-attachment-lightbox { position: fixed; inset: 0; z-index: 240; display: grid; place-items: center; padding: 32px; background: rgba(0, 0, 0, .74); backdrop-filter: blur(8px); animation: gb-fade .16s ease both; }
+.gb-attachment-lightbox img { max-width: min(92vw, 1200px); max-height: 82vh; border: 1px solid rgba(255,255,255,.14); border-radius: 12px; box-shadow: 0 28px 90px rgba(0,0,0,.55); object-fit: contain; }
+.gb-attachment-lightbox-close { position: absolute; right: 24px; bottom: 24px; display: inline-flex; align-items: center; gap: 6px; min-width: 34px; height: 34px; padding: 0 12px; border: 1px solid rgba(255,255,255,.2); border-radius: 999px; background: rgba(0,0,0,.55); color: #fff; font-size: 10px; }
+.gb-attachment-lightbox-close:hover { background: rgba(255,255,255,.14); }
 .gb-md p { margin: 0 0 12px; }
 .gb-md p:last-child { margin-bottom: 0; }
 .gb-md-heading { margin: 18px 0 8px; font-size: 15px; line-height: 1.4; font-weight: 650; letter-spacing: -.01em; }
@@ -9327,7 +9406,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '5.18.0',
+              version: '5.19.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -9348,7 +9427,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '5.18.0',
+                version: '5.19.0',
               },
               null,
               2,

@@ -51,6 +51,16 @@
 - 支持 Esc / 点击外部关闭；
 - 选项有 `role=option` / `aria-selected` / `aria-label`，键盘和 UIA 可读。
 
+## 图片预览 Lightbox
+
+参考 [Radix Primitives](https://github.com/radix-ui/primitives)（19.5k）的 Dialog 语义和 [shadcn/ui](https://github.com/shadcn-ui/ui)（127.9k）的默认交互：
+
+- Portal 到 `document.body`，避免消息气泡的 transform 把 fixed 浮层困在聊天列；
+- `role="dialog"`、`aria-modal="true"`、`aria-label`；
+- 打开后焦点落到可见的关闭按钮；
+- Esc 和点击遮罩关闭；
+- 关闭按钮放在右下角，避免和桌面窗口原生按钮重叠。
+
 ## 设计 token 原则
 
 - 背景、面板、面板 2、浮层、线、强线、主文字、次文字、弱文字、强调、信号、错误、警告、成功；

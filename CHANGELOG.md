@@ -1,5 +1,13 @@
 # Changelog
 
+## 5.19.0 — 2026-11-12
+
+- Add: image attachment lightbox rendered through a document.body portal, so a transformed message bubble cannot trap the overlay in the chat column.
+- Add: Radix/shadcn-style dialog semantics — `role=dialog`, `aria-modal`, focus on the visible close button, Esc/backdrop close, and a labeled “关闭” button at the bottom-right.
+- Change: attachment card is now a container with a separate preview/copy action; image card click opens the preview, copy icon copies the path.
+- Fix: problem cards strip inline `附件：...` text, not only block-form attachment Markdown.
+- Verified: full-window lightbox screenshot; test thread, uploaded file, and local test image cleaned.
+
 ## 5.18.0 — 2026-11-12
 
 - Fix: the abort/problem card no longer dumps the raw attachment Markdown block as the reason; attachment lines are stripped before display.

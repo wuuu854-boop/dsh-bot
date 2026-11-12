@@ -1,4 +1,5 @@
-# DSH Bot v5.18.0
+# DSH Bot v5.19.0
+
 
 
 
@@ -17,6 +18,9 @@ You talk to one **Boss**. It decides what to do, hires a specialist when nobody 
 ![Architecture](architecture.svg)
 
 ## Highlights
+
+- **Full-screen image lightbox** — portal-based dialog with Radix/shadcn semantics, Esc/backdrop close, visible labeled close button, and focus handling.
+- **Cleaner failure cards** — inline attachment markup is stripped too, so abort cards no longer leak raw paths.
 
 - **Cleaner failure cards** — abort cards strip attachment Markdown and legacy thread titles are cleaned on load, so raw paths no longer dominate the sidebar or error card.
 
