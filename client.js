@@ -548,6 +548,7 @@ window.__ModuleLoader__.load({
         attachmentPreview: '预览图片',
         attachmentPrev: '上一张',
         attachmentNext: '下一张',
+        attachmentDownload: '下载',
         imageRefreshed: '画面已刷新',
         context: '上下文',
         thinkingDone: '思考完成',
@@ -1189,6 +1190,7 @@ window.__ModuleLoader__.load({
         attachmentPreview: 'Preview image',
         attachmentPrev: 'Previous image',
         attachmentNext: 'Next image',
+        attachmentDownload: 'Download',
         imageRefreshed: 'Preview refreshed',
         context: 'Context',
         thinkingDone: 'Thought',
@@ -1949,6 +1951,18 @@ window.__ModuleLoader__.load({
             alt: preview.name,
             onClick: (event) => event.stopPropagation(),
           }),
+          h(
+            'a',
+            {
+              className: 'gb-attachment-lightbox-download',
+              href: `${API_BASE}/file?name=${encodeURIComponent(fileName)}&download=1`,
+              download: preview.name,
+              onClick: (event) => event.stopPropagation(),
+              'aria-label': `${t('attachmentDownload')}: ${preview.name}`,
+            },
+            h(Icon, { name: 'arrowDown', size: 15 }),
+            h('span', null, t('attachmentDownload')),
+          ),
           h(
             'button',
             {
@@ -8954,6 +8968,8 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 .gb-attachment-lightbox img { max-width: min(92vw, 1200px); max-height: 82vh; border: 1px solid rgba(255,255,255,.14); border-radius: 12px; box-shadow: 0 28px 90px rgba(0,0,0,.55); object-fit: contain; }
 .gb-attachment-lightbox-close { position: absolute; right: 24px; bottom: 24px; display: inline-flex; align-items: center; gap: 6px; min-width: 34px; height: 34px; padding: 0 12px; border: 1px solid rgba(255,255,255,.2); border-radius: 999px; background: rgba(0,0,0,.55); color: #fff; font-size: 10px; }
 .gb-attachment-lightbox-close:hover { background: rgba(255,255,255,.14); }
+.gb-attachment-lightbox-download { position: absolute; right: 112px; bottom: 24px; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid rgba(255,255,255,.2); border-radius: 999px; background: rgba(0,0,0,.55); color: #fff; font-size: 10px; text-decoration: none; }
+.gb-attachment-lightbox-download:hover { background: rgba(255,255,255,.14); }
 .gb-attachment-lightbox-count { position: absolute; left: 24px; bottom: 30px; color: rgba(255,255,255,.72); font-family: "Cascadia Code", Consolas, monospace; font-size: 10px; letter-spacing: .06em; }
 .gb-attachment-lightbox-nav { position: absolute; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid rgba(255,255,255,.2); border-radius: 999px; background: rgba(0,0,0,.5); color: #fff; }
 .gb-attachment-lightbox-nav:hover { background: rgba(255,255,255,.16); }
@@ -9564,7 +9580,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '5.21.0',
+              version: '5.22.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -9585,7 +9601,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '5.21.0',
+                version: '5.22.0',
               },
               null,
               2,

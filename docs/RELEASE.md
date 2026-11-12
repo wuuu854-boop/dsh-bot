@@ -1,4 +1,5 @@
-# DSH Bot v5.21.0
+# DSH Bot v5.22.0
+
 
 
 
@@ -20,6 +21,8 @@ You talk to one **Boss**. It decides what to do, hires a specialist when nobody 
 ![Architecture](architecture.svg)
 
 ## Highlights
+
+- **Lightbox download** — the image preview now has a download action; the file endpoint supports `Content-Disposition` with a UTF-8 filename.
 
 - **Routine onboarding** — the empty state now offers three starter templates (daily summary, weekly file review, hourly task check); choosing one fills the form, cancel leaves no routine behind.
 

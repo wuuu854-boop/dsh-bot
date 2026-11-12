@@ -1,5 +1,11 @@
 # Changelog
 
+## 5.22.0 — 2026-11-12
+
+- Add: image lightbox download action; `/file?download=1` now returns `Content-Disposition: attachment` with a UTF-8 filename.
+- Verified: uploaded PNG downloads with `image/png` and correct disposition; test upload cleaned.
+- QQ remains default-off.
+
 ## 5.21.0 — 2026-11-12
 
 - Add: routine empty state now offers three starter templates — daily work summary, weekly file review, hourly task check. Choosing one fills the form; cancel leaves no routine behind.

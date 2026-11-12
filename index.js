@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '5.21.0'
+const VERSION = '5.22.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -7584,11 +7584,16 @@ export function apply(ctx) {
             '.json': 'application/json; charset=utf-8',
             '.pdf': 'application/pdf',
           }[extension] || 'application/octet-stream'
+        const disposition =
+          requestUrl.searchParams.get('download') === '1'
+            ? { 'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(name)}` }
+            : {}
         res.writeHead(200, {
           'Content-Type': mime,
           'Content-Length': stat.size,
           'Cache-Control': 'private, max-age=3600',
           'X-Content-Type-Options': 'nosniff',
+          ...disposition,
         })
         fs.createReadStream(target).pipe(res)
         return
