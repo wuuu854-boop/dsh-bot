@@ -9168,12 +9168,12 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 .gb-team-add { margin-top: 8px; }
 
 /* messages */
-.gb-user { display: flex; justify-content: flex-end; margin: 20px 0; animation: gb-fade .28s ease both; }
+.gb-user { display: flex; justify-content: flex-end; margin: 20px 0; animation: gb-fade .28s ease both; content-visibility: auto; contain-intrinsic-size: auto 120px; }
 .gb-user-bubble { max-width: min(78%, 620px); padding: 11px 15px 8px; border: 1px solid var(--gb-line); border-radius: 17px 17px 4px 17px; background: color-mix(in srgb, var(--gb-panel-2) 88%, transparent); }
 .gb-user.is-pending .gb-user-bubble { opacity: .72; }
 .gb-user-text { white-space: pre-wrap; word-break: break-word; font-size: 14px; line-height: 1.62; }
 .gb-user-meta { display: flex; align-items: center; justify-content: flex-end; gap: 5px; margin-top: 5px; font-size: 8.5px; color: var(--gb-faint); }
-.gb-assistant { display: flex; gap: 12px; margin: 26px 0; animation: gb-fade .3s ease both; }
+.gb-assistant { display: flex; gap: 12px; margin: 26px 0; animation: gb-fade .3s ease both; content-visibility: auto; contain-intrinsic-size: auto 160px; }
 .gb-assistant-avatar { padding-top: 1px; }
 .gb-assistant-body { flex: 1; min-width: 0; }
 .gb-assistant-head { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; font-size: 9.5px; color: var(--gb-faint); }
@@ -9824,7 +9824,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '6.5.0',
+              version: '6.6.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -9845,7 +9845,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '6.5.0',
+                version: '6.6.0',
               },
               null,
               2,

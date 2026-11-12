@@ -1,5 +1,11 @@
 # Changelog
 
+## 6.6.0 — 2026-11-12
+
+- Performance: course reads use a local Python UIA service instead of starting PowerShell on every call. Cold course status ~1.2–1.5 s vs ~2.3 s; cached ~0.15–0.2 s. Service is loopback-only, token-protected, and falls back to `edge.py`.
+- Performance: long-session message rows use `content-visibility: auto` so offscreen messages skip layout/paint.
+- No feature changes; QQ remains default-off.
+
 ## 6.5.0 — 2026-11-12
 
 - Performance: client `/state` polling is adaptive — 900 ms while a run/stream/approval/question is active, 3000 ms when idle, paused when the page is hidden.

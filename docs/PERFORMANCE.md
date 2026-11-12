@@ -104,6 +104,37 @@ safety：12.3 KB → 0.9 KB
 
 空闲状态请求频率从约 67 次/分钟降到约 20 次/分钟，长会话静置时 CPU 和 API 压力更低。
 
+## 课程 UIA 冷启动
+
+之前每次 `course.py` 读取都启动一次 Windows PowerShell + UIAutomation，冷启动约 **2.3 s**。
+
+新增 Python UIA 快路径：
+
+- `uia_fast.py` 用 Python COM 直接读 Document/TextPattern；
+- `uia_service.py` 是 loopback-only 的常驻服务（随机 token，空闲 5 分钟退出）；
+- `uia_client.py` 按需启动并复用服务；
+- 服务失败时自动回退到 `edge.py`，不改变课程行为；
+- `next` / `ppt` 的点击也优先走快路径并比较文本变化。
+
+实测本机 Course Progress 页面：
+
+```text
+旧 edge.py 读取：约 2300 ms
+新快路径冷启动：约 1200–1500 ms
+新快路径缓存命中：约 150–200 ms
+```
+
+## 长会话渲染
+
+消息行 `.gb-user` / `.gb-assistant` 使用：
+
+```css
+content-visibility: auto;
+contain-intrinsic-size: auto 120px/160px;
+```
+
+浏览器跳过视口外消息的布局和绘制，滚动到附近时再渲染；没有改消息内容或交互。
+
 ## 复现
 
 ```powershell

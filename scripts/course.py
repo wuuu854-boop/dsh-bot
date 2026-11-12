@@ -31,6 +31,14 @@ if HERE not in sys.path:
 
 import computer  # noqa: E402
 import edge  # noqa: E402
+try:
+    import uia_fast  # noqa: E402
+except Exception:
+    uia_fast = None
+try:
+    import uia_client  # noqa: E402
+except Exception:
+    uia_client = None
 
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
     try:
@@ -99,12 +107,30 @@ def save_cache(result):
         pass
 
 
+def read_text_fast():
+    if uia_client is not None:
+        try:
+            result = uia_client.read_text(20000)
+            if result.get("ok") and result.get("textLength"):
+                return result
+        except Exception:
+            pass
+    if uia_fast is not None:
+        try:
+            result = uia_fast.read_text(20000)
+            if result.get("ok") and result.get("textLength"):
+                return result
+        except Exception:
+            pass
+    return edge.read_text(True)
+
+
 def read_page(fast=False):
     if fast:
         cached = load_cache()
         if cached:
             return cached
-        result = edge.read_text(True)
+        result = read_text_fast()
         if not result.get("ok"):
             return read_page(False)
         result["phase"] = classify_text(text_of(result))
@@ -306,7 +332,29 @@ def activate_safety():
         pass
 
 
-def click_candidate(candidate):
+def click_candidate(candidate, fast=False):
+    if fast and (uia_client is not None or uia_fast is not None):
+        try:
+            before = read_text_fast()
+            if uia_client is not None:
+                result = uia_client.click(
+                    str(candidate.get("name") or ""),
+                    str(candidate.get("role") or ""),
+                    True,
+                )
+            else:
+                result = uia_fast.click(
+                    str(candidate.get("name") or ""),
+                    str(candidate.get("role") or ""),
+                    True,
+                )
+            if result.get("ok"):
+                after = read_text_fast()
+                result["changed"] = text_of(before) != text_of(after)
+                result["stalled"] = not result["changed"]
+                return result
+        except Exception:
+            pass
     return edge.click_with_verify(
         "click",
         str(candidate.get("name") or ""),
@@ -349,7 +397,7 @@ def do_next(page):
         return {"ok": False, "action": "next", "error": "没有找到“下一题/下一关/继续学习/下一页”等按钮", "phase": page.get("phase")}
     last = None
     for candidate in candidates_list[:4]:
-        result = click_candidate(candidate)
+        result = click_candidate(candidate, fast=True)
         last = result
         if result.get("ok") and result.get("changed"):
             return {"ok": True, "action": "next", "clicked": candidate, "result": result, "page": summary(read_page())}
@@ -365,7 +413,7 @@ def do_ppt(page):
     activate_safety()
     candidates_list = page.get("pptCandidates") or []
     for candidate in candidates_list[:3]:
-        result = click_candidate(candidate)
+        result = click_candidate(candidate, fast=True)
         if result.get("ok") and result.get("changed"):
             return {"ok": True, "action": "ppt", "clicked": candidate, "page": summary(read_page())}
     computer.press_combo("right")
