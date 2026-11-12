@@ -16,6 +16,9 @@ You talk to one **Boss**. It decides what to do, hires a specialist when nobody 
 - **Group routing choice** — choose “全员” or “群主” per group; leader routing sends unmentioned messages to the leader and `@all` still reaches everyone.
 - **Group editor cap fixed** — member picks now allow 8, not 3; meeting routing uses the configured leader instead of a missing role tag.
 
+- **Group routing choice** — choose “全员” or “群主” per group; leader routing sends unmentioned messages to the leader and `@all` still reaches everyone.
+- **Group editor cap fixed** — member picks now allow 8, not 3; meeting routing uses the configured leader instead of a missing role tag.
+
 - **QQ remote loop is live** — the poll timer was missing; `/status` from QQ now executes and replies. Verified with a real `/status` message and a “DSH 远程状态” response.
 - **QQ chat window + verified send** — separate contact windows are detected, direct JSON is accepted, and desktop notifications only return success after the message is visible in the chat.
 
