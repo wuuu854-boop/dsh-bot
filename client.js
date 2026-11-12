@@ -532,7 +532,7 @@ window.__ModuleLoader__.load({
         templateCheckup: '电脑体检',
         templateCheckupPrompt: '做一次只读电脑体检：python scripts/computer.py screen / windows、查看磁盘剩余、内存/CPU、启动项和异常进程；输出一份带数据的报告，不要删除文件、不要改设置。需要清理时只给建议，等用户确认。',
         templatePpt: '做 PPT',
-        templatePptPrompt: '为 <主题> 做一份真正可用的 PPT：先确认受众、页数、风格（midnight/warm/mono/aurora/ember），然后用 python scripts/studio.py ppt --out <路径.pptx> --spec <spec.json> 生成；spec 至少包含 title、subtitle、theme、slides（bullets/stats/quote/section）。生成后检查页数，给我文件路径、每页要点和讲稿提示。',
+        templatePptPrompt: '为 <主题> 做一份真正可用的 PPT：先确认受众、页数、风格（midnight/warm/mono/aurora/ember），然后用 python scripts/studio.py ppt --out <路径.pptx> --spec <spec.json> 生成；spec 至少包含 title、subtitle、theme、slides（bullets/stats/quote/section）。生成后只检查页数和文件存在，不要检查 XML/字体/形状几何，不要寻找 LibreOffice；通过就立即汇报路径和每页要点。',
         templateDoc: '写文档',
         templateDocPrompt: '把 <主题/素材> 写成 docx：先整理 Markdown（标题、段落、表格、列表），再用 python scripts/studio.py doc --out <路径.docx> --markdown <文件.md> 生成；检查标题、表格和段落，给我文件路径和 3 条修改建议。',
         templateSheet: '做表格',
@@ -1183,7 +1183,7 @@ window.__ModuleLoader__.load({
         templateCheckup: 'PC checkup',
         templateCheckupPrompt: 'Do a read-only PC checkup: python scripts/computer.py screen / windows, inspect disk free space, memory/CPU, startup entries and abnormal processes; write a data-backed report without deleting files or changing settings. If cleanup is needed, recommend and wait for confirmation.',
         templatePpt: 'Make a deck',
-        templatePptPrompt: 'Build a real PPT about <topic>: confirm audience, slide count and theme (midnight/warm/mono/aurora/ember), then run python scripts/studio.py ppt --out <deck.pptx> --spec <spec.json>; spec needs title, subtitle, theme and slides (bullets/stats/quote/section). Verify slide count and return the path, per-slide points and speaker notes.',
+        templatePptPrompt: 'Build a real PPT about <topic>: confirm audience, slide count and theme (midnight/warm/mono/aurora/ember), then run python scripts/studio.py ppt --out <deck.pptx> --spec <spec.json>; spec needs title, subtitle, theme and slides (bullets/stats/quote/section). After generation only verify page count and that the file exists—do not inspect XML/fonts/shape geometry or hunt for LibreOffice. Return the path and per-slide points immediately.',
         templateDoc: 'Write a document',
         templateDocPrompt: 'Turn <topic/material> into a DOCX: prepare Markdown first, then run python scripts/studio.py doc --out <report.docx> --markdown <report.md>. Verify headings, tables and paragraphs; return the path and 3 revision suggestions.',
         templateSheet: 'Make a sheet',
@@ -9804,7 +9804,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '5.27.0',
+              version: '5.28.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -9825,7 +9825,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '5.27.0',
+                version: '5.28.0',
               },
               null,
               2,

@@ -1,4 +1,5 @@
-# DSH Bot v5.27.0
+# DSH Bot v5.28.0
+
 
 
 
@@ -26,6 +27,9 @@ You talk to one **Boss**. It decides what to do, hires a specialist when nobody 
 ![Architecture](architecture.svg)
 
 ## Highlights
+
+- **Real-project validation** — validated README attachment extraction and 4-slide PPT generation against the real `uav-yolo-offboard-tracking` project.
+- **Over-verification fix** — the Bot now verifies creative outputs once (file exists/page count) and reports instead of inspecting XML/fonts/geometry or hunting LibreOffice indefinitely.
 
 - **SVG safety fix** — SVG uploads now render as generic files instead of inline thumbnails, avoiding broken previews and script-capable SVG in the app origin.
 

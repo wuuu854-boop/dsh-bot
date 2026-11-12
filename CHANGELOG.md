@@ -1,5 +1,12 @@
 # Changelog
 
+## 5.28.0 — 2026-11-12
+
+- Fix: real-project PPT task over-verified forever after producing the file. Added “verify once” guidance and narrowed the PPT template to page count/file existence only; no XML/font/geometry checks or LibreOffice hunting.
+- Verified against the real `uav-yolo-offboard-tracking` project: README attachment extraction returned 9/9, 0.73 m and 143 ms; a 4-slide PPT was generated and validated with python-pptx, then the Bot finished and reported.
+- Add: `docs/REAL_PROJECT_VALIDATION.md` with the real-project cases, the failure, the fix and the artifacts.
+- QQ remains default-off.
+
 ## 5.27.0 — 2026-11-12
 
 - Fix: SVG uploads are no longer treated as inline image thumbnails. They render as generic file cards instead, avoiding a broken preview and not executing script-capable SVG in the app origin.
