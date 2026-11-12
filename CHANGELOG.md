@@ -1,5 +1,12 @@
 # Changelog
 
+## 5.13.0 — 2026-11-12
+
+- Add: group message routing — “全员” (default) or “群主”. In leader mode an unmentioned message goes to the configured leader, who can delegate; `@all` still reaches everyone.
+- Fix: the group editor silently capped member picks at 3 although the backend supports 8; it now allows 8.
+- Fix: meeting channels now use the configured `leaderId` instead of searching for a `role: lead` bot; a meeting without a role-tagged lead could accidentally broadcast to everyone.
+- Verified: creating a leader-routed group and sending an unmentioned message produced exactly one assistant reply from the leader; test group deleted.
+
 ## 5.12.0 — 2026-11-12
 
 - Fix: QQ remote control was implemented but **never polled** — `checkRemoteControl()` had no timer. Added a 15s poll plus a 2s first check.

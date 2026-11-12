@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '5.12.0'
+const VERSION = '5.13.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -419,6 +419,7 @@ export function apply(ctx) {
             ? thread.memberIds.filter((id) => botIds.has(id)).slice(0, MAX_CHANNEL_MEMBERS)
             : [],
           leaderId: botIds.has(thread.leaderId) ? thread.leaderId : null,
+          routing: thread.routing === 'leader' ? 'leader' : 'all',
           emoji: textValue(thread.emoji, 8) || '◈',
           messages: Array.isArray(thread.messages)
             ? thread.messages
@@ -3032,6 +3033,7 @@ export function apply(ctx) {
       memberIds: [...(group.memberIds || [])],
       members: groupMemberView(group),
       meeting: group.meeting === true,
+      routing: group.meeting === true ? 'leader' : group.routing === 'leader' ? 'leader' : 'all',
       createdAt: group.createdAt,
       updatedAt: group.updatedAt,
     }
@@ -3146,6 +3148,7 @@ export function apply(ctx) {
       channelId: null,
       memberIds,
       leaderId: memberIds[0],
+      routing: body?.routing === 'leader' ? 'leader' : 'all',
       emoji,
       messages: [],
       routineId: null,
@@ -3182,6 +3185,7 @@ export function apply(ctx) {
       if (name) group.title = name
     }
     if (typeof body?.emoji === 'string') group.emoji = textValue(body.emoji, 8) || group.emoji
+    if (body?.routing === 'all' || body?.routing === 'leader') group.routing = body.routing
     if (Array.isArray(body?.memberIds)) {
       const next = []
       for (const id of body.memberIds) {
@@ -3247,10 +3251,11 @@ export function apply(ctx) {
     const members = groupMembers(group)
     let targets = groupTargets(group, text)
     let relay = false
-    if (group.meeting && !/@\S+/.test(text)) {
-      /* Ordinary messages in the stand-up channel go to the lead only; the
-         lead delegates. Without this every member would run on every message. */
-      const lead = members.find((bot) => bot.role === 'lead')
+    if ((group.meeting || group.routing === 'leader') && !/@\S+/.test(text)) {
+      /* In leader-routed groups and the stand-up channel, an unmentioned
+         message goes to the configured leader, who can delegate. */
+      const leaderId = group.leaderId || (group.memberIds || [])[0]
+      const lead = members.find((bot) => bot.id === leaderId) || members[0]
       if (lead) {
         targets = [lead]
         relay = true

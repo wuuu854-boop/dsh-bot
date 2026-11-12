@@ -603,7 +603,11 @@ window.__ModuleLoader__.load({
         groupDelete: '删除群聊',
         groupDeleteConfirm: '删除这个群聊？成员各自的会话历史会一起移除。',
         groupMinMembers: '至少选 2 位成员',
-        groupHint: '不 @ 就发给全员；@ 名字只发给他。',
+        groupHint: '不 @ 时按下面的消息路由；@ 名字只发给他。',
+        groupRouting: '消息路由',
+        groupRoutingAll: '全员：不 @ 时所有成员都回复',
+        groupRoutingLeader: '群主：不 @ 时先由群主处理，可派活',
+        groupRoutingHint: '群主模式更安静；需要全员讨论时使用 @all。',
         groupMembersCount: '{n} 位成员',
         groupMentionAll: '全员',
         groupEmpty: '群里还没有消息',
@@ -1227,7 +1231,11 @@ window.__ModuleLoader__.load({
         groupDelete: 'Delete group',
         groupDeleteConfirm: 'Delete this group? Member sessions and their history will be removed.',
         groupMinMembers: 'Pick at least 2 members',
-        groupHint: 'No @ sends to everyone; @name sends to that member only.',
+        groupHint: 'When not @-mentioned, use the routing below; @name sends only to that member.',
+        groupRouting: 'Message routing',
+        groupRoutingAll: 'Everyone: all members reply when not mentioned',
+        groupRoutingLeader: 'Leader: leader handles first and can delegate',
+        groupRoutingHint: 'Leader mode is quieter; use @all when you want a full discussion.',
         groupMembersCount: '{n} members',
         groupMentionAll: 'everyone',
         groupEmpty: 'No messages in this group yet',
@@ -2684,6 +2692,7 @@ window.__ModuleLoader__.load({
       const [name, setName] = useState(group?.name || '')
       const [emoji, setEmoji] = useState(group?.emoji || '◈')
       const [memberIds, setMemberIds] = useState(Array.isArray(group?.memberIds) ? [...group.memberIds] : [])
+      const [routing, setRouting] = useState(group?.routing === 'leader' ? 'leader' : 'all')
       const [busy, setBusy] = useState(false)
       const [error, setError] = useState('')
 
@@ -2691,12 +2700,13 @@ window.__ModuleLoader__.load({
         setName(group?.name || '')
         setEmoji(group?.emoji || '◈')
         setMemberIds(Array.isArray(group?.memberIds) ? [...group.memberIds] : [])
+        setRouting(group?.routing === 'leader' ? 'leader' : 'all')
         setError('')
       }, [group?.id])
 
       const toggle = (id) => {
         setMemberIds((previous) =>
-          previous.includes(id) ? previous.filter((item) => item !== id) : [...previous, id].slice(0, 3),
+          previous.includes(id) ? previous.filter((item) => item !== id) : [...previous, id].slice(0, 8),
         )
       }
 
@@ -2718,6 +2728,7 @@ window.__ModuleLoader__.load({
             name: String(name).trim(),
             emoji: String(emoji || '◈').trim().slice(0, 8) || '◈',
             memberIds,
+            routing,
           })
         } catch (caught) {
           setError(caught?.message || String(caught))
@@ -2810,6 +2821,21 @@ window.__ModuleLoader__.load({
                 ),
               ),
               h('small', null, t('groupHint')),
+            ),
+            h(
+              'label',
+              { className: 'gb-field' },
+              h('span', null, t('groupRouting')),
+              h(
+                'select',
+                {
+                  value: routing,
+                  onChange: (event) => setRouting(event.target.value),
+                },
+                h('option', { value: 'all' }, t('groupRoutingAll')),
+                h('option', { value: 'leader' }, t('groupRoutingLeader')),
+              ),
+              h('small', null, t('groupRoutingHint')),
             ),
             error ? h('div', { className: 'gb-modal-error' }, h(Icon, { name: 'alert', size: 13 }), h('span', null, error)) : null,
           ),
@@ -9182,7 +9208,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '5.12.0',
+              version: '5.13.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -9203,7 +9229,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '5.12.0',
+                version: '5.13.0',
               },
               null,
               2,
