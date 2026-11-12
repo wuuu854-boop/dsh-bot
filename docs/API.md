@@ -59,6 +59,7 @@ CLI 已经覆盖常用路径：`node scripts/bot_cli.mjs ...`。
 | POST | `/resume` | `{threadId}`（有 checkpoint 时） |
 | POST | `/answer` | `{threadId, questionId, botId?, answers}` |
 | POST | `/upload` | 附件上传（multipart 由客户端走 JSON/base64） |
+| GET | `/file?name=<filename>&download=1` | 读取 uploads 附件；只允许 uploads 目录，拒绝符号链接/路径穿越；`download=1` 返回附件下载 |
 
 ## 群聊
 

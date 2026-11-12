@@ -1,5 +1,16 @@
 # Changelog
 
+## 6.0.0 — 2026-11-12
+
+Polish-only major release: no new feature surfaces; existing functionality stabilized and validated.
+
+- Hardening: CI compiles every Python script; version drift across package/index/client fails checks.
+- Security: `/file` rejects symlinks and real paths outside uploads; traversal probes verified.
+- UX/docs: README five-theme/attachment/group routing claims corrected; API documents `/file`; DOCX code blocks styled.
+- Reliability: creative tasks verify once and report; real-project README/PPT validation recorded in `docs/REAL_PROJECT_VALIDATION.md`.
+- Fixed: remaining Python docstring syntax warning in `browser.py`.
+- QQ notifications and remote control remain default-off.
+
 ## 5.32.0 — 2026-11-12
 
 - Harden: `/file` now rejects symbolic links and verifies the real path stays inside the uploads directory before serving.

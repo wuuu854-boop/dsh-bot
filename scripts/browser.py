@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Firefox Marionette bridge for DSH Bot.
+r"""Firefox Marionette bridge for DSH Bot.
 
 Stock Firefox supports Marionette natively; geckodriver is not needed. The
 bridge launches the dedicated Firefox once, then each command reconnects to
