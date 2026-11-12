@@ -1895,7 +1895,7 @@ window.__ModuleLoader__.load({
 
     function attachmentKind(name) {
       const extension = String(name || '').split('.').pop().toLowerCase()
-      if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(extension)) return 'image'
+      if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'].includes(extension)) return 'image'
       if (extension === 'pdf') return 'pdf'
       if (['xls', 'xlsx', 'csv'].includes(extension)) return 'sheet'
       if (['js', 'jsx', 'ts', 'tsx', 'py', 'json', 'html', 'css', 'sh'].includes(extension)) return 'code'
@@ -9804,7 +9804,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '5.26.0',
+              version: '5.27.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -9825,7 +9825,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '5.26.0',
+                version: '5.27.0',
               },
               null,
               2,

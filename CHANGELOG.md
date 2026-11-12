@@ -1,5 +1,11 @@
 # Changelog
 
+## 5.27.0 — 2026-11-12
+
+- Fix: SVG uploads are no longer treated as inline image thumbnails. They render as generic file cards instead, avoiding a broken preview and not executing script-capable SVG in the app origin.
+- Verified: grouped image/PDF/text cards, 150% zoom, checkpoint cleanup, routine save toast, save-and-run routine; all test data cleaned.
+- QQ remains default-off.
+
 ## 5.26.0 — 2026-11-12
 
 - Add: attachment cards are grouped by type — images, PDF, sheets, code and other files — with counts and type-specific icons.

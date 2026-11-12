@@ -1,4 +1,5 @@
-# DSH Bot v5.26.0
+# DSH Bot v5.27.0
+
 
 
 
@@ -25,6 +26,8 @@ You talk to one **Boss**. It decides what to do, hires a specialist when nobody 
 ![Architecture](architecture.svg)
 
 ## Highlights
+
+- **SVG safety fix** — SVG uploads now render as generic files instead of inline thumbnails, avoiding broken previews and script-capable SVG in the app origin.
 
 - **Grouped attachments + zoom** — images/PDF/sheets/code/files are grouped with counts and type icons; the lightbox supports wheel/buttons/keyboard zoom, drag pan, and double-click reset.
 - **Accessible toast + shared empty states** — one toast component with `role=status`, aria-live, close button and Esc; routine/skill empty states share one component.
