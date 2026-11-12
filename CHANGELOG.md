@@ -1,5 +1,11 @@
 # Changelog
 
+## 5.10.0 — 2026-11-12
+
+- Fix: the routine editor no longer offers Cron as a usable option. The local scheduler supports daily/weekly/every only, so Cron is disabled with “暂不支持” instead of letting users save a schedule that can never run.
+- Verified: attachment end-to-end (upload → Bot reads file → replies first line), voice start/stop, group create/send/backfill/delete, and routine create/run/delete.
+- Note: ordinary non-meeting groups still send an unmentioned message to all members by design (`groupHint`: no @ sends to everyone); no silent behavior change was made.
+
 ## 5.9.0 — 2026-11-12
 
 - Fix: QQ remote-control reads were killed after 40 **milliseconds** — `execJson` passed seconds directly to Node's `execFile` timeout. It now converts seconds to milliseconds, so the helper can actually return.

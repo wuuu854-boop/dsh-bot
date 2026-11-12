@@ -388,6 +388,7 @@ window.__ModuleLoader__.load({
         routineWeekly: '每周',
         routineEvery: '每隔',
         routineCron: 'Cron',
+        routineCronUnsupported: '暂不支持',
         routineTime: '时间',
         routineWeekdays: '星期',
         routineInterval: '间隔',
@@ -1011,6 +1012,7 @@ window.__ModuleLoader__.load({
         routineWeekly: 'Weekly',
         routineEvery: 'Every',
         routineCron: 'Cron',
+        routineCronUnsupported: 'not supported yet',
         routineTime: 'Time',
         routineWeekdays: 'Weekdays',
         routineInterval: 'Interval',
@@ -5090,7 +5092,7 @@ window.__ModuleLoader__.load({
                     h('option', { value: 'daily' }, t('routineDaily')),
                     h('option', { value: 'weekly' }, t('routineWeekly')),
                     h('option', { value: 'every' }, t('routineEvery')),
-                    h('option', { value: 'cron' }, t('routineCron')),
+                    h('option', { value: 'cron', disabled: true }, `${t('routineCron')} · ${t('routineCronUnsupported')}`),
                   ),
                 ),
                 kind === 'daily' || kind === 'weekly'
@@ -9180,7 +9182,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '5.9.0',
+              version: '5.10.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -9201,7 +9203,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '5.9.0',
+                version: '5.10.0',
               },
               null,
               2,
