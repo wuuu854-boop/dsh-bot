@@ -1,5 +1,11 @@
 # Changelog
 
+## 6.1.0 — 2026-11-12
+
+- Performance: cache memory Git history for 5 seconds and invalidate it on save/commit/restore. `/memory` p50 measured 215 ms before, 2 ms after (first call still ~205 ms).
+- Add: reproducible `scripts/bench-api.mjs` and `docs/PERFORMANCE.md` with baseline numbers.
+- No new feature surfaces; QQ remains default-off.
+
 ## 6.0.0 — 2026-11-12
 
 Polish-only major release: no new feature surfaces; existing functionality stabilized and validated.

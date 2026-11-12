@@ -1,6 +1,6 @@
 {
   "name": "@local/dsh-bot",
-  "version": "6.0.0",
+  "version": "6.1.0",
   "private": true,
   "type": "module",
   "description": "DSH Bot: a Grok-Bot-inspired local autonomous agent workbench for DeepSeek Harness, with multi-bot group chats, cross-bot dispatch and git-backed memory.",
@@ -34,7 +34,9 @@
     "docs/API.md",
     "docs/RELEASE.md",
     "scripts/*.cjs",
-    "docs/REAL_PROJECT_VALIDATION.md"
+    "docs/REAL_PROJECT_VALIDATION.md",
+    "docs/PERFORMANCE.md",
+    "scripts/bench-api.mjs"
   ],
   "dsh": {
     "bundle": {

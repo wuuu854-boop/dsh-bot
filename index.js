@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '6.0.0'
+const VERSION = '6.1.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -3922,6 +3922,8 @@ export function apply(ctx) {
 
   let gitReady = null
   const memoryRepoState = new Map()
+  const memoryHistoryState = new Map()
+  const MEMORY_HISTORY_TTL_MS = 5_000
 
   function gitUsable() {
     if (gitReady !== null) return gitReady
@@ -3978,6 +3980,7 @@ export function apply(ctx) {
 
   function memoryCommit(bot, message) {
     const info = ensureMemoryRepo(bot)
+    memoryHistoryState.delete(info.dir)
     if (!info.available) return null
     try {
       runGit(info.dir, ['add', 'memory.md'])
@@ -3992,6 +3995,7 @@ export function apply(ctx) {
 
   function saveMemoryText(bot, text) {
     const info = ensureMemoryRepo(bot)
+    memoryHistoryState.delete(info.dir)
     fs.mkdirSync(info.dir, { recursive: true })
     fs.writeFileSync(info.file, text, 'utf8')
     const stamp = new Date().toLocaleString('sv-SE', { hour12: false }).slice(0, 16)
@@ -4001,6 +4005,10 @@ export function apply(ctx) {
 
   function memoryHistory(bot) {
     const info = ensureMemoryRepo(bot)
+    const cached = memoryHistoryState.get(info.dir)
+    if (cached && now() - cached.at < MEMORY_HISTORY_TTL_MS) {
+      return cached.value
+    }
     const base = {
       available: info.available,
       dir: info.dir,
@@ -4027,6 +4035,7 @@ export function apply(ctx) {
           : []
       }
       base.dirty = Boolean(runGit(info.dir, ['status', '--porcelain', '--', 'memory.md']).trim())
+      memoryHistoryState.set(info.dir, { at: now(), value: base })
       return base
     } catch (error) {
       base.error = messageOf(error)
@@ -4053,6 +4062,7 @@ export function apply(ctx) {
 
   function memoryRestore(bot, sha) {
     const info = ensureMemoryRepo(bot)
+    memoryHistoryState.delete(info.dir)
     if (!info.available) throw new Error('这个 Bot 的记忆还没有 Git 历史')
     const safe = String(sha || '')
     if (!/^[0-9a-f]{4,40}$/.test(safe)) throw new Error('无效的版本号')

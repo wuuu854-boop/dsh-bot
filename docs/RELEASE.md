@@ -1,10 +1,17 @@
-# DSH Bot v6.0.0
+# DSH Bot v6.1.0
 
 **An open-source GrokBot alternative that runs a real bot team on your own Windows machine, inside DeepSeek Harness.**
 
 You talk to one **Boss**. It decides what to do, hires a specialist when nobody fits, delegates real work to bots that each keep their own DSH session, workspace and memory, then reviews the receipts and reports back. Every morning it runs a stand-up where the whole team reports what it did.
 
 ![Architecture](architecture.svg)
+
+## Performance patch (v6.1.0)
+
+- Memory Git history is cached for 5 seconds and invalidated on save/commit/restore.
+- `/memory` p50 dropped from about **215 ms** to **2 ms**; the first call still pays the Git cost.
+- Reproducible benchmark: `node scripts/bench-api.mjs`; baseline in [`docs/PERFORMANCE.md`](PERFORMANCE.md).
+- No new feature surfaces.
 
 ## v6 is a polish release
 
