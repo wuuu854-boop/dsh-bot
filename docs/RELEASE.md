@@ -1,4 +1,5 @@
-# DSH Bot v5.16.0
+# DSH Bot v5.17.0
+
 
 
 
@@ -15,6 +16,8 @@ You talk to one **Boss**. It decides what to do, hires a specialist when nobody 
 ![Architecture](architecture.svg)
 
 ## Highlights
+
+- **Image thumbnails** — image attachments now show a real 28px preview inside the card, served by a same-origin endpoint restricted to the uploads directory.
 
 - **Upload cleanup** — unreferenced attachment files older than 30 days are removed at boot and every 6 hours; files still referenced by runs, assignments, skills, or group messages are kept.
 

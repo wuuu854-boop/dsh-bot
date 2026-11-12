@@ -1,5 +1,11 @@
 # Changelog
 
+## 5.17.0 — 2026-11-12
+
+- Add: image attachments show a real 28px thumbnail in the card instead of only a generic paperclip. Served through a new same-origin `/file?name=...` endpoint restricted to the uploads directory.
+- Add: `/file` returns image/text/pdf types with `nosniff` and private cache headers; path traversal is rejected via basename + directory check.
+- Verified: a 64px red PNG uploaded through `/upload` renders as a thumbnail in the UI; endpoint returns `image/png`; test thread and file cleaned.
+
 ## 5.16.0 — 2026-11-12
 
 - Add: upload lifecycle cleanup. Files older than 30 days are removed on boot and every 6 hours, unless their filename still appears in a persisted run/assignment/skill/group message.

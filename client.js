@@ -1842,20 +1842,31 @@ window.__ModuleLoader__.load({
         'div',
         { className: 'gb-attachments' },
         items.map((item, index) =>
-          h(
-            'button',
-            {
-              key: `${item.path}-${index}`,
-              type: 'button',
-              className: 'gb-attachment',
-              title: item.path,
-              'aria-label': `${t('attachmentCopy')}: ${item.name}`,
-              onClick: () => copy(item),
-            },
-            h(Icon, { name: copied === item.path ? 'check' : 'paperclip', size: 12 }),
-            h('span', { className: 'gb-attachment-name' }, item.name),
-            h('span', { className: 'gb-attachment-action' }, copied === item.path ? t('attachmentCopied') : t('attachmentCopy')),
-          ),
+          (() => {
+            const fileName = String(item.path || '').split(/[\\/]/).pop() || item.name
+            const isImage = /\.(png|jpe?g|gif|webp|bmp)$/i.test(fileName)
+            return h(
+              'button',
+              {
+                key: `${item.path}-${index}`,
+                type: 'button',
+                className: 'gb-attachment',
+                title: item.path,
+                'aria-label': `${t('attachmentCopy')}: ${item.name}`,
+                onClick: () => copy(item),
+              },
+              isImage
+                ? h('img', {
+                    className: 'gb-attachment-thumb',
+                    src: `${API_BASE}/file?name=${encodeURIComponent(fileName)}`,
+                    alt: '',
+                    loading: 'lazy',
+                  })
+                : h(Icon, { name: copied === item.path ? 'check' : 'paperclip', size: 12 }),
+              h('span', { className: 'gb-attachment-name' }, item.name),
+              h('span', { className: 'gb-attachment-action' }, copied === item.path ? t('attachmentCopied') : t('attachmentCopy')),
+            )
+          })(),
         ),
       )
     }
@@ -8698,6 +8709,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 .gb-attachment { display: inline-flex; align-items: center; gap: 7px; max-width: min(100%, 360px); padding: 7px 9px; border: 1px solid var(--gb-line); border-radius: 8px; background: color-mix(in srgb, var(--gb-panel-2) 60%, transparent); color: var(--gb-text); font-size: 10px; text-align: left; }
 .gb-attachment:hover { border-color: color-mix(in srgb, var(--gb-signal) 45%, var(--gb-line)); background: color-mix(in srgb, var(--gb-panel-2) 85%, transparent); }
 .gb-attachment > svg { flex: none; color: var(--gb-signal); }
+.gb-attachment-thumb { width: 28px; height: 28px; flex: none; border-radius: 5px; object-fit: cover; background: var(--gb-panel); }
 .gb-attachment-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gb-attachment-action { flex: none; color: var(--gb-faint); font-size: 8px; }
 .gb-attachment:hover .gb-attachment-action { color: var(--gb-muted); }
@@ -9297,7 +9309,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '5.16.0',
+              version: '5.17.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -9318,7 +9330,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '5.16.0',
+                version: '5.17.0',
               },
               null,
               2,

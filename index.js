@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '5.16.0'
+const VERSION = '5.17.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -7539,6 +7539,53 @@ export function apply(ctx) {
           sha: saved.sha,
           history: memoryHistory(bot),
         })
+        return
+      }
+
+      if (req.method === 'GET' && sub === '/file') {
+        const requestUrl = new URL(req.url, 'http://127.0.0.1')
+        const name = path.basename(String(requestUrl.searchParams.get('name') || ''))
+        if (!name) {
+          json(res, 404, { ok: false, error: '文件不存在' })
+          return
+        }
+        const target = path.join(uploadDir, name)
+        if (!target.startsWith(`${uploadDir}${path.sep}`)) {
+          json(res, 403, { ok: false, error: '拒绝访问' })
+          return
+        }
+        let stat
+        try {
+          stat = fs.statSync(target)
+        } catch {
+          json(res, 404, { ok: false, error: '文件不存在' })
+          return
+        }
+        if (!stat.isFile()) {
+          json(res, 404, { ok: false, error: '文件不存在' })
+          return
+        }
+        const extension = path.extname(name).toLowerCase()
+        const mime =
+          {
+            '.png': 'image/png',
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.gif': 'image/gif',
+            '.webp': 'image/webp',
+            '.bmp': 'image/bmp',
+            '.txt': 'text/plain; charset=utf-8',
+            '.md': 'text/markdown; charset=utf-8',
+            '.json': 'application/json; charset=utf-8',
+            '.pdf': 'application/pdf',
+          }[extension] || 'application/octet-stream'
+        res.writeHead(200, {
+          'Content-Type': mime,
+          'Content-Length': stat.size,
+          'Cache-Control': 'private, max-age=3600',
+          'X-Content-Type-Options': 'nosniff',
+        })
+        fs.createReadStream(target).pipe(res)
         return
       }
 
