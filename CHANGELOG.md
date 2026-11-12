@@ -1,5 +1,11 @@
 # Changelog
 
+## 5.18.0 — 2026-11-12
+
+- Fix: the abort/problem card no longer dumps the raw attachment Markdown block as the reason; attachment lines are stripped before display.
+- Fix: legacy thread titles containing `附件：...` are cleaned on load, so old tasks stop showing long raw paths in the sidebar.
+- Verified: existing state no longer contains attachment Markdown titles after reload.
+
 ## 5.17.0 — 2026-11-12
 
 - Add: image attachments show a real 28px thumbnail in the card instead of only a generic paperclip. Served through a new same-origin `/file?name=...` endpoint restricted to the uploads directory.

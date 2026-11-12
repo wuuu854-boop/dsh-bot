@@ -1,4 +1,5 @@
-# DSH Bot v5.17.0
+# DSH Bot v5.18.0
+
 
 
 
@@ -16,6 +17,8 @@ You talk to one **Boss**. It decides what to do, hires a specialist when nobody 
 ![Architecture](architecture.svg)
 
 ## Highlights
+
+- **Cleaner failure cards** — abort cards strip attachment Markdown and legacy thread titles are cleaned on load, so raw paths no longer dominate the sidebar or error card.
 
 - **Image thumbnails** — image attachments now show a real 28px preview inside the card, served by a same-origin endpoint restricted to the uploads directory.
 

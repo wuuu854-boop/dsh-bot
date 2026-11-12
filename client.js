@@ -3350,6 +3350,23 @@ window.__ModuleLoader__.load({
       )
     }
 
+    function cleanProblemReason(value) {
+      const lines = String(value || '').split('\n')
+      const kept = []
+      let skipAttachments = false
+      for (const line of lines) {
+        if (/^\s*附件[：:]\s*$/.test(line)) {
+          skipAttachments = true
+          continue
+        }
+        if (skipAttachments && /^\s*[-*]\s*\[[^\]]+\]\(<[^>]+>\)\s*$/.test(line)) continue
+        if (skipAttachments && !line.trim()) continue
+        skipAttachments = false
+        kept.push(line)
+      }
+      return kept.join('\n').trim()
+    }
+
     function ProblemCard({ reason, items, t, onRetry, onRephrase, onCopy }) {
       const tried = [...(items || [])]
         .reverse()
@@ -3357,6 +3374,7 @@ window.__ModuleLoader__.load({
         .slice(0, 3)
         .map((item) => toolIntent(item, t))
         .filter(Boolean)
+      const visibleReason = cleanProblemReason(reason) || t('problemUnknown')
       return h(
         'div',
         { className: 'gb-problem' },
@@ -3365,7 +3383,7 @@ window.__ModuleLoader__.load({
           'div',
           { className: 'gb-problem-body' },
           h('div', { className: 'gb-problem-title' }, t('problemTitle')),
-          h('p', { className: 'gb-problem-reason' }, reason || t('problemUnknown')),
+          h('p', { className: 'gb-problem-reason' }, visibleReason),
           tried.length ? h('div', { className: 'gb-problem-tried' }, `${t('problemTried')}：${tried.join(' · ')}`) : null,
           h(
             'div',
@@ -3379,7 +3397,7 @@ window.__ModuleLoader__.load({
                 'details',
                 { className: 'gb-problem-details' },
                 h('summary', null, t('problemDetails')),
-                h('pre', null, String(reason)),
+                h('pre', null, String(visibleReason)),
               )
             : null,
         ),
@@ -9309,7 +9327,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '5.17.0',
+              version: '5.18.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -9330,7 +9348,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '5.17.0',
+                version: '5.18.0',
               },
               null,
               2,

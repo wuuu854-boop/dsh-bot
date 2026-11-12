@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '5.17.0'
+const VERSION = '5.18.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -53,6 +53,11 @@ function truncate(value, limit) {
 function firstLine(value) {
   const line = String(value || '').split(/\r?\n/).map((item) => item.trim()).find(Boolean)
   return line || ''
+}
+
+function cleanStoredTitle(value) {
+  const raw = String(value || '')
+  return raw.replace(/\s*附件[：:][\s\S]*$/, '').trim().slice(0, 80) || firstLine(raw)
 }
 
 function toolSignature(name, args) {
@@ -410,7 +415,7 @@ export function apply(ctx) {
           id: thread.id,
           sessionId: thread.sessionId,
           botId: botIds.has(thread.botId) ? thread.botId : fallbackBotId,
-          title: typeof thread.title === 'string' ? thread.title : '',
+          title: typeof thread.title === 'string' ? cleanStoredTitle(thread.title) : '',
           createdAt: Number(thread.createdAt) || now(),
           updatedAt: Number(thread.updatedAt) || now(),
           created: thread.created === true,
