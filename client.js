@@ -520,7 +520,7 @@ window.__ModuleLoader__.load({
         templateMusic: '做音乐',
         templateMusicPrompt: '生成一段 <风格：lofi/upbeat/ambient> 的本地音乐：用 python scripts/studio.py music --out <路径.wav> --style <风格> --seconds <秒数> 生成 wav + mid；给出时长、BPM、文件路径。说明这是本地合成，不是云端模型；需要重新编曲就改参数重生成。',
         templateVocational: '智慧职教 / 刷课',
-        templateVocationalPrompt: '打开智慧职教课程页 <粘贴 URL>。先用 python scripts/course.py status 判断页面：视频用 course.py play，PPT 用 course.py ppt，题目用 course.py question 读取题干和选项，再用 course.py answer --choice N --submit 作答，完成后 course.py next 进入下一回合。每次动作后必须重新 status；如果 click 返回 changed:false/stalled:true，禁止重复点击，先 read --all 检查 iframe、scroll、wait-change，仍无变化就停下说明卡点。检测到考试/监考/交卷页面必须停止，不自动作答。',
+        templateVocationalPrompt: '打开智慧职教课程页 <粘贴 URL>。先 python scripts/course.py progress 看已完成/未完成（fast 缓存；cached:true 不要重复读），再用 course.py status 判断 phase。视频用 course.py play，PPT 用 course.py ppt，题目用 course.py question 读题干和选项，再用 course.py answer --choice N --submit 作答，完成后 course.py next 进入下一回合。动作命令会返回 page/phase/progress，直接采用它，不要每个动作再跑一次 full status；只有 page 缺失、缓存过期或卡住时才 course.py status --full。如果 click 返回 changed:false/stalled:true，禁止重复点击，先 read --all 检查 iframe、scroll、wait-change，仍无变化就停下说明卡点。检测到考试/监考/交卷页面必须停止，不自动作答。',
         imageRefreshed: '画面已刷新',
         context: '上下文',
         thinkingDone: '思考完成',
@@ -1137,7 +1137,7 @@ window.__ModuleLoader__.load({
         templateMusic: 'Make music',
         templateMusicPrompt: 'Generate local <style: lofi/upbeat/ambient> music: run python scripts/studio.py music --out <theme.wav> --style <style> --seconds <seconds> to produce WAV + MIDI. Return duration, BPM and path. State that it is local synthesis, not a cloud model; regenerate with new parameters for another arrangement.',
         templateVocational: 'Vocational course',
-        templateVocationalPrompt: 'Open the vocational course page <URL>. Run python scripts/course.py status to detect the phase: videos use course.py play, slides use course.py ppt, quizzes use course.py question then course.py answer --choice N --submit, and course.py next advances to the next round. Re-run status after every action. If a click returns changed:false/stalled:true, do not repeat it: read --all, check iframes, scroll, wait-change, then stop and report the blocker. Stop immediately on exam/proctored/submit-exam pages.',
+        templateVocationalPrompt: 'Open the vocational course page <URL>. Run python scripts/course.py progress first for completed/pending counts (fast cache; if cached:true, do not re-read), then course.py status for the phase. Use course.py play for video, ppt for slides, question for quiz text/options, answer --choice N --submit to answer, and next to advance. Action commands return page/phase/progress — reuse that result instead of running full status after every click; only run status --full when the page is missing, cache is stale, or you are stuck. If a click returns changed:false/stalled:true, do not repeat it: read --all, check iframes, scroll, wait-change, then stop and report the blocker. Stop immediately on exam/proctored/submit-exam pages.',
         imageRefreshed: 'Preview refreshed',
         context: 'Context',
         thinkingDone: 'Thought',
@@ -2408,7 +2408,7 @@ window.__ModuleLoader__.load({
           setError(t('botNameRequired'))
           return
         }
-        if (privilege === 'admin' && !adminAck) {
+        if (privilege === 'admin' && !adminAck && bot?.privilege !== 'admin') {
           setError(t('adminConfirmRequired'))
           return
         }
@@ -6587,7 +6587,7 @@ window.__ModuleLoader__.load({
         async (data) => {
           try {
             if (data.id) {
-              await apiPost('/bot/update', data)
+              await apiPost('/bot/update', { ...data, botId: data.id })
               await refreshSnapshot()
               setBotEditor(null)
               showToast(t('botUpdated'))

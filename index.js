@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '5.2.0'
+const VERSION = '5.3.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -4043,7 +4043,7 @@ export function apply(ctx) {
       '- 表单/作业：一次 read 拿到 text + controls；按控件 name 填写/选择，再 click 提交；提交后再 read 一次确认结果。',
       '- 只有 read.textLength = 0，或页面明确是 canvas、PDF、图片题、验证码时，才 screenshot + read_image；截图不是默认路径。',
       '- 禁止“先截图看看再说”；能 read 就不截图，能 click/type 就不模拟鼠标坐标。',
-      '- 智慧职教 / ICVE：必须先用 `edge.py read --all` 读主页面和 iframe；点击用 `edge.py click --all --verify`。返回 `changed:false` / `stalled:true` 时禁止重复点击，先检查新 frame、滚动、等待；仍无变化就停下并报告卡点，不能循环。',
+      '- 智慧职教 / ICVE：先用 `course.py progress` 看已完成/未完成（fast，缓存命中会返回 cached:true），再用 `course.py status` 判断 phase；动作命令返回的 page/phase/progress 直接复用，不要每个动作重新 full read。只有页面变化/缓存过期/卡住时才 `status --full`。点击用 `edge.py click --all --verify`。返回 `changed:false` / `stalled:true` 时禁止重复点击，先检查新 frame、滚动、等待；仍无变化就停下并报告卡点，不能循环。',
       `- Clash / 系统代理：${proxyScript}`,
       `- 权限模式：${bot.privilege === 'admin' ? '完全权限 + 管理员' : '标准（文件沙箱）'}`,
       `- 任务模式：${bot.autonomy === 'unattended' ? '无人值守（不打断用户）' : '交互（必要时可拍板）'}`,
@@ -6285,7 +6285,7 @@ export function apply(ctx) {
 
       if (req.method === 'POST' && sub === '/bot/update') {
         const body = await readBody(req)
-        const bot = state.bots.find((item) => item.id === body.botId)
+        const bot = state.bots.find((item) => item.id === (body.botId || body.id))
         if (!bot) {
           json(res, 404, { ok: false, error: 'Bot 不存在' })
           return

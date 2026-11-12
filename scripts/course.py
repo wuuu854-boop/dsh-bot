@@ -40,6 +40,8 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
 
 STATE_DIR = os.path.join(os.environ.get("DSH_HOME", os.path.join(os.path.expanduser("~"), ".dsh")), "storages", "dsh-bot")
 COURSE_STATE = os.path.join(STATE_DIR, "course-state.json")
+COURSE_CACHE = os.path.join(STATE_DIR, "course-cache.json")
+CACHE_TTL_MS = 3000
 
 EXAM_MARKERS = ("考试", "监考", "闭卷", "期末", "倒计时", "交卷", "答题卡")
 NEXT_NAMES = ("下一题", "下一关", "继续学习", "开始学习", "立即学习", "下一节", "下一章", "下一页", "下一课")
@@ -61,7 +63,58 @@ def flag(args, name, default=""):
     return default
 
 
-def read_page():
+def load_cache():
+    try:
+        with open(COURSE_CACHE, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+        if not isinstance(data, dict) or not data.get("result"):
+            return None
+        if time.time() * 1000 - float(data.get("at") or 0) > CACHE_TTL_MS:
+            return None
+        result = data["result"]
+        try:
+            name = edge.resolve_browser()
+            active = [item for item in edge.browser_windows(name) if item.get("active")]
+            if active and result.get("title") and str(active[0].get("title")) != str(result.get("title")):
+                return None
+        except Exception:
+            pass
+        result["cached"] = True
+        return result
+    except Exception:
+        return None
+
+
+def save_cache(result):
+    if not isinstance(result, dict) or not result.get("ok"):
+        return
+    try:
+        os.makedirs(STATE_DIR, exist_ok=True)
+        snapshot = {key: value for key, value in result.items() if key not in ("cached",)}
+        with open(COURSE_CACHE, "w", encoding="utf-8") as handle:
+            json.dump({"at": int(time.time() * 1000), "result": snapshot}, handle, ensure_ascii=False)
+    except Exception:
+        pass
+
+
+def read_page(fast=False):
+    if fast:
+        cached = load_cache()
+        if cached:
+            return cached
+        result = edge.read_text(True)
+        if not result.get("ok"):
+            return read_page(False)
+        result["phase"] = classify_text(text_of(result))
+        result["question"] = question_view(result)
+        result["nextCandidates"] = []
+        result["playCandidates"] = []
+        result["pptCandidates"] = []
+        result["progress"] = progress_view(text_of(result))
+        result["signature"] = signature(result)
+        result["fast"] = True
+        save_cache(result)
+        return result
     result = edge.read_page(200, True)
     if not result.get("ok"):
         return result
@@ -70,7 +123,10 @@ def read_page():
     result["nextCandidates"] = candidates(result, NEXT_NAMES)
     result["playCandidates"] = candidates(result, PLAY_NAMES)
     result["pptCandidates"] = candidates(result, PPT_NAMES)
+    result["progress"] = progress_view(text_of(result))
     result["signature"] = signature(result)
+    result["fast"] = False
+    save_cache(result)
     return result
 
 
@@ -80,6 +136,51 @@ def controls(page):
 
 def text_of(page):
     return str(page.get("text") or "")
+
+
+def classify_text(text):
+    if any(marker in text for marker in EXAM_MARKERS):
+        return "exam"
+    if "提交" in text and ("题" in text or "选项" in text or "作答" in text):
+        return "quiz"
+    if any(name in text for name in ("继续播放", "开始播放", "播放", "暂停")):
+        return "video"
+    if any(name in text for name in ("下一页", "上一页", "下一张")):
+        return "ppt"
+    if any(name in text for name in NEXT_NAMES):
+        return "next"
+    if any(marker in text for marker in ("已完成", "已学完", "100%")):
+        return "done"
+    return "unknown"
+
+
+def progress_view(text):
+    done_markers = ("已完成", "已学完", "已完成学习")
+    pending_markers = ("未完成", "待完成", "未开始", "进行中", "继续学习", "待学习")
+    done = []
+    pending = []
+    action_lines = ("继续学习", "开始学习", "立即学习", "下一题", "下一关", "下一节", "下一页", "播放", "提交")
+    for raw in str(text or "").splitlines():
+        line = raw.strip()
+        if not line or len(line) > 180:
+            continue
+        if line in action_lines:
+            continue
+        if any(marker in line for marker in pending_markers):
+            if line not in pending:
+                pending.append(line[:180])
+        elif any(marker in line for marker in done_markers):
+            if line not in done:
+                done.append(line[:180])
+    total = len(done) + len(pending)
+    return {
+        "completed": len(done),
+        "pending": len(pending),
+        "total": total,
+        "percent": round((len(done) / total) * 100) if total else None,
+        "completedItems": done[:8],
+        "pendingItems": pending[:8],
+    }
 
 
 def candidates(page, names):
@@ -311,15 +412,19 @@ def summary(page):
         "playCandidates": page.get("playCandidates"),
         "pptCandidates": page.get("pptCandidates"),
         "question": page.get("question"),
+        "progress": page.get("progress"),
+        "fast": page.get("fast", False),
+        "cached": page.get("cached", False),
     }
 
 
 def main():
     if len(sys.argv) < 2:
-        emit({"ok": False, "error": "missing command; try status/question/play/next/ppt/answer"})
+        emit({"ok": False, "error": "missing command; try status/progress/question/play/next/ppt/answer"})
     command = sys.argv[1].lower()
     args = sys.argv[2:]
-    page = read_page()
+    fast = command in ("status", "progress") and "--full" not in args
+    page = read_page(fast=fast)
     if not page.get("ok"):
         emit(page)
 
@@ -328,6 +433,8 @@ def main():
 
     if command == "status":
         emit({"ok": True, **summary(page)})
+    if command == "progress":
+        emit({"ok": True, "phase": page.get("phase"), "progress": page.get("progress"), "page": summary(page)})
     if command == "question":
         emit({"ok": True, "phase": page.get("phase"), "question": page.get("question"), "page": summary(page)})
     if command == "play":

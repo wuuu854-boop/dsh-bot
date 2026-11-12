@@ -19,6 +19,7 @@ Commands:
   navigate URL [--browser NAME]
   activate [--browser NAME]
   read [--limit 200] [--all] [--browser NAME]
+  text [--browser NAME]
   wait [--timeout 8]
   wait-change [--timeout 6]
   scroll [down|up|top|bottom] [--pages N]
@@ -209,6 +210,7 @@ def activate_edge(browser=None):
     windows = browser_windows(name)
     if not windows:
         return None
+    windows = sorted(windows, key=lambda item: (not bool(item.get("active")),))
     return computer.activate_window(windows[0]["title"])
 
 
@@ -257,6 +259,10 @@ def navigate(url, browser=None):
 
 def read_page(limit=200, all_frames=False):
     return uia_run("read", limit=limit, all=all_frames)
+
+
+def read_text(all_frames=True):
+    return uia_run("text", all=all_frames)
 
 
 def click_with_verify(action, name, role, index, all_frames, timeout=2.5):
@@ -386,6 +392,54 @@ foreach ($w in $windows) {
   if ($w.Current.Name -match [regex]::Escape([string]$payload.window)) { $win = $w; break }
 }
 if (-not $win) { '{"ok":false,"error":"Edge window not found"}'; exit 1 }
+if ($action -eq 'text') {
+  $docCond = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ControlTypeProperty, [System.Windows.Automation.ControlType]::Document)
+  $fastDocs = @($win.FindAll([System.Windows.Automation.TreeScope]::Descendants, $docCond))
+  $windowName = [string]$win.Current.Name
+  $active = $null
+  $activeBest = -1
+  foreach ($d in $fastDocs) {
+    try {
+      $name = [string]$d.Current.Name
+      if ($name -and $windowName.StartsWith($name)) {
+        $t = $d.GetCurrentPattern([System.Windows.Automation.TextPattern]::Pattern).DocumentRange.GetText(-1)
+        if ($t.Length -gt $activeBest) { $activeBest = $t.Length; $active = $d }
+      }
+    } catch {}
+  }
+  if (-not $active -and $fastDocs.Count -gt 0) { $active = $fastDocs[0] }
+  $fastPage = @()
+  if ($active) {
+    $fastPage += $active
+    try { foreach ($child in $active.FindAll([System.Windows.Automation.TreeScope]::Descendants, $docCond)) { if ($child -ne $active) { $fastPage += $child } } } catch {}
+  }
+  if ($fastPage.Count -eq 0) { $fastPage = $fastDocs }
+  $parts = @()
+  foreach ($d in $fastPage) {
+    try {
+      $t = $d.GetCurrentPattern([System.Windows.Automation.TextPattern]::Pattern).DocumentRange.GetText(-1)
+      if ($t) { $parts += $t }
+    } catch {}
+  }
+  $text = ($parts | Where-Object { $_ }) -join "`n`n--- frame ---`n`n"
+  $length = $text.Length
+  if ($text.Length -gt 20000) { $text = $text.Substring(0, 20000) }
+  $url = ''
+  try {
+    $addr = $win.FindFirst([System.Windows.Automation.TreeScope]::Descendants, (New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::AutomationIdProperty, 'addressEditBox')))
+    if ($addr) { $url = [string]$addr.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).Current.Value }
+  } catch {}
+  [pscustomobject]@{
+    ok = $true
+    title = $win.Current.Name
+    url = $url
+    textLength = $length
+    framesCount = $fastPage.Count
+    text = $text
+    fast = $true
+  } | ConvertTo-Json -Depth 4 -Compress
+  exit 0
+}
 $all = $win.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition)
 function Get-Role($e) { $e.Current.ControlType.ProgrammaticName -replace 'ControlType\.', '' }
 function Get-Value($e) {
@@ -397,12 +451,36 @@ $docs = @()
 foreach ($e in $all) { if ((Get-Role $e) -eq 'Document') { $docs += $e } }
 $doc = $null
 $bestLength = -1
+$windowName = [string]$win.Current.Name
+$titleDoc = $null
+$titleBest = -1
+foreach ($d in $docs) {
+  try {
+    $name = [string]$d.Current.Name
+    if ($name -and $windowName.StartsWith($name)) {
+      $t = $d.GetCurrentPattern([System.Windows.Automation.TextPattern]::Pattern).DocumentRange.GetText(-1)
+      if ($t.Length -gt $titleBest) { $titleBest = $t.Length; $titleDoc = $d }
+    }
+  } catch {}
+}
+if ($titleDoc) { $doc = $titleDoc }
 foreach ($d in $docs) {
   try {
     $t = $d.GetCurrentPattern([System.Windows.Automation.TextPattern]::Pattern).DocumentRange.GetText(-1)
-    if ($t.Length -gt $bestLength) { $bestLength = $t.Length; $doc = $d }
+    if ($t.Length -gt $bestLength) { $bestLength = $t.Length; if (-not $doc) { $doc = $d } }
   } catch {}
 }
+$pageDocs = @()
+if ($doc) {
+  $pageDocs += $doc
+  try {
+    $docCond = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ControlTypeProperty, [System.Windows.Automation.ControlType]::Document)
+    foreach ($child in $doc.FindAll([System.Windows.Automation.TreeScope]::Descendants, $docCond)) {
+      if ($child -ne $doc) { $pageDocs += $child }
+    }
+  } catch {}
+}
+if ($pageDocs.Count -eq 0) { $pageDocs = $docs }
 $pageAll = if ($doc) { $doc.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition) } else { $all }
 $url = ''
 foreach ($e in $all) {
@@ -411,8 +489,31 @@ foreach ($e in $all) {
     if ($v -match '^(https?|file)://') { $url = $v; break }
   }
 }
+if ($action -eq 'text') {
+  $readDocs = if ($payload.all) { $pageDocs } else { @($doc) }
+  $textParts = @()
+  foreach ($d in $readDocs) {
+    if (-not $d) { continue }
+    try {
+      $t = $d.GetCurrentPattern([System.Windows.Automation.TextPattern]::Pattern).DocumentRange.GetText(-1)
+      if ($t) { $textParts += $t }
+    } catch {}
+  }
+  $text = ($textParts | Where-Object { $_ }) -join "`n`n--- frame ---`n`n"
+  $fullLength = $text.Length
+  if ($text.Length -gt 20000) { $text = $text.Substring(0, 20000) }
+  [pscustomobject]@{
+    ok = $true
+    title = $win.Current.Name
+    url = $url
+    textLength = $fullLength
+    framesCount = $pageDocs.Count
+    text = $text
+  } | ConvertTo-Json -Depth 4 -Compress
+  exit 0
+}
 if ($action -eq 'read') {
-  $readDocs = if ($payload.all) { $docs } else { @($doc) }
+  $readDocs = if ($payload.all) { $pageDocs } else { @($doc) }
   $textParts = @()
   $items = @()
   $documents = @()
@@ -468,7 +569,7 @@ if ($action -eq 'read') {
     url = $url
     textLength = $fullLength
     controlsCount = $items.Count
-    framesCount = $docs.Count
+    framesCount = $pageDocs.Count
     text = $text
     controls = @($items)
     documents = @($documents)
@@ -479,7 +580,7 @@ $target = $null
 $seen = 0
 if ($payload.all) {
   $scopeAll = @()
-  foreach ($d in $docs) {
+  foreach ($d in $pageDocs) {
     foreach ($e in $d.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition)) {
       $scopeAll += $e
     }
@@ -558,7 +659,13 @@ def uia_run(action, **kwargs):
         browser = resolve_browser()
     except Exception as error:
         return {"ok": False, "error": str(error)}
-    payload = {"action": action, "window": BROWSERS[browser]["title"], "browser": browser, **kwargs}
+    target = None
+    try:
+        target = activate_edge(browser)
+    except Exception:
+        target = None
+    window_title = (target or {}).get("title") or BROWSERS[browser]["title"]
+    payload = {"action": action, "window": window_title, "browser": browser, **kwargs}
     encoded_payload = base64.b64encode(
         json.dumps(payload, ensure_ascii=False).encode("utf-8")
     ).decode("ascii")
@@ -667,6 +774,15 @@ def main():
             result["hint"] = "改用 --browser chrome / edge / brave，或使用 scripts/browser.py 的 Firefox Marionette 桥。"
         if result.get("ok"):
             activate_edge()
+        return emit(result)
+    if command == "text":
+        result = read_text(True)
+        url = str(result.get("url") or "").lower()
+        for domain, (adapter, hint) in SITE_PROFILES.items():
+            if domain in url:
+                result["adapter"] = adapter
+                result["siteHint"] = hint
+                break
         return emit(result)
     if command == "wait":
         timeout = float(flag(args, "timeout", "8") or 8)

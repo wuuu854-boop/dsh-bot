@@ -1,5 +1,13 @@
 # Changelog
 
+## 5.3.0 — 2026-11-12
+
+- Fix: existing bots can now save settings again — `/bot/update` accepts both `id` and `botId`, and the client sends both; previously the route looked only for `botId` and returned 404.
+- Fix: an already-admin bot no longer needs to re-check the admin warning on every unrelated edit; confirmation is required only when elevating a standard bot.
+- Improve ICVE: fast text path reads only the active tab/window, ignores background tabs, and caches page text for 3s (cache is invalidated by title change).
+- Add: `course.py progress` counts completed/pending items from text; status/progress default to fast mode; action commands return page/phase/progress so the Bot does not re-read after every click.
+- Improve: course prompts now tell the Bot to reuse action results and only run `status --full` when the page is missing, stale, or stuck.
+
 ## 5.2.0 — 2026-11-12
 
 - Fix: the native-approval “回到 DSH 处理” button now uses `ctx.layout.selectPanel(null)` instead of history/reload, preventing the DSH crash that required a restart.
