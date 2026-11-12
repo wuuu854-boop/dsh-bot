@@ -4894,7 +4894,7 @@ window.__ModuleLoader__.load({
                     h(
                       'small',
                       null,
-                      `${snapshot.entries?.length || 0} ${t('snapshotFiles')} · ${snapshot.status}${
+                      `${snapshot.entriesCount ?? snapshot.entries?.length ?? 0} ${t('snapshotFiles')} · ${snapshot.status}${
                         snapshot.restoredAt ? ` · ${t('restored')}` : ''
                       } · ${formatRelative(snapshot.at, t)}`,
                     ),
@@ -9804,7 +9804,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '6.3.0',
+              version: '6.4.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -9825,7 +9825,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '6.3.0',
+                version: '6.4.0',
               },
               null,
               2,

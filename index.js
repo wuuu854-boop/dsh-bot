@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '6.3.0'
+const VERSION = '6.4.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -1172,6 +1172,18 @@ export function apply(ctx) {
       verification: run.verification
         ? { status: run.verification.status, note: truncate(run.verification.note || '', 160) }
         : null,
+    }
+  }
+
+  function publicSafetySnapshot(snapshot) {
+    return {
+      id: snapshot.id,
+      kind: snapshot.kind,
+      reason: truncate(snapshot.reason || '', 300),
+      at: snapshot.at,
+      status: snapshot.status,
+      restoredAt: snapshot.restoredAt || 0,
+      entriesCount: Array.isArray(snapshot.entries) ? snapshot.entries.length : 0,
     }
   }
 
@@ -6002,8 +6014,7 @@ export function apply(ctx) {
       meeting: publicMeeting(),
       budget: state.budget,
       safety: {
-        snapshots: state.snapshots.slice(0, 8),
-        audits: state.audits.slice(0, 8),
+        snapshots: state.snapshots.slice(0, 3).map(publicSafetySnapshot),
         snapshotCount: state.snapshots.length,
         auditCount: state.audits.length,
       },
@@ -6096,8 +6107,7 @@ export function apply(ctx) {
       meeting: publicMeeting(),
       budget: state.budget,
       safety: {
-        snapshots: state.snapshots.slice(0, 8),
-        audits: state.audits.slice(0, 8),
+        snapshots: state.snapshots.slice(0, 3).map(publicSafetySnapshot),
         snapshotCount: state.snapshots.length,
         auditCount: state.audits.length,
       },

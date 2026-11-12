@@ -74,6 +74,24 @@ UI 实际只显示 summary 120 字、状态、步数、耗时和 tokens。
 
 完整记录仍保留在 `state.json`，只是列表接口不再下发大段正文。
 
+## 安全快照瘦身
+
+`/state.safety` 之前带 8 条完整 snapshot 和 8 条 audit，约 **12.3 KB**；UI 只显示最近 3 条 snapshot，且只需要 id/kind/reason/status/entries 数量。
+
+改为：
+
+- 最近 3 条；
+- audit 明细不再随快照下发（仍保留 `auditCount`）；
+- snapshot 只带 UI 使用的字段和 `entriesCount`。
+
+结果：
+
+```text
+safety：12.3 KB → 0.9 KB
+/state：62 KB → 51 KB
+/team：95 KB → 40 KB（上一轮）
+```
+
 ## 复现
 
 ```powershell

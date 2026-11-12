@@ -1,5 +1,10 @@
 # Changelog
 
+## 6.4.0 — 2026-11-12
+
+- Performance: `/state.safety` now sends 3 compact snapshots and no audit detail; `safety` 12.3 KB → 0.9 KB, `/state` 62 KB → 51 KB.
+- No feature changes; full audit/snapshot records remain in `state.json`; QQ remains default-off.
+
 ## 6.3.0 — 2026-11-12
 
 - Performance: `/team` assignment rows now cap prompt/summary/error at 600/800/500 chars; payload 95 KB → 40 KB. Full records remain in `state.json`.
