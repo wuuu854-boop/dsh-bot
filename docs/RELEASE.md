@@ -1,4 +1,6 @@
-# DSH Bot v5.10.0
+# DSH Bot v5.12.0
+
+
 
 
 
@@ -9,6 +11,9 @@ You talk to one **Boss**. It decides what to do, hires a specialist when nobody 
 ![Architecture](architecture.svg)
 
 ## Highlights
+
+- **QQ remote loop is live** — the poll timer was missing; `/status` from QQ now executes and replies. Verified with a real `/status` message and a “DSH 远程状态” response.
+- **QQ chat window + verified send** — separate contact windows are detected, direct JSON is accepted, and desktop notifications only return success after the message is visible in the chat.
 
 - **Honest schedules** — Cron is disabled in the routine editor because the local scheduler only supports daily/weekly/every; no more saves that can never run.
 - **Verified** — attachment upload → Bot reads file → reply, voice start/stop, group create/send/backfill/delete, routine create/run/delete.

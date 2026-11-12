@@ -1,5 +1,19 @@
 # Changelog
 
+## 5.12.0 — 2026-11-12
+
+- Fix: QQ remote control was implemented but **never polled** — `checkRemoteControl()` had no timer. Added a 15s poll plus a 2s first check.
+- Verified end-to-end: sent `/status` from QQ, the remote loop executed it, and QQ received a “DSH 远程状态” reply with the current task, state, bot and last result.
+- Fix: QQ desktop notifications now use the visible contact window, click the real UIA “发送” button, and verify the message appears before returning success.
+- Verify: QQ remote reads `title: 我的手机`, count, and last message; notification returns `{ok:true, verified:true}`.
+
+## 5.11.0 — 2026-11-12
+
+- Fix: QQ opens a separate chat window titled with the contact name; the UIA reader only looked for a window titled “QQ” and therefore never found the chat. It now prefers the contact window and falls back to the main window.
+- Fix: `readQQChat` accepts the helper’s direct JSON payload, not only the old base64 wrapper.
+- Fix: desktop QQ notifications no longer report false success. They pick the visible contact window, send through the UIA “发送” button, then verify the message appears in the chat before returning `ok:true`.
+- Verified end-to-end: remote read returns `title: 我的手机`, count and last message; notification returns `{ok:true, verified:true}` and the test message appears.
+
 ## 5.10.0 — 2026-11-12
 
 - Fix: the routine editor no longer offers Cron as a usable option. The local scheduler supports daily/weekly/every only, so Cron is disabled with “暂不支持” instead of letting users save a schedule that can never run.

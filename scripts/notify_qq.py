@@ -23,6 +23,8 @@ sys.stdout.reconfigure(encoding="utf-8")
 HERE = os.path.dirname(os.path.abspath(__file__))
 APPS = os.path.join(HERE, "apps.py")
 COMPUTER = os.path.join(HERE, "computer.py")
+QQ_UIA = os.path.join(HERE, "qq_uia.py")
+UIA = os.path.join(HERE, "uia.py")
 
 
 def run(cmd, timeout=40):
@@ -63,12 +65,21 @@ def send_smtp(args):
         return {"ok": False, "method": "smtp", "error": str(error)}
 
 
-def find_qq_window():
+def find_qq_window(contact):
     code, output, data = run([sys.executable, COMPUTER, "windows"], timeout=20)
-    for window in (data or {}).get("windows") or []:
-        if str(window.get("title") or "").strip().lower() == "qq":
-            return window
-    return None
+    windows = (data or {}).get("windows") or []
+    target = str(contact or "").strip().lower()
+    candidates = []
+    for window in windows:
+        title = str(window.get("title") or "").strip()
+        if title.lower() not in {target, "qq"}:
+            continue
+        rect = window.get("rect") or [0, 0, 0, 0]
+        if len(rect) < 4 or rect[0] < -10000 or rect[1] < -10000:
+            continue
+        candidates.append(window)
+    candidates.sort(key=lambda item: 0 if str(item.get("title")).lower() == target else 1)
+    return candidates[0] if candidates else None
 
 
 def acquire_desktop_lock(timeout=120):
@@ -108,37 +119,43 @@ def send_desktop(args):
 def send_desktop_locked(args):
     # Do not launch QQ automatically: launching a second instance can land on
     # the login window and inject text into the wrong field. The operator must
-    # leave the logged-in QQ main window open.
-    window = find_qq_window()
+    # leave the logged-in QQ chat open.
+    contact = args.contact or "文件传输助手"
+    window = find_qq_window(contact)
     if not window:
-        return {"ok": False, "method": "desktop", "error": "QQ 未运行或未登录；请先打开并登录 QQ"}
-    left, top, right, bottom = window.get("rect") or [0, 0, 1600, 1000]
-    width = max(1, right - left)
-    height = max(1, bottom - top)
-    code, output, active = run([sys.executable, COMPUTER, "activate", "QQ"], timeout=20)
+        return {"ok": False, "method": "desktop", "error": "QQ 未运行或聊天窗口不可见；请先打开 QQ 和目标聊天"}
+    title = str(window.get("title") or "QQ")
+    code, output, active = run([sys.executable, COMPUTER, "activate", title], timeout=20)
     if not (active and active.get("window", {}).get("active")):
-        # AppActivate is a second, independent way past the foreground lock.
         try:
             run([
                 "powershell.exe", "-NoProfile", "-Command",
-                "(New-Object -ComObject WScript.Shell).AppActivate('QQ')",
+                f"(New-Object -ComObject WScript.Shell).AppActivate('{title}')",
             ], timeout=15)
         except Exception:
             pass
         time.sleep(0.4)
-        code, output, active = run([sys.executable, COMPUTER, "activate", "QQ"], timeout=20)
+        code, output, active = run([sys.executable, COMPUTER, "activate", title], timeout=20)
     if not (active and active.get("window", {}).get("active")):
         return {"ok": False, "method": "desktop", "error": "QQ 窗口没有真正切到前台，未发送", "detail": active or output[-300:]}
     time.sleep(0.5)
-    # Search box is in the upper-left; clear any previous query first.
-    search_x = int(left + width * 0.08)
-    search_y = int(top + height * 0.055)
-    run([sys.executable, COMPUTER, "click", str(search_x), str(search_y)], timeout=20)
-    run([sys.executable, COMPUTER, "key", "ctrl+a"], timeout=20)
-    run([sys.executable, COMPUTER, "type", args.contact or "文件传输助手"], timeout=30)
-    time.sleep(1.2)
-    run([sys.executable, COMPUTER, "key", "enter"], timeout=20)
-    time.sleep(1.2)
+    refreshed = find_qq_window(contact)
+    if not refreshed:
+        return {"ok": False, "method": "desktop", "error": "QQ 窗口恢复后不可见，未发送"}
+    left, top, right, bottom = refreshed.get("rect") or [0, 0, 1600, 1000]
+    width = max(1, right - left)
+    height = max(1, bottom - top)
+    # A separate contact window is already on the target chat; only the main
+    # QQ window needs the contact search box.
+    if str(refreshed.get("title") or "").strip().lower() != contact.lower():
+        search_x = int(left + width * 0.08)
+        search_y = int(top + height * 0.055)
+        run([sys.executable, COMPUTER, "click", str(search_x), str(search_y)], timeout=20)
+        run([sys.executable, COMPUTER, "key", "ctrl+a"], timeout=20)
+        run([sys.executable, COMPUTER, "type", contact], timeout=30)
+        time.sleep(1.2)
+        run([sys.executable, COMPUTER, "key", "enter"], timeout=20)
+        time.sleep(1.2)
     # The message composer is the bottom bar, not the search box.
     input_x = int(left + width * 0.42)
     input_y = int(top + height * 0.925)
@@ -148,18 +165,41 @@ def send_desktop_locked(args):
     desktop_message = " | ".join(line.strip() for line in args.message.splitlines() if line.strip())
     run([sys.executable, COMPUTER, "type", desktop_message], timeout=30)
     time.sleep(0.4)
-    # QQ's Enter may be intercepted by IME composition. Click the actual send
-    # button at the lower-right of the message composer instead.
-    send_x = int(left + width * 0.926)
-    send_y = int(top + height * 0.962)
-    run([sys.executable, COMPUTER, "click", str(send_x), str(send_y)], timeout=20)
-    time.sleep(0.6)
+    # Prefer the real UIA send button. Coordinate clicks can hit the adjacent
+    # “send options” arrow and leave the text sitting in the composer.
+    sent = run(
+        [
+            sys.executable,
+            UIA,
+            "click",
+            "--window",
+            contact,
+            "--name",
+            "发送",
+            "--role",
+            "Button",
+            "--exact",
+        ],
+        timeout=20,
+    )
+    if not (sent[2] or {}).get("ok"):
+        run([sys.executable, COMPUTER, "key", "enter"], timeout=20)
+    time.sleep(0.8)
+    # Never report success from clicks alone; confirm the message is in the chat.
+    code, output, chat = run([sys.executable, QQ_UIA, "--contact", contact, "--tail", "8"], timeout=40)
+    messages = (chat or {}).get("messages") or []
+    if not any(desktop_message[:100] in str(item) for item in messages):
+        return {
+            "ok": False,
+            "method": "desktop",
+            "error": "QQ 未确认消息出现，可能未发送",
+            "detail": (output or "")[-300:],
+        }
     return {
         "ok": True,
         "method": "desktop",
-        "contact": args.contact or "文件传输助手",
-        "search": [search_x, search_y],
-        "input": [input_x, input_y],
+        "contact": contact,
+        "verified": True,
     }
 
 

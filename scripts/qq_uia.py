@@ -26,7 +26,9 @@ def read_chat(contact: str, tail: int = 20) -> dict:
         from comtypes.gen import UIAutomationClient as UIA
 
         uia = client.CreateObject(UIA.CUIAutomation, interface=UIA.IUIAutomation)
-        handle = ctypes.windll.user32.FindWindowW(None, "QQ")
+        # QQ opens a separate chat window titled with the contact name. Prefer
+        # that window; fall back to the main QQ window for embedded layouts.
+        handle = ctypes.windll.user32.FindWindowW(None, contact) or ctypes.windll.user32.FindWindowW(None, "QQ")
         if not handle:
             return {"ok": False, "error": "QQ window not found"}
         root = uia.ElementFromHandle(handle)

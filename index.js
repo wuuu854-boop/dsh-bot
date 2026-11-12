@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '5.10.0'
+const VERSION = '5.12.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -1596,6 +1596,21 @@ export function apply(ctx) {
       [qqUiaPy, '--contact', notify.contact, '--tail', '20'],
       40,
     )
+    if (result.data?.ok && Array.isArray(result.data.messages)) {
+      return result.data
+    }
+    if (result.data?.ok === false && result.data?.error) {
+      const errorText = textValue(result.data.error, 300)
+      const hint = /current chat is not/i.test(errorText)
+        ? `请先在 QQ 打开与「${notify.contact}」的聊天，再测试`
+        : ''
+      return {
+        ok: false,
+        error: hint ? `${errorText}；${hint}` : errorText,
+        hint,
+        detail: [result.stderr || '', result.stdout || ''].filter(Boolean).join(' | ').slice(-500),
+      }
+    }
     if (!result.data?.b64) {
       if (result.data?.error) {
         const errorText = textValue(result.data.error, 300)
@@ -7998,7 +8013,16 @@ export function apply(ctx) {
   saveStateNow()
   writeRuntimeInfo()
   ensureLocalRoutineScheduler()
+  const remoteControlTimer = setInterval(() => {
+    checkRemoteControl().catch((error) => {
+      console.error('[dsh-bot] remote control failed', messageOf(error))
+    })
+  }, 15_000)
+  setTimeout(() => {
+    checkRemoteControl().catch(() => undefined)
+  }, 2_000)
   ctx.effect(() => () => {
+    clearInterval(remoteControlTimer)
     if (localRoutineTimer) {
       clearInterval(localRoutineTimer)
       localRoutineTimer = null
