@@ -1,4 +1,5 @@
-# DSH Bot v5.20.0
+# DSH Bot v5.21.0
+
 
 
 
@@ -19,6 +20,8 @@ You talk to one **Boss**. It decides what to do, hires a specialist when nobody 
 ![Architecture](architecture.svg)
 
 ## Highlights
+
+- **Routine onboarding** — the empty state now offers three starter templates (daily summary, weekly file review, hourly task check); choosing one fills the form, cancel leaves no routine behind.
 
 - **Multi-image lightbox** — left/right arrows, ArrowLeft/ArrowRight, wrap-around navigation and a `1 / N` counter, distilled from shadcn/Radix dialog patterns.
 

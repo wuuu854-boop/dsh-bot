@@ -385,6 +385,13 @@ window.__ModuleLoader__.load({
         routineTitle: '例程',
         routineHint: '把重复的事交给时间。DSH 开着时，例程会自动运行。',
         routineEmpty: '还没有例程。',
+        routineEmptyHint: '选一个模板开始，时间和内容之后都能改。',
+        routinePresetDailyTitle: '每日工作摘要',
+        routinePresetDailyPrompt: '每天汇总今天完成的任务、失败的任务和明天要注意的事，控制在 5 条以内。',
+        routinePresetWeeklyTitle: '每周文件盘点',
+        routinePresetWeeklyPrompt: '盘点本周工作区新增和修改的文件，列出重要变化和需要清理的临时文件。',
+        routinePresetHourlyTitle: '每小时任务巡检',
+        routinePresetHourlyPrompt: '检查当前运行中和最近失败的任务；没有异常就只回复一句“正常”。',
         routineNew: '新建例程',
         routineEdit: '编辑例程',
         routineName: '名称',
@@ -1019,6 +1026,13 @@ window.__ModuleLoader__.load({
         routineTitle: 'Routines',
         routineHint: 'Give recurring work to the clock. Runs while DSH is open.',
         routineEmpty: 'No routines yet.',
+        routineEmptyHint: 'Start with a template; time and content can be edited later.',
+        routinePresetDailyTitle: 'Daily work summary',
+        routinePresetDailyPrompt: 'Summarize today’s completed tasks, failed tasks, and what to watch tomorrow, in at most 5 bullet points.',
+        routinePresetWeeklyTitle: 'Weekly file review',
+        routinePresetWeeklyPrompt: 'Review files added or changed in the workspace this week; list important changes and temporary files to clean up.',
+        routinePresetHourlyTitle: 'Hourly task check',
+        routinePresetHourlyPrompt: 'Check running and recently failed tasks; if there are no issues, reply only “OK”.',
         routineNew: 'New routine',
         routineEdit: 'Edit routine',
         routineName: 'Name',
@@ -5204,6 +5218,46 @@ window.__ModuleLoader__.load({
         setError('')
       }
 
+      const routinePresets = [
+        {
+          key: 'daily',
+          icon: 'clock',
+          title: t('routinePresetDailyTitle'),
+          prompt: t('routinePresetDailyPrompt'),
+          kind: 'daily',
+          time: '18:30',
+        },
+        {
+          key: 'weekly',
+          icon: 'spark',
+          title: t('routinePresetWeeklyTitle'),
+          prompt: t('routinePresetWeeklyPrompt'),
+          kind: 'weekly',
+          time: '17:00',
+          weekdays: [5],
+        },
+        {
+          key: 'hourly',
+          icon: 'refresh',
+          title: t('routinePresetHourlyTitle'),
+          prompt: t('routinePresetHourlyPrompt'),
+          kind: 'every',
+          intervalValue: 1,
+          unit: 'hours',
+        },
+      ]
+
+      const applyRoutinePreset = (preset) => {
+        beginNew()
+        setTitle(preset.title)
+        setPrompt(preset.prompt)
+        setKind(preset.kind)
+        if (preset.time) setTime(preset.time)
+        if (Array.isArray(preset.weekdays)) setWeekdays(preset.weekdays)
+        if (preset.intervalValue) setIntervalValue(preset.intervalValue)
+        if (preset.unit) setUnit(preset.unit)
+      }
+
       const beginEdit = (routine) => {
         const schedule = routine.schedule || {}
         setEditing(routine)
@@ -5449,7 +5503,32 @@ window.__ModuleLoader__.load({
               )
             : null,
           routines.length === 0
-            ? h('div', { className: 'gb-team-empty' }, h(Icon, { name: 'clock', size: 22 }), h('span', null, t('routineEmpty')))
+            ? h(
+                'div',
+                { className: 'gb-team-empty gb-routine-empty' },
+                h(Icon, { name: 'clock', size: 22 }),
+                h('b', null, t('routineEmpty')),
+                h('span', null, t('routineEmptyHint')),
+                h(
+                  'div',
+                  { className: 'gb-routine-presets' },
+                  routinePresets.map((preset) =>
+                    h(
+                      'button',
+                      {
+                        key: preset.key,
+                        type: 'button',
+                        className: 'gb-routine-preset',
+                        onClick: () => applyRoutinePreset(preset),
+                        disabled: busy,
+                      },
+                      h(Icon, { name: preset.icon, size: 14 }),
+                      h('span', null, preset.title),
+                      h(Icon, { name: 'chevronRight', size: 12 }),
+                    ),
+                  ),
+                ),
+              )
             : h(
                 'div',
                 { className: 'gb-routine-list' },
@@ -9153,6 +9232,15 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 .gb-meta-line { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 8px; font-family: "Cascadia Code", Consolas, monospace; font-size: 7.5px; color: var(--gb-faint); }
 .gb-deck-copy { margin: 0 0 10px; font-size: 9.5px; line-height: 1.6; color: var(--gb-muted); }
 .gb-team-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 30px 10px; color: var(--gb-faint); font-size: 10px; }
+.gb-routine-empty { gap: 7px; padding-bottom: 18px; }
+.gb-routine-empty > b { color: var(--gb-text); font-size: 11px; font-weight: 600; }
+.gb-routine-empty > span { max-width: 260px; color: var(--gb-faint); font-size: 9px; line-height: 1.6; text-align: center; }
+.gb-routine-presets { display: flex; flex-direction: column; gap: 6px; width: min(100%, 300px); margin-top: 5px; }
+.gb-routine-preset { display: flex; align-items: center; gap: 8px; width: 100%; padding: 9px 10px; border: 1px solid var(--gb-line); border-radius: 8px; background: color-mix(in srgb, var(--gb-panel-2) 55%, transparent); color: var(--gb-muted); font-size: 9px; text-align: left; }
+.gb-routine-preset:hover { border-color: color-mix(in srgb, var(--gb-signal) 45%, var(--gb-line)); color: var(--gb-text); }
+.gb-routine-preset > svg:first-child { flex: none; color: var(--gb-signal); }
+.gb-routine-preset > span { flex: 1; }
+.gb-routine-preset > svg:last-child { opacity: .5; }
 .gb-team-list { display: flex; flex-direction: column; gap: 5px; }
 .gb-team-row { display: flex; align-items: center; gap: 8px; padding: 8px 9px; border: 1px solid var(--gb-line); border-radius: 7px; background: color-mix(in srgb, var(--gb-bg) 55%, transparent); }
 .gb-team-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gb-faint); flex: none; }
@@ -9476,7 +9564,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '5.20.0',
+              version: '5.21.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -9497,7 +9585,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '5.20.0',
+                version: '5.21.0',
               },
               null,
               2,

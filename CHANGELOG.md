@@ -1,5 +1,12 @@
 # Changelog
 
+## 5.21.0 — 2026-11-12
+
+- Add: routine empty state now offers three starter templates — daily work summary, weekly file review, hourly task check. Choosing one fills the form; cancel leaves no routine behind.
+- Add: concise empty-state explanation instead of a blank panel.
+- Verified visually: template cards render, clicking “每日工作摘要” fills name/prompt/daily 18:30; cancel returns to empty state with 0 routines.
+- QQ remains default-off.
+
 ## 5.20.0 — 2026-11-12
 
 - Add: the image lightbox now supports multiple images — left/right arrow buttons, ArrowLeft/ArrowRight keys, a `1 / N` counter, and wrap-around navigation.
