@@ -1,5 +1,13 @@
 # Changelog
 
+## 5.26.0 — 2026-11-12
+
+- Add: attachment cards are grouped by type — images, PDF, sheets, code and other files — with counts and type-specific icons.
+- Add: lightbox zoom/pan — buttons, wheel, `+`/`-`/`0` keys, drag-to-pan, and double-click to toggle 200%/reset.
+- Add: unified accessible toast component with `role=status`, `aria-live=polite`, close button and Esc dismiss.
+- Refactor: shared `EmptyState` for routine/skill empty states; checkpoint cards strip attachment markup and the skill empty copy now matches manual capture.
+- Verified: grouped image/PDF/text cards, 150% zoom, save-and-run routine, and cleaned all test data. QQ remains default-off.
+
 ## 5.25.0 — 2026-11-12
 
 - Add: image lightbox zoom/pan — buttons, wheel, `+`/`-`/`0` keys, drag to pan when zoomed, and a visible percentage control.

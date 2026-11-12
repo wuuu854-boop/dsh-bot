@@ -326,8 +326,8 @@ window.__ModuleLoader__.load({
         resumed: '已从断点继续',
         skills: '技能',
         skillTitle: '技能库',
-        skillHint: '成功任务会自动沉淀；重复流程可一键复跑。',
-        skillEmpty: '还没有技能。成功跑过一次多步任务后会自动出现。',
+        skillHint: '需要复用时，在任务卡里手动存为技能；不会再把一次性提示词自动塞进技能库。',
+        skillEmpty: '还没有技能。完成任务后在任务卡里点“存为技能”即可。',
         skillAuto: '自动',
         skillUses: '用过',
         skillSuccessRate: '成功率',
@@ -553,6 +553,11 @@ window.__ModuleLoader__.load({
         zoomIn: '放大',
         zoomOut: '缩小',
         zoomReset: '重置缩放',
+        attachmentImages: '图片',
+        attachmentPdfs: 'PDF',
+        attachmentSheets: '表格',
+        attachmentCodeFiles: '代码',
+        attachmentFiles: '文件',
         imageRefreshed: '画面已刷新',
         context: '上下文',
         thinkingDone: '思考完成',
@@ -972,8 +977,8 @@ window.__ModuleLoader__.load({
         resumed: 'Resumed from checkpoint',
         skills: 'Skills',
         skillTitle: 'Skills',
-        skillHint: 'Successful runs are distilled automatically; repeatable flows can be rerun.',
-        skillEmpty: 'No skills yet. A successful multi-step task will create one automatically.',
+        skillHint: 'Save a task as a skill when you want to reuse it; one-off prompts are no longer auto-added.',
+        skillEmpty: 'No skills yet. Save one from a task card when you want to reuse it.',
         skillAuto: 'auto',
         skillUses: 'used',
         skillSuccessRate: 'success',
@@ -1199,6 +1204,11 @@ window.__ModuleLoader__.load({
         zoomIn: 'Zoom in',
         zoomOut: 'Zoom out',
         zoomReset: 'Reset zoom',
+        attachmentImages: 'Images',
+        attachmentPdfs: 'PDF',
+        attachmentSheets: 'Sheets',
+        attachmentCodeFiles: 'Code',
+        attachmentFiles: 'Files',
         imageRefreshed: 'Preview refreshed',
         context: 'Context',
         thinkingDone: 'Thought',
@@ -1883,13 +1893,17 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function attachmentIcon(name) {
+    function attachmentKind(name) {
       const extension = String(name || '').split('.').pop().toLowerCase()
       if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(extension)) return 'image'
       if (extension === 'pdf') return 'pdf'
       if (['xls', 'xlsx', 'csv'].includes(extension)) return 'sheet'
       if (['js', 'jsx', 'ts', 'tsx', 'py', 'json', 'html', 'css', 'sh'].includes(extension)) return 'code'
       return 'file'
+    }
+
+    function attachmentIcon(name) {
+      return attachmentKind(name)
     }
 
     function AttachmentCards({ items, t }) {
@@ -1901,7 +1915,7 @@ window.__ModuleLoader__.load({
       const closeRef = useRef(null)
       const imageItems = items.filter((item) => {
         const fileName = String(item.path || '').split(/[\\/]/).pop() || item.name
-        return /\.(png|jpe?g|gif|webp|bmp)$/i.test(fileName)
+        return attachmentKind(fileName) === 'image'
       })
       const preview = previewIndex >= 0 ? imageItems[previewIndex] || null : null
       const copy = async (item) => {
@@ -2058,6 +2072,15 @@ window.__ModuleLoader__.load({
               draggable: false,
               style: { transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` },
               onClick: (event) => event.stopPropagation(),
+              onDoubleClick: (event) => {
+                event.stopPropagation()
+                if (zoom > 1) {
+                  setZoom(1)
+                  setPan({ x: 0, y: 0 })
+                } else {
+                  setZoom(2)
+                }
+              },
             }),
           ),
           h(
@@ -2089,57 +2112,87 @@ window.__ModuleLoader__.load({
         // the fixed overlay inside the chat column.
         return ReactDOM?.createPortal ? ReactDOM.createPortal(dialog, document.body) : dialog
       }
+      const attachmentGroups = ['image', 'pdf', 'sheet', 'code', 'file']
+        .map((kind) => ({
+          kind,
+          label:
+            {
+              image: 'attachmentImages',
+              pdf: 'attachmentPdfs',
+              sheet: 'attachmentSheets',
+              code: 'attachmentCodeFiles',
+              file: 'attachmentFiles',
+            }[kind],
+          items: items.filter((item) => {
+            const fileName = String(item.path || '').split(/[\\/]/).pop() || item.name
+            return attachmentKind(fileName) === kind
+          }),
+        }))
+        .filter((group) => group.items.length > 0)
       return h(
         'div',
         null,
         h(
           'div',
           { className: 'gb-attachments' },
-          items.map((item, index) =>
-            (() => {
-              const fileName = String(item.path || '').split(/[\\/]/).pop() || item.name
-              const isImage = /\.(png|jpe?g|gif|webp|bmp)$/i.test(fileName)
-              return h(
+          attachmentGroups.map((group) =>
+            h(
+              'div',
+              { className: 'gb-attachment-group', key: group.kind },
+              attachmentGroups.length > 1
+                ? h('span', { className: 'gb-attachment-group-label' }, `${t(group.label)} · ${group.items.length}`)
+                : null,
+              h(
                 'div',
-                { key: `${item.path}-${index}`, className: 'gb-attachment', title: item.path },
-                h(
-                  'button',
-                  {
-                    type: 'button',
-                    className: 'gb-attachment-main',
-                    'aria-label': isImage ? `${t('attachmentPreview')}: ${item.name}` : `${t('attachmentCopy')}: ${item.name}`,
-                    onClick: () => {
-                      if (!isImage) {
-                        copy(item)
-                        return
-                      }
-                      const imageIndex = imageItems.findIndex((image) => image.path === item.path)
-                      setPreviewIndex(imageIndex >= 0 ? imageIndex : 0)
-                    },
-                  },
-                  isImage
-                    ? h('img', {
-                        className: 'gb-attachment-thumb',
-                        src: `${API_BASE}/file?name=${encodeURIComponent(fileName)}`,
-                        alt: '',
-                        loading: 'lazy',
-                      })
-                    : h(Icon, { name: attachmentIcon(fileName), size: 12 }),
-                  h('span', { className: 'gb-attachment-name' }, item.name),
+                { className: 'gb-attachment-group-row' },
+                group.items.map((item, index) =>
+                  (() => {
+                    const fileName = String(item.path || '').split(/[\\/]/).pop() || item.name
+                    const isImage = attachmentKind(fileName) === 'image'
+                    return h(
+                      'div',
+                      { key: `${item.path}-${index}`, className: 'gb-attachment', title: item.path },
+                      h(
+                        'button',
+                        {
+                          type: 'button',
+                          className: 'gb-attachment-main',
+                          'aria-label': isImage ? `${t('attachmentPreview')}: ${item.name}` : `${t('attachmentCopy')}: ${item.name}`,
+                          onClick: () => {
+                            if (!isImage) {
+                              copy(item)
+                              return
+                            }
+                            const imageIndex = imageItems.findIndex((image) => image.path === item.path)
+                            setPreviewIndex(imageIndex >= 0 ? imageIndex : 0)
+                          },
+                        },
+                        isImage
+                          ? h('img', {
+                              className: 'gb-attachment-thumb',
+                              src: `${API_BASE}/file?name=${encodeURIComponent(fileName)}`,
+                              alt: '',
+                              loading: 'lazy',
+                            })
+                          : h(Icon, { name: attachmentIcon(fileName), size: 12 }),
+                        h('span', { className: 'gb-attachment-name' }, item.name),
+                      ),
+                      h(
+                        'button',
+                        {
+                          type: 'button',
+                          className: 'gb-attachment-copy',
+                          onClick: () => copy(item),
+                          title: copied === item.path ? t('attachmentCopied') : t('attachmentCopy'),
+                          'aria-label': copied === item.path ? t('attachmentCopied') : t('attachmentCopy'),
+                        },
+                        h(Icon, { name: copied === item.path ? 'check' : 'copy', size: 11 }),
+                      ),
+                    )
+                  })(),
                 ),
-                h(
-                  'button',
-                  {
-                    type: 'button',
-                    className: 'gb-attachment-copy',
-                    onClick: () => copy(item),
-                    title: copied === item.path ? t('attachmentCopied') : t('attachmentCopy'),
-                    'aria-label': copied === item.path ? t('attachmentCopied') : t('attachmentCopy'),
-                  },
-                  h(Icon, { name: copied === item.path ? 'check' : 'copy', size: 11 }),
-                ),
-              )
-            })(),
+              ),
+            ),
           ),
         ),
         renderPreview(),
@@ -3641,6 +3694,33 @@ window.__ModuleLoader__.load({
         kept.push(line)
       }
       return kept.join('\n').trim()
+    }
+
+    function Toast({ message, onClose, t }) {
+      useEffect(() => {
+        const onKey = (event) => {
+          if (event.key === 'Escape') onClose?.()
+        }
+        window.addEventListener('keydown', onKey)
+        return () => window.removeEventListener('keydown', onKey)
+      }, [onClose])
+      return h(
+        'div',
+        { className: 'gb-toast', role: 'status', 'aria-live': 'polite' },
+        h(Icon, { name: 'spark', size: 14 }),
+        h('span', { className: 'gb-toast-text' }, message),
+        h(
+          'button',
+          {
+            type: 'button',
+            className: 'gb-toast-close',
+            onClick: onClose,
+            'aria-label': t('close'),
+            title: t('close'),
+          },
+          h(Icon, { name: 'close', size: 12 }),
+        ),
+      )
     }
 
     function ProblemCard({ reason, items, t, onRetry, onRephrase, onCopy }) {
@@ -6231,6 +6311,8 @@ window.__ModuleLoader__.load({
 
     function CheckpointCard({ checkpoint, t, onResume, busy }) {
       if (!checkpoint) return null
+      const cleanPrompt = cleanProblemReason(checkpoint.prompt)
+      const cleanError = cleanProblemReason(checkpoint.error)
       return h(
         'div',
         { className: 'gb-checkpoint' },
@@ -6241,8 +6323,8 @@ window.__ModuleLoader__.load({
           h('b', null, t('checkpointTitle')),
           h('span', { className: 'gb-mono gb-muted' }, formatRelative(checkpoint.at, t)),
         ),
-        h('p', { className: 'gb-checkpoint-prompt' }, truncateText(checkpoint.prompt, 220)),
-        checkpoint.error ? h('p', { className: 'gb-checkpoint-error' }, truncateText(checkpoint.error, 220)) : null,
+        h('p', { className: 'gb-checkpoint-prompt' }, truncateText(cleanPrompt, 220)),
+        cleanError ? h('p', { className: 'gb-checkpoint-error' }, truncateText(cleanError, 220)) : null,
         h(
           'div',
           { className: 'gb-checkpoint-actions' },
@@ -8487,7 +8569,7 @@ window.__ModuleLoader__.load({
               ),
             )
           : null,
-        toast ? h('div', { className: 'gb-toast' }, h(Icon, { name: 'spark', size: 14 }), h('span', null, toast)) : null,
+        toast ? h(Toast, { message: toast, onClose: () => setToast(null), t }) : null,
       )
     }
 
@@ -9079,7 +9161,10 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 .gb-time { color: var(--gb-faint); }
 .gb-model-tag { margin-left: 2px; padding: 2px 5px; border: 1px solid var(--gb-line); border-radius: 4px; font-family: "Cascadia Code", Consolas, monospace; font-size: 7.5px; letter-spacing: .06em; color: var(--gb-faint); }
 .gb-md { font-size: 14.3px; line-height: 1.76; word-break: break-word; }
-.gb-attachments { display: flex; flex-wrap: wrap; gap: 7px; margin: 2px 0 12px; }
+.gb-attachments { display: flex; flex-direction: column; gap: 8px; margin: 2px 0 12px; }
+.gb-attachment-group { display: flex; flex-direction: column; gap: 5px; }
+.gb-attachment-group-label { color: var(--gb-faint); font-size: 8px; letter-spacing: .08em; text-transform: uppercase; }
+.gb-attachment-group-row { display: flex; flex-wrap: wrap; gap: 7px; }
 .gb-attachment { display: inline-flex; align-items: center; gap: 2px; max-width: min(100%, 400px); padding: 5px 6px 5px 9px; border: 1px solid var(--gb-line); border-radius: 8px; background: color-mix(in srgb, var(--gb-panel-2) 60%, transparent); color: var(--gb-text); font-size: 10px; }
 .gb-attachment:hover { border-color: color-mix(in srgb, var(--gb-signal) 45%, var(--gb-line)); background: color-mix(in srgb, var(--gb-panel-2) 85%, transparent); }
 .gb-attachment-main { display: inline-flex; align-items: center; gap: 7px; min-width: 0; padding: 2px 3px; border: 0; background: transparent; color: inherit; text-align: left; }
@@ -9489,6 +9574,10 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 
 /* misc */
 .gb-toast { position: fixed; left: 50%; bottom: 28px; z-index: 100; display: flex; align-items: center; gap: 8px; max-width: min(520px, 88vw); transform: translateX(-50%); padding: 9px 13px; border: 1px solid var(--gb-line-strong); border-radius: 9px; background: color-mix(in srgb, var(--gb-overlay) 94%, transparent); color: var(--gb-text); font-size: 10.5px; box-shadow: 0 18px 50px rgba(0,0,0,.4); animation: gb-fade .2s ease both; }
+.gb-toast-text { min-width: 0; overflow-wrap: anywhere; }
+.gb-toast-close { display: grid; place-items: center; width: 20px; height: 20px; flex: none; padding: 0; border: 0; border-radius: 5px; background: transparent; color: var(--gb-faint); }
+.gb-toast-close:hover { background: color-mix(in srgb, var(--gb-line) 55%, transparent); color: var(--gb-text); }
+.gb-toast:focus-visible, .gb-toast button:focus-visible { outline: 2px solid var(--gb-signal); outline-offset: 2px; }
 .gb-rail-backdrop { display: none; }
 .gb-deck-backdrop { display: none; }
 .gb-loading { align-items: center; justify-content: center; }
@@ -9715,7 +9804,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '5.25.0',
+              version: '5.26.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -9736,7 +9825,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '5.25.0',
+                version: '5.26.0',
               },
               null,
               2,
