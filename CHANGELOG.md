@@ -1,5 +1,10 @@
 # Changelog
 
+## 6.3.0 — 2026-11-12
+
+- Performance: `/team` assignment rows now cap prompt/summary/error at 600/800/500 chars; payload 95 KB → 40 KB. Full records remain in `state.json`.
+- No feature changes; QQ remains default-off.
+
 ## 6.2.0 — 2026-11-12
 
 - Performance: `/state` quality history now sends only the 5 runs the UI renders, with truncated prompt/verification fields. `quality` payload 57.2 KB → 3.6 KB; `/state` and `/bootstrap` 117 KB → 62 KB.

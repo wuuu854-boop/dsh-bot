@@ -1,10 +1,15 @@
-# DSH Bot v6.2.0
+# DSH Bot v6.3.0
 
 **An open-source GrokBot alternative that runs a real bot team on your own Windows machine, inside DeepSeek Harness.**
 
 You talk to one **Boss**. It decides what to do, hires a specialist when nobody fits, delegates real work to bots that each keep their own DSH session, workspace and memory, then reviews the receipts and reports back. Every morning it runs a stand-up where the whole team reports what it did.
 
 ![Architecture](architecture.svg)
+
+## Performance patch (v6.3.0)
+
+- Team assignment rows are capped at 600/800/500 chars for prompt/summary/error; `/team` payload dropped from 95 KB to 40 KB.
+- Full assignment records remain in `state.json`.
 
 ## Performance patch (v6.2.0)
 

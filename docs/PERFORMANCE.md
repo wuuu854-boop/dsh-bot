@@ -54,6 +54,26 @@ UI 实际只渲染最近 5 条，并只使用 id/status/prompt/steps/verificatio
 
 `/state` p50 仍约 5 ms，但客户端解析和渲染的数据量减少约 47%。
 
+## 派活列表瘦身
+
+`/team` 之前约 **95 KB**，主要来自每条 assignment 的完整 prompt/summary/error（单条最多 4 KB）。
+
+UI 实际只显示 summary 120 字、状态、步数、耗时和 tokens。
+
+调整为：
+
+- prompt 600 字；
+- summary 800 字；
+- error 500 字。
+
+结果：
+
+```text
+/team：95 KB → 40 KB
+```
+
+完整记录仍保留在 `state.json`，只是列表接口不再下发大段正文。
+
 ## 复现
 
 ```powershell

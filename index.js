@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '6.2.0'
+const VERSION = '6.3.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -3392,12 +3392,12 @@ export function apply(ctx) {
       toEmoji: to?.emoji || '◉',
       fromThreadId: assignment.fromThreadId,
       toThreadId: assignment.toThreadId,
-      prompt: truncate(assignment.prompt, 4_000),
+      prompt: truncate(assignment.prompt, 600),
       status: assignment.status,
       createdAt: assignment.createdAt,
       endedAt: assignment.endedAt,
-      summary: truncate(assignment.summary, 4_000),
-      error: truncate(assignment.error, 1_000),
+      summary: truncate(assignment.summary, 800),
+      error: truncate(assignment.error, 500),
       steps: Number(assignment.steps) || 0,
       durationMs: Number(assignment.durationMs) || 0,
       tokens: Number(assignment.tokens) || 0,
