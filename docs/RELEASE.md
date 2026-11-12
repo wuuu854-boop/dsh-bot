@@ -1,4 +1,4 @@
-# DSH Bot v5.3.0
+# DSH Bot v5.4.0
 
 **An open-source GrokBot alternative that runs a real bot team on your own Windows machine, inside DeepSeek Harness.**
 
@@ -7,6 +7,8 @@ You talk to one **Boss**. It decides what to do, hires a specialist when nobody 
 ![Architecture](architecture.svg)
 
 ## Highlights
+
+- **Safer UI** — a render error now shows a safe-mode card with retry/copy diagnostics instead of a blank page; course cache only serves an active browser window.
 
 - **Faster ICVE** — fast text reads only the active tab/window, 3s cache, `progress` counts completed/pending, and action results are reused instead of full re-reads.
 - **Bot settings fixed** — existing bots save again; `/bot/update` accepts `id`/`botId`, and admin confirmation is required only when elevating a standard bot.

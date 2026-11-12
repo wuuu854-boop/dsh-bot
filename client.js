@@ -9070,7 +9070,136 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
           }
         }, 'dsh-bot: panel shortcuts')
 
-        const Page = () => h(App, { ctx })
+        class BotErrorBoundary extends React.Component {
+          constructor(props) {
+            super(props)
+            this.state = { error: null, copied: false }
+            this.retry = this.retry.bind(this)
+            this.copy = this.copy.bind(this)
+          }
+
+          static getDerivedStateFromError(error) {
+            return { error }
+          }
+
+          componentDidCatch(error, info) {
+            const payload = {
+              message: String(error?.message || error || 'unknown'),
+              stack: String(error?.stack || '').slice(0, 4000),
+              componentStack: String(info?.componentStack || '').slice(0, 4000),
+              at: Date.now(),
+              version: '5.4.0',
+            }
+            try {
+              localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
+            } catch {
+              /* storage is best effort */
+            }
+            console.error('[dsh-bot] render crashed', payload)
+          }
+
+          retry() {
+            this.setState({ error: null, copied: false })
+          }
+
+          copy() {
+            const error = this.state.error
+            const text = JSON.stringify(
+              {
+                message: String(error?.message || error || ''),
+                stack: String(error?.stack || ''),
+                at: new Date().toISOString(),
+                version: '5.4.0',
+              },
+              null,
+              2,
+            )
+            try {
+              navigator.clipboard?.writeText(text)
+              this.setState({ copied: true })
+            } catch {
+              /* clipboard unavailable */
+            }
+          }
+
+          render() {
+            if (!this.state.error) return this.props.children
+            return h(
+              'div',
+              {
+                style: {
+                  minHeight: '100dvh',
+                  display: 'grid',
+                  placeItems: 'center',
+                  padding: 24,
+                  background: '#080908',
+                  color: '#f1f2ed',
+                  fontFamily: '"Segoe UI", "Microsoft YaHei", sans-serif',
+                },
+              },
+              h(
+                'div',
+                {
+                  style: {
+                    width: 'min(520px, 92vw)',
+                    padding: 24,
+                    border: '1px solid #2b332a',
+                    borderRadius: 16,
+                    background: '#101410',
+                    boxShadow: '0 24px 80px #0008',
+                  },
+                },
+                h('div', { style: { color: '#c8ff5a', fontSize: 10, letterSpacing: '.12em' } }, 'DSH BOT · SAFE MODE'),
+                h('h2', { style: { margin: '8px 0 8px', fontSize: 20 } }, '界面出了点问题，任务没有丢'),
+                h(
+                  'p',
+                  { style: { margin: '0 0 14px', color: '#9a9d94', fontSize: 12, lineHeight: 1.7 } },
+                  '后台任务通常还在运行。先点“重试渲染”；如果还是不行，复制诊断信息发给开发者，不要反复刷新页面。',
+                ),
+                h(
+                  'pre',
+                  {
+                    style: {
+                      maxHeight: 150,
+                      overflow: 'auto',
+                      padding: 10,
+                      borderRadius: 8,
+                      background: '#080b08',
+                      color: '#ff8a8a',
+                      fontSize: 10,
+                      whiteSpace: 'pre-wrap',
+                    },
+                  },
+                  String(this.state.error?.message || this.state.error || 'unknown error').slice(0, 1200),
+                ),
+                h(
+                  'div',
+                  { style: { display: 'flex', gap: 8, marginTop: 14 } },
+                  h(
+                    'button',
+                    {
+                      type: 'button',
+                      onClick: this.retry,
+                      style: { padding: '8px 14px', border: 0, borderRadius: 8, background: '#c8ff5a', color: '#07100b', fontWeight: 700, cursor: 'pointer' },
+                    },
+                    '重试渲染',
+                  ),
+                  h(
+                    'button',
+                    {
+                      type: 'button',
+                      onClick: this.copy,
+                      style: { padding: '8px 14px', border: '1px solid #3a3d34', borderRadius: 8, background: 'transparent', color: '#f1f2ed', cursor: 'pointer' },
+                    },
+                    this.state.copied ? '已复制' : '复制诊断',
+                  ),
+                ),
+              ),
+            )
+          }
+        }
+
+        const Page = () => h(BotErrorBoundary, null, h(App, { ctx }))
         ctx.slots.inject('main', () =>
           ctx.slots.register({ name: 'main', key: PANEL_ID, locale: NS }, Page),
         )

@@ -75,10 +75,12 @@ def load_cache():
         try:
             name = edge.resolve_browser()
             active = [item for item in edge.browser_windows(name) if item.get("active")]
-            if active and result.get("title") and str(active[0].get("title")) != str(result.get("title")):
+            if not active:
+                return None
+            if result.get("title") and str(active[0].get("title")) != str(result.get("title")):
                 return None
         except Exception:
-            pass
+            return None
         result["cached"] = True
         return result
     except Exception:

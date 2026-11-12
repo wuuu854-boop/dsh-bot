@@ -1,5 +1,12 @@
 # Changelog
 
+## 5.4.0 — 2026-11-12
+
+- Add: client render error boundary with “重试渲染 / 复制诊断” safe-mode card and localStorage diagnostics, so a frontend exception no longer leaves a blank page.
+- Fix: course page cache requires an active browser window; it no longer serves a stale snapshot after the browser is minimized/closed.
+- Polish: course fast path only reads the active tab/window; cache hits stay around 0.1s after the first read.
+- Verified: existing-bot update (`id`/`botId`), ICVE progress counting, cached status, and normal UI boot.
+
 ## 5.3.0 — 2026-11-12
 
 - Fix: existing bots can now save settings again — `/bot/update` accepts both `id` and `botId`, and the client sends both; previously the route looked only for `botId` and returned 404.
