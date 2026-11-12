@@ -31,6 +31,29 @@
 
 也就是重复打开记忆面板从约 215 ms 降到约 2 ms，冷启动成本保留但只付一次。
 
+## 状态快照瘦身
+
+`/state` 的 `quality.recent` 之前带 16 条完整 run（每条包含完整 prompt、summary、errors 等），单 `quality` 字段约 **57.2 KB**，整个 `/state` 约 **117 KB**。
+
+UI 实际只渲染最近 5 条，并只使用 id/status/prompt/steps/verification/时间。
+
+改为专用 `publicQualityRun()`：
+
+- 最近 5 条；
+- prompt 截断 160；
+- verification 只带 status/note；
+- 全量 run 仍保留在 `state.json`，只是不从快照下发。
+
+结果：
+
+| 项目 | 之前 | 之后 |
+|---|---:|---:|
+| `quality` | 57.2 KB | **3.6 KB** |
+| `/state` | 117 KB | **62 KB** |
+| `/bootstrap` | 117 KB | **62 KB** |
+
+`/state` p50 仍约 5 ms，但客户端解析和渲染的数据量减少约 47%。
+
 ## 复现
 
 ```powershell

@@ -1,5 +1,11 @@
 # Changelog
 
+## 6.2.0 — 2026-11-12
+
+- Performance: `/state` quality history now sends only the 5 runs the UI renders, with truncated prompt/verification fields. `quality` payload 57.2 KB → 3.6 KB; `/state` and `/bootstrap` 117 KB → 62 KB.
+- Add: performance baseline documents the memory cache and snapshot trim; no feature changes.
+- QQ remains default-off.
+
 ## 6.1.0 — 2026-11-12
 
 - Performance: cache memory Git history for 5 seconds and invalidate it on save/commit/restore. `/memory` p50 measured 215 ms before, 2 ms after (first call still ~205 ms).

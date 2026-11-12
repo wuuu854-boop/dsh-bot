@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '6.1.0'
+const VERSION = '6.2.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -1161,6 +1161,20 @@ export function apply(ctx) {
     }
   }
 
+  function publicQualityRun(run) {
+    return {
+      id: run.id,
+      prompt: truncate(run.prompt, 160),
+      startedAt: run.startedAt,
+      endedAt: run.endedAt,
+      status: run.status,
+      steps: Number(run.steps) || 0,
+      verification: run.verification
+        ? { status: run.verification.status, note: truncate(run.verification.note || '', 160) }
+        : null,
+    }
+  }
+
   function publicSkill(skill) {
     return {
       id: skill.id,
@@ -1203,7 +1217,7 @@ export function apply(ctx) {
       needsReview,
       rate: finished.length === 0 ? null : Math.round((success / finished.length) * 100),
       verifiedRate: finished.length === 0 ? null : Math.round((verified / finished.length) * 100),
-      recent: runs.slice(0, 16).map(publicRun),
+      recent: runs.slice(0, 5).map(publicQualityRun),
     }
   }
 
@@ -6052,7 +6066,7 @@ export function apply(ctx) {
       needsReview: finished.filter((run) => run.verification?.status === 'needs_review').length,
       rate: finished.length === 0 ? null : Math.round((success / finished.length) * 100),
       verifiedRate: finished.length === 0 ? null : Math.round((verified / finished.length) * 100),
-      recent: runs.slice(0, 16).map(publicRun),
+      recent: runs.slice(0, 5).map(publicQualityRun),
     }
   }
 
