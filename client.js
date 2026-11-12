@@ -528,6 +528,9 @@ window.__ModuleLoader__.load({
         templateMusicPrompt: '生成一段 <风格：lofi/upbeat/ambient> 的本地音乐：用 python scripts/studio.py music --out <路径.wav> --style <风格> --seconds <秒数> 生成 wav + mid；给出时长、BPM、文件路径。说明这是本地合成，不是云端模型；需要重新编曲就改参数重生成。',
         templateVocational: '智慧职教 / 刷课',
         templateVocationalPrompt: '打开智慧职教课程页 <粘贴 URL>。先 python scripts/course.py progress 看已完成/未完成（fast 缓存；cached:true 不要重复读），再用 course.py status 判断 phase。视频用 course.py play，PPT 用 course.py ppt，题目用 course.py question 读题干和选项，再用 course.py answer --choice N --submit 作答，完成后 course.py next 进入下一回合。动作命令会返回 page/phase/progress，直接采用它，不要每个动作再跑一次 full status；只有 page 缺失、缓存过期或卡住时才 course.py status --full。如果 click 返回 changed:false/stalled:true，禁止重复点击，先 read --all 检查 iframe、scroll、wait-change，仍无变化就停下说明卡点。检测到考试/监考/交卷页面必须停止，不自动作答。',
+        attachment: '附件',
+        attachmentCopy: '复制路径',
+        attachmentCopied: '已复制',
         imageRefreshed: '画面已刷新',
         context: '上下文',
         thinkingDone: '思考完成',
@@ -1156,6 +1159,9 @@ window.__ModuleLoader__.load({
         templateMusicPrompt: 'Generate local <style: lofi/upbeat/ambient> music: run python scripts/studio.py music --out <theme.wav> --style <style> --seconds <seconds> to produce WAV + MIDI. Return duration, BPM and path. State that it is local synthesis, not a cloud model; regenerate with new parameters for another arrangement.',
         templateVocational: 'Vocational course',
         templateVocationalPrompt: 'Open the vocational course page <URL>. Run python scripts/course.py progress first for completed/pending counts (fast cache; if cached:true, do not re-read), then course.py status for the phase. Use course.py play for video, ppt for slides, question for quiz text/options, answer --choice N --submit to answer, and next to advance. Action commands return page/phase/progress — reuse that result instead of running full status after every click; only run status --full when the page is missing, cache is stale, or you are stuck. If a click returns changed:false/stalled:true, do not repeat it: read --all, check iframes, scroll, wait-change, then stop and report the blocker. Stop immediately on exam/proctored/submit-exam pages.',
+        attachment: 'Attachment',
+        attachmentCopy: 'Copy path',
+        attachmentCopied: 'Copied',
         imageRefreshed: 'Preview refreshed',
         context: 'Context',
         thinkingDone: 'Thought',
@@ -1700,6 +1706,21 @@ window.__ModuleLoader__.load({
           index += 1
           continue
         }
+        if (/^\s*附件[：:]\s*$/.test(line)) {
+          const items = []
+          let cursor = index + 1
+          while (cursor < lines.length) {
+            const match = /^\s*[-*]\s*\[([^\]]+)\]\(<([^>]+)>\)\s*$/.exec(lines[cursor])
+            if (!match) break
+            items.push({ name: match[1], path: match[2] })
+            cursor += 1
+          }
+          if (items.length > 0) {
+            blocks.push({ type: 'attachments', items })
+            index = cursor
+            continue
+          }
+        }
         if (/^\s*[-*]\s+/.test(line)) {
           const items = []
           while (index < lines.length && /^\s*[-*]\s+/.test(lines[index])) {
@@ -1809,6 +1830,36 @@ window.__ModuleLoader__.load({
       )
     }
 
+    function AttachmentCards({ items, t }) {
+      const [copied, setCopied] = useState('')
+      const copy = async (item) => {
+        const ok = await copyText(item.path)
+        if (!ok) return
+        setCopied(item.path)
+        window.setTimeout(() => setCopied(''), 1400)
+      }
+      return h(
+        'div',
+        { className: 'gb-attachments' },
+        items.map((item, index) =>
+          h(
+            'button',
+            {
+              key: `${item.path}-${index}`,
+              type: 'button',
+              className: 'gb-attachment',
+              title: item.path,
+              'aria-label': `${t('attachmentCopy')}: ${item.name}`,
+              onClick: () => copy(item),
+            },
+            h(Icon, { name: copied === item.path ? 'check' : 'paperclip', size: 12 }),
+            h('span', { className: 'gb-attachment-name' }, item.name),
+            h('span', { className: 'gb-attachment-action' }, copied === item.path ? t('attachmentCopied') : t('attachmentCopy')),
+          ),
+        ),
+      )
+    }
+
     function Markdown({ text, t }) {
       const blocks = useMemo(() => parseMarkdown(text), [text])
       return h(
@@ -1817,6 +1868,9 @@ window.__ModuleLoader__.load({
         blocks.map((block, index) => {
           if (block.type === 'code') {
             return h(CodeBlock, { key: index, code: block.code, lang: block.lang, t })
+          }
+          if (block.type === 'attachments') {
+            return h(AttachmentCards, { key: index, items: block.items, t })
           }
           if (block.type === 'heading') {
             const tag = block.level === 1 ? 'h1' : block.level === 2 ? 'h2' : 'h3'
@@ -2029,7 +2083,23 @@ window.__ModuleLoader__.load({
       )
     }
 
+    function userAttachmentView(raw) {
+      const text = String(raw || '')
+      const lines = text.split('\n')
+      const start = lines.findIndex((line) => /^\s*附件[：:]\s*$/.test(line))
+      if (start < 0) return null
+      const items = []
+      for (let index = start + 1; index < lines.length; index += 1) {
+        const match = /^\s*[-*]\s*\[([^\]]+)\]\(<([^>]+)>\)\s*$/.exec(lines[index])
+        if (!match) break
+        items.push({ name: match[1], path: match[2] })
+      }
+      if (items.length === 0) return null
+      return { body: lines.slice(0, start).join('\n').trim(), items }
+    }
+
     function UserMessage({ item, pending, t }) {
+      const attachmentView = userAttachmentView(item.text)
       return h(
         'div',
         { className: `gb-user${pending ? ' is-pending' : ''}`, id: item.id ? `gb-msg-${item.id}` : undefined },
@@ -2048,7 +2118,12 @@ window.__ModuleLoader__.load({
                 h('p', null, item.quote.text),
               )
             : null,
-          h('div', { className: 'gb-user-text' }, item.text),
+          attachmentView
+            ? attachmentView.body
+              ? h('div', { className: 'gb-user-text' }, attachmentView.body)
+              : null
+            : h('div', { className: 'gb-user-text' }, item.text),
+          attachmentView ? h(AttachmentCards, { items: attachmentView.items, t }) : null,
           h(
             'div',
             { className: 'gb-user-meta' },
@@ -8619,6 +8694,13 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 .gb-time { color: var(--gb-faint); }
 .gb-model-tag { margin-left: 2px; padding: 2px 5px; border: 1px solid var(--gb-line); border-radius: 4px; font-family: "Cascadia Code", Consolas, monospace; font-size: 7.5px; letter-spacing: .06em; color: var(--gb-faint); }
 .gb-md { font-size: 14.3px; line-height: 1.76; word-break: break-word; }
+.gb-attachments { display: flex; flex-wrap: wrap; gap: 7px; margin: 2px 0 12px; }
+.gb-attachment { display: inline-flex; align-items: center; gap: 7px; max-width: min(100%, 360px); padding: 7px 9px; border: 1px solid var(--gb-line); border-radius: 8px; background: color-mix(in srgb, var(--gb-panel-2) 60%, transparent); color: var(--gb-text); font-size: 10px; text-align: left; }
+.gb-attachment:hover { border-color: color-mix(in srgb, var(--gb-signal) 45%, var(--gb-line)); background: color-mix(in srgb, var(--gb-panel-2) 85%, transparent); }
+.gb-attachment > svg { flex: none; color: var(--gb-signal); }
+.gb-attachment-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gb-attachment-action { flex: none; color: var(--gb-faint); font-size: 8px; }
+.gb-attachment:hover .gb-attachment-action { color: var(--gb-muted); }
 .gb-md p { margin: 0 0 12px; }
 .gb-md p:last-child { margin-bottom: 0; }
 .gb-md-heading { margin: 18px 0 8px; font-size: 15px; line-height: 1.4; font-weight: 650; letter-spacing: -.01em; }
@@ -9215,7 +9297,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '5.14.0',
+              version: '5.15.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -9236,7 +9318,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '5.14.0',
+                version: '5.15.0',
               },
               null,
               2,

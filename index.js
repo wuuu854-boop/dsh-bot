@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '5.14.0'
+const VERSION = '5.15.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -3279,7 +3279,7 @@ export function apply(ctx) {
     group.messages = Array.isArray(group.messages) ? group.messages : []
     group.messages.push(message)
     if (group.messages.length > 300) group.messages.splice(0, group.messages.length - 300)
-    if (!group.title || group.title === '新群聊') group.title = text.replace(/\s+/g, ' ').slice(0, 28)
+    if (!group.title || group.title === '新群聊') group.title = firstLine(text).replace(/\s+/g, ' ').slice(0, 28) || '新群聊'
     group.updatedAt = stamp
     const targeted = targets.length < members.length
     const results = []
@@ -7149,7 +7149,7 @@ export function apply(ctx) {
         }
         if (running) rec.agent.steer(message)
         else rec.agent.followup(message)
-        if (!thread.title) thread.title = text.replace(/\s+/g, ' ').slice(0, 28)
+        if (!thread.title) thread.title = firstLine(text).replace(/\s+/g, ' ').slice(0, 28) || '新任务'
         thread.updatedAt = now()
         thread.error = null
         rec.lastUsed = now()

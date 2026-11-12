@@ -1,5 +1,12 @@
 # Changelog
 
+## 5.15.0 — 2026-11-12
+
+- Add: attachments render as real cards in both user and assistant messages, with filename and a “复制路径” action; the local path remains available to the Bot.
+- Fix: message titles now use only the first line, so attachment messages no longer produce long raw Markdown titles such as `请查看附件。 附件： - [file](<path>)`.
+- Verified: attachment card renders in the user bubble; copied path works; Bot still reads the file and replies `LINK_ATTACHMENT_OK`.
+- QQ notifications and remote control remain disabled in this profile; fresh-install defaults are already off.
+
 ## 5.14.0 — 2026-11-12
 
 - Improve: attachment messages now render each file as a Markdown link with the filename visible, instead of showing a raw local path. The link target still contains the absolute path, and the Bot can read it.

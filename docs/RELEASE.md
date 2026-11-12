@@ -1,4 +1,5 @@
-# DSH Bot v5.14.0
+# DSH Bot v5.15.0
+
 
 
 
@@ -13,6 +14,9 @@ You talk to one **Boss**. It decides what to do, hires a specialist when nobody 
 ![Architecture](architecture.svg)
 
 ## Highlights
+
+- **Attachment cards** — attachments now render as named cards with a copy-path action in both user and assistant messages; raw paths stay available to the Bot.
+- **Clean titles** — attachment messages use the first line as the thread title instead of dumping the whole Markdown payload.
 
 - **Readable attachments** — files now appear as named Markdown links instead of raw absolute paths; the link still carries the local path so the Bot can read it.
 
