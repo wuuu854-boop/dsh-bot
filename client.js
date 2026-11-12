@@ -550,6 +550,9 @@ window.__ModuleLoader__.load({
         attachmentPrev: '上一张',
         attachmentNext: '下一张',
         attachmentDownload: '下载',
+        zoomIn: '放大',
+        zoomOut: '缩小',
+        zoomReset: '重置缩放',
         imageRefreshed: '画面已刷新',
         context: '上下文',
         thinkingDone: '思考完成',
@@ -1193,6 +1196,9 @@ window.__ModuleLoader__.load({
         attachmentPrev: 'Previous image',
         attachmentNext: 'Next image',
         attachmentDownload: 'Download',
+        zoomIn: 'Zoom in',
+        zoomOut: 'Zoom out',
+        zoomReset: 'Reset zoom',
         imageRefreshed: 'Preview refreshed',
         context: 'Context',
         thinkingDone: 'Thought',
@@ -1363,6 +1369,10 @@ window.__ModuleLoader__.load({
       spark: ['M12 3l1.6 5.4L19 10l-5.4 1.6L12 17l-1.6-5.4L5 10l5.4-1.6L12 3z'],
       terminal: ['M4 5h16v14H4z', 'm7 9 3 3-3 3', 'M13 15h4'],
       file: ['M6 3h8l4 4v14H6z', 'M14 3v5h5'],
+      image: ['M4 4h16v16H4z', 'm4 16 5-5 4 4 3-3 4 4', 'M15 8h.01'],
+      pdf: ['M6 3h8l4 4v14H6z', 'M14 3v5h5', 'M9 14h6', 'M9 17h4'],
+      sheet: ['M4 4h16v16H4z', 'M4 10h16', 'M10 4v16'],
+      code: ['m9 8-4 4 4 4', 'm15 8 4 4-4 4'],
       globe: ['M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18', 'M3 12h18', 'M12 3c3 3.5 3 14 0 18', 'M12 3c-3 3.5-3 14 0 18'],
       agents: ['M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', 'M17 14a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z', 'M3 20c0-3 2.2-5 5-5s5 2 5 5', 'M14 20c0-2.2 1.3-4 3-4s3 1.4 3 5'],
       check: ['m5 13 4 4L19 7'],
@@ -1862,9 +1872,32 @@ window.__ModuleLoader__.load({
       )
     }
 
+    function EmptyState({ icon = 'file', title, hint, children, className = '' }) {
+      return h(
+        'div',
+        { className: `gb-team-empty${className ? ` ${className}` : ''}` },
+        h(Icon, { name: icon, size: 22 }),
+        title ? h('b', { className: 'gb-empty-title' }, title) : null,
+        hint ? h('span', { className: 'gb-empty-hint' }, hint) : null,
+        children || null,
+      )
+    }
+
+    function attachmentIcon(name) {
+      const extension = String(name || '').split('.').pop().toLowerCase()
+      if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(extension)) return 'image'
+      if (extension === 'pdf') return 'pdf'
+      if (['xls', 'xlsx', 'csv'].includes(extension)) return 'sheet'
+      if (['js', 'jsx', 'ts', 'tsx', 'py', 'json', 'html', 'css', 'sh'].includes(extension)) return 'code'
+      return 'file'
+    }
+
     function AttachmentCards({ items, t }) {
       const [copied, setCopied] = useState('')
       const [previewIndex, setPreviewIndex] = useState(-1)
+      const [zoom, setZoom] = useState(1)
+      const [pan, setPan] = useState({ x: 0, y: 0 })
+      const dragRef = useRef(null)
       const closeRef = useRef(null)
       const imageItems = items.filter((item) => {
         const fileName = String(item.path || '').split(/[\\/]/).pop() || item.name
@@ -1877,6 +1910,17 @@ window.__ModuleLoader__.load({
         setCopied(item.path)
         window.setTimeout(() => setCopied(''), 1400)
       }
+      const changeZoom = (delta) => {
+        setZoom((value) => {
+          const next = Math.max(1, Math.min(4, Math.round((value + delta) * 100) / 100))
+          if (next <= 1) setPan({ x: 0, y: 0 })
+          return next
+        })
+      }
+      useEffect(() => {
+        setZoom(1)
+        setPan({ x: 0, y: 0 })
+      }, [previewIndex])
       useEffect(() => {
         if (!preview) return undefined
         const onKey = (event) => {
@@ -1888,6 +1932,12 @@ window.__ModuleLoader__.load({
           if (event.key === 'ArrowRight' && imageItems.length > 1) {
             event.preventDefault()
             setPreviewIndex((index) => (index + 1) % imageItems.length)
+          }
+          if (event.key === '+' || event.key === '=') changeZoom(0.25)
+          if (event.key === '-') changeZoom(-0.25)
+          if (event.key === '0') {
+            setZoom(1)
+            setPan({ x: 0, y: 0 })
           }
         }
         window.addEventListener('keydown', onKey)
@@ -1947,12 +1997,69 @@ window.__ModuleLoader__.load({
                 h(Icon, { name: 'chevronRight', size: 22 }),
               )
             : null,
-          h('img', {
-            key: fileName,
-            src: `${API_BASE}/file?name=${encodeURIComponent(fileName)}`,
-            alt: preview.name,
-            onClick: (event) => event.stopPropagation(),
-          }),
+          h(
+            'div',
+            { className: 'gb-attachment-lightbox-zoom' },
+            h(
+              'button',
+              { type: 'button', onClick: () => changeZoom(-0.25), 'aria-label': t('zoomOut') },
+              '−',
+            ),
+            h('span', null, `${Math.round(zoom * 100)}%`),
+            h(
+              'button',
+              { type: 'button', onClick: () => changeZoom(0.25), 'aria-label': t('zoomIn') },
+              '+',
+            ),
+            h(
+              'button',
+              {
+                type: 'button',
+                onClick: () => {
+                  setZoom(1)
+                  setPan({ x: 0, y: 0 })
+                },
+                'aria-label': t('zoomReset'),
+              },
+              t('zoomReset'),
+            ),
+          ),
+          h(
+            'div',
+            {
+              className: `gb-attachment-lightbox-stage${zoom > 1 ? ' is-zoomed' : ''}`,
+              onPointerDown: (event) => {
+                if (zoom <= 1) return
+                event.currentTarget.setPointerCapture?.(event.pointerId)
+                dragRef.current = { x: event.clientX - pan.x, y: event.clientY - pan.y }
+              },
+              onPointerMove: (event) => {
+                if (!dragRef.current) return
+                setPan({
+                  x: event.clientX - dragRef.current.x,
+                  y: event.clientY - dragRef.current.y,
+                })
+              },
+              onPointerUp: () => {
+                dragRef.current = null
+              },
+              onPointerCancel: () => {
+                dragRef.current = null
+              },
+              onWheel: (event) => {
+                event.preventDefault()
+                changeZoom(event.deltaY < 0 ? 0.2 : -0.2)
+              },
+            },
+            h('img', {
+              key: fileName,
+              src: `${API_BASE}/file?name=${encodeURIComponent(fileName)}`,
+              alt: preview.name,
+              draggable: false,
+              style: { transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` },
+              onClick: (event) => event.stopPropagation(),
+            }),
+          ),
           h(
             'a',
             {
@@ -2017,7 +2124,7 @@ window.__ModuleLoader__.load({
                         alt: '',
                         loading: 'lazy',
                       })
-                    : h(Icon, { name: 'paperclip', size: 12 }),
+                    : h(Icon, { name: attachmentIcon(fileName), size: 12 }),
                   h('span', { className: 'gb-attachment-name' }, item.name),
                 ),
                 h(
@@ -5532,11 +5639,13 @@ window.__ModuleLoader__.load({
             : null,
           routines.length === 0
             ? h(
-                'div',
-                { className: 'gb-team-empty gb-routine-empty' },
-                h(Icon, { name: 'clock', size: 22 }),
-                h('b', null, t('routineEmpty')),
-                h('span', null, t('routineEmptyHint')),
+                EmptyState,
+                {
+                  icon: 'clock',
+                  title: t('routineEmpty'),
+                  hint: t('routineEmptyHint'),
+                  className: 'gb-routine-empty',
+                },
                 h(
                   'div',
                   { className: 'gb-routine-presets' },
@@ -5642,7 +5751,7 @@ window.__ModuleLoader__.load({
             t('skillSaveCurrent'),
           ),
           list.length === 0
-            ? h('div', { className: 'gb-team-empty' }, h(Icon, { name: 'spark', size: 22 }), h('span', null, t('skillEmpty')))
+            ? h(EmptyState, { icon: 'spark', title: t('skillEmpty') })
             : h(
                 'div',
                 { className: 'gb-skill-list' },
@@ -8975,21 +9084,30 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 .gb-attachment:hover { border-color: color-mix(in srgb, var(--gb-signal) 45%, var(--gb-line)); background: color-mix(in srgb, var(--gb-panel-2) 85%, transparent); }
 .gb-attachment-main { display: inline-flex; align-items: center; gap: 7px; min-width: 0; padding: 2px 3px; border: 0; background: transparent; color: inherit; text-align: left; }
 .gb-attachment-main > svg { flex: none; color: var(--gb-signal); }
+.gb-attachment:focus-within { border-color: color-mix(in srgb, var(--gb-signal) 55%, var(--gb-line)); box-shadow: 0 0 0 2px color-mix(in srgb, var(--gb-signal) 18%, transparent); }
 .gb-attachment-thumb { width: 28px; height: 28px; flex: none; border-radius: 5px; object-fit: cover; background: var(--gb-panel); }
 .gb-attachment-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gb-attachment-copy { display: grid; place-items: center; width: 22px; height: 22px; flex: none; padding: 0; border: 0; border-radius: 5px; background: transparent; color: var(--gb-faint); }
 .gb-attachment-copy:hover { color: var(--gb-text); background: color-mix(in srgb, var(--gb-line) 55%, transparent); }
 .gb-attachment-lightbox { position: fixed; inset: 0; z-index: 240; display: grid; place-items: center; padding: 32px; background: rgba(0, 0, 0, .74); backdrop-filter: blur(8px); animation: gb-fade .16s ease both; }
-.gb-attachment-lightbox img { max-width: min(92vw, 1200px); max-height: 82vh; border: 1px solid rgba(255,255,255,.14); border-radius: 12px; box-shadow: 0 28px 90px rgba(0,0,0,.55); object-fit: contain; }
+.gb-attachment-lightbox img { max-width: min(92vw, 1200px); max-height: 82vh; border: 1px solid rgba(255,255,255,.14); border-radius: 12px; box-shadow: 0 28px 90px rgba(0,0,0,.55); object-fit: contain; transition: transform .12s ease; user-select: none; }
+.gb-attachment-lightbox-stage { display: grid; place-items: center; max-width: 92vw; max-height: 82vh; overflow: hidden; touch-action: none; }
+.gb-attachment-lightbox-stage.is-zoomed { cursor: grab; }
+.gb-attachment-lightbox-stage.is-zoomed:active { cursor: grabbing; }
 .gb-attachment-lightbox-close { position: absolute; right: 24px; bottom: 24px; display: inline-flex; align-items: center; gap: 6px; min-width: 34px; height: 34px; padding: 0 12px; border: 1px solid rgba(255,255,255,.2); border-radius: 999px; background: rgba(0,0,0,.55); color: #fff; font-size: 10px; }
 .gb-attachment-lightbox-close:hover { background: rgba(255,255,255,.14); }
 .gb-attachment-lightbox-download { position: absolute; right: 112px; bottom: 24px; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid rgba(255,255,255,.2); border-radius: 999px; background: rgba(0,0,0,.55); color: #fff; font-size: 10px; text-decoration: none; }
 .gb-attachment-lightbox-download:hover { background: rgba(255,255,255,.14); }
-.gb-attachment-lightbox-count { position: absolute; left: 24px; bottom: 30px; color: rgba(255,255,255,.72); font-family: "Cascadia Code", Consolas, monospace; font-size: 10px; letter-spacing: .06em; }
+.gb-attachment-lightbox-count { position: absolute; left: 24px; bottom: 64px; color: rgba(255,255,255,.72); font-family: "Cascadia Code", Consolas, monospace; font-size: 10px; letter-spacing: .06em; }
+.gb-attachment-lightbox-zoom { position: absolute; left: 24px; bottom: 24px; display: inline-flex; align-items: center; gap: 3px; padding: 3px; border: 1px solid rgba(255,255,255,.2); border-radius: 999px; background: rgba(0,0,0,.55); color: #fff; font-size: 10px; }
+.gb-attachment-lightbox-zoom button { min-width: 26px; height: 26px; padding: 0 7px; border: 0; border-radius: 999px; background: transparent; color: #fff; font-size: 11px; }
+.gb-attachment-lightbox-zoom button:hover { background: rgba(255,255,255,.14); }
+.gb-attachment-lightbox-zoom span { min-width: 36px; text-align: center; font-family: "Cascadia Code", Consolas, monospace; font-size: 9px; color: rgba(255,255,255,.72); }
 .gb-attachment-lightbox-nav { position: absolute; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid rgba(255,255,255,.2); border-radius: 999px; background: rgba(0,0,0,.5); color: #fff; }
 .gb-attachment-lightbox-nav:hover { background: rgba(255,255,255,.16); }
 .gb-attachment-lightbox-nav.is-prev { left: 22px; }
 .gb-attachment-lightbox-nav.is-next { right: 22px; }
+.gb-attachment-lightbox button:focus-visible, .gb-attachment-lightbox a:focus-visible { outline: 2px solid #c8ff5a; outline-offset: 2px; }
 .gb-md p { margin: 0 0 12px; }
 .gb-md p:last-child { margin-bottom: 0; }
 .gb-md-heading { margin: 18px 0 8px; font-size: 15px; line-height: 1.4; font-weight: 650; letter-spacing: -.01em; }
@@ -9263,6 +9381,8 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 .gb-meta-line { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 8px; font-family: "Cascadia Code", Consolas, monospace; font-size: 7.5px; color: var(--gb-faint); }
 .gb-deck-copy { margin: 0 0 10px; font-size: 9.5px; line-height: 1.6; color: var(--gb-muted); }
 .gb-team-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 30px 10px; color: var(--gb-faint); font-size: 10px; }
+.gb-empty-title { color: var(--gb-text); font-size: 11px; font-weight: 600; }
+.gb-empty-hint { max-width: 280px; color: var(--gb-faint); font-size: 9px; line-height: 1.6; text-align: center; }
 .gb-routine-empty { gap: 7px; padding-bottom: 18px; }
 .gb-routine-empty > b { color: var(--gb-text); font-size: 11px; font-weight: 600; }
 .gb-routine-empty > span { max-width: 260px; color: var(--gb-faint); font-size: 9px; line-height: 1.6; text-align: center; }
@@ -9595,7 +9715,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '5.24.0',
+              version: '5.25.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -9616,7 +9736,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '5.24.0',
+                version: '5.25.0',
               },
               null,
               2,

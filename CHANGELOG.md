@@ -1,5 +1,12 @@
 # Changelog
 
+## 5.25.0 — 2026-11-12
+
+- Add: image lightbox zoom/pan — buttons, wheel, `+`/`-`/`0` keys, drag to pan when zoomed, and a visible percentage control.
+- Add: attachment type icons for image/PDF/sheet/code/generic files.
+- Refactor: shared `EmptyState` component for routine and skill empty states; consistent focus ring for attachment cards and lightbox controls.
+- Verified: zoom control reached 150% and rendered correctly; test thread/upload cleaned. QQ remains default-off.
+
 ## 5.24.0 — 2026-11-12
 
 - Add: attachment labels now include the uploaded file size (for example `image.png · 64 KB`), using the existing byte formatter.

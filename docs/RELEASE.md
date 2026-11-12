@@ -1,4 +1,5 @@
-# DSH Bot v5.24.0
+# DSH Bot v5.25.0
+
 
 
 
@@ -23,6 +24,9 @@ You talk to one **Boss**. It decides what to do, hires a specialist when nobody 
 ![Architecture](architecture.svg)
 
 ## Highlights
+
+- **Zoom/pan lightbox** — buttons, wheel, keyboard `+`/`-`/`0`, drag panning, and a percentage indicator.
+- **File-type icons + shared empty state** — image/PDF/sheet/code icons in attachment cards; routine and skill empty states now share one component and focus styling.
 
 - **Attachment size labels** — uploaded files now show their size next to the name, e.g. `image.png · 64 KB`.
 - **Save & run verified in the UI** — routine created, immediate run started, thread opened; test data cleaned.
