@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '5.7.0'
+const VERSION = '5.8.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -3554,6 +3554,7 @@ export function apply(ctx) {
     if (!title) throw new Error('例程标题不能为空')
     if (!prompt) throw new Error('例程内容不能为空')
     const schedule = validateSchedule(body.schedule)
+    if (schedule.kind === 'cron') throw new Error('本地例程暂不支持 Cron；请用每天 / 每周 / 间隔')
     const thread = createThreadRecord(`例行 · ${title}`.slice(0, 32), bot.id, 'routine')
     const routine = {
       id: `routine-${crypto.randomUUID()}`,
@@ -3572,8 +3573,11 @@ export function apply(ctx) {
     state.routines.push(routine)
     try {
       await ensureAgent(thread)
-      const record = await scheduleOf().create(thread.sessionId, scheduleRequest(routine))
-      routine.scheduleId = record.id
+      // Local scheduler: routines run while DSH is open, without depending on
+      // the optional DSH schedule service.
+      routine.local = true
+      routine.scheduleId = null
+      ensureLocalRoutineScheduler()
       saveStateNow()
       return routine
     } catch (error) {
@@ -3597,31 +3601,20 @@ export function apply(ctx) {
     if (!title) throw new Error('例程标题不能为空')
     if (!prompt) throw new Error('例程内容不能为空')
     const schedule = body.schedule ? validateSchedule(body.schedule) : routine.schedule
+    if (schedule.kind === 'cron') throw new Error('本地例程暂不支持 Cron；请用每天 / 每周 / 间隔')
     const enabled = typeof body.enabled === 'boolean' ? body.enabled : routine.enabled
     const thread = routineThread(routine)
-    const service = scheduleOf()
-    const oldScheduleId = routine.scheduleId
     const old = { title: routine.title, prompt: routine.prompt, schedule: routine.schedule, enabled: routine.enabled }
     routine.title = title
     routine.prompt = prompt
     routine.schedule = schedule
     routine.updatedAt = now()
     try {
-      if (enabled) {
-        await ensureAgent(thread)
-        const record = await service.create(thread.sessionId, scheduleRequest(routine))
-        routine.scheduleId = record.id
-      } else {
-        routine.scheduleId = null
-      }
-      if (oldScheduleId) {
-        try {
-          await service.delete({ sessionId: thread.sessionId, id: oldScheduleId })
-        } catch {
-          /* the old schedule may already have fired */
-        }
-      }
+      if (enabled) await ensureAgent(thread)
       routine.enabled = enabled
+      routine.local = true
+      routine.scheduleId = null
+      ensureLocalRoutineScheduler()
       saveStateNow()
       return routine
     } catch (error) {
@@ -3636,13 +3629,6 @@ export function apply(ctx) {
   async function deleteRoutineRecord(routine, options = {}) {
     const keepThread = options.keepThread !== false
     const thread = threadById(routine.threadId)
-    if (routine.scheduleId && thread) {
-      try {
-        await scheduleOf().delete({ sessionId: thread.sessionId, id: routine.scheduleId })
-      } catch {
-        /* already gone */
-      }
-    }
     state.routines = state.routines.filter((item) => item.id !== routine.id)
     if (keepThread && thread) {
       thread.kind = 'task'
@@ -3671,6 +3657,74 @@ export function apply(ctx) {
     rec.lastUsed = now()
     saveStateSoon()
     return { threadId: thread.id, text }
+  }
+
+  let localRoutineTimer = null
+  const localRoutineBusy = new Set()
+
+  function nextClockAt(value, from) {
+    const match = /^(\d{1,2}):(\d{2})$/.exec(String(value || ''))
+    if (!match) return null
+    const date = new Date(from)
+    date.setHours(Number(match[1]), Number(match[2]), 0, 0)
+    if (date.getTime() <= from) date.setDate(date.getDate() + 1)
+    return date.getTime()
+  }
+
+  function nextWeeklyAt(weekdays, value, from) {
+    const days = new Set((Array.isArray(weekdays) ? weekdays : []).map((day) => Number(day)))
+    if (days.size === 0) return null
+    const match = /^(\d{1,2}):(\d{2})$/.exec(String(value || ''))
+    if (!match) return null
+    for (let offset = 0; offset <= 8; offset += 1) {
+      const date = new Date(from)
+      date.setDate(date.getDate() + offset)
+      const weekday = date.getDay() === 0 ? 7 : date.getDay()
+      if (!days.has(weekday)) continue
+      date.setHours(Number(match[1]), Number(match[2]), 0, 0)
+      if (date.getTime() > from) return date.getTime()
+    }
+    return null
+  }
+
+  function nextRoutineAt(routine, from) {
+    const schedule = routine.schedule || {}
+    if (schedule.kind === 'every') {
+      const seconds = Math.max(60, Number(schedule.seconds) || 3600)
+      const base = Math.max(Number(routine.lastRunAt) || 0, Number(routine.createdAt) || 0, from)
+      return base + seconds * 1000
+    }
+    if (schedule.kind === 'daily') return nextClockAt(schedule.time, from)
+    if (schedule.kind === 'weekly') return nextWeeklyAt(schedule.weekdays, schedule.time, from)
+    return null
+  }
+
+  function ensureLocalRoutineScheduler() {
+    if (localRoutineTimer) return localRoutineTimer
+    const tick = async () => {
+      const current = now()
+      for (const routine of [...state.routines]) {
+        if (!routine.enabled || localRoutineBusy.has(routine.id)) continue
+        const anchor = Math.max(
+          Number(routine.lastRunAt) || 0,
+          Number(routine.createdAt) || 0,
+          current - 60_000,
+        )
+        const due = nextRoutineAt(routine, anchor)
+        if (!due || due > current) continue
+        localRoutineBusy.add(routine.id)
+        runRoutine(routine)
+          .catch((error) => console.error('[dsh-bot] routine failed', messageOf(error)))
+          .finally(() => localRoutineBusy.delete(routine.id))
+      }
+    }
+    localRoutineTimer = setInterval(() => {
+      tick().catch(() => undefined)
+    }, 15_000)
+    setTimeout(() => {
+      tick().catch(() => undefined)
+    }, 1_000)
+    return localRoutineTimer
   }
 
   async function reconcileRoutines() {
@@ -7889,6 +7943,13 @@ export function apply(ctx) {
   }
   saveStateNow()
   writeRuntimeInfo()
+  ensureLocalRoutineScheduler()
+  ctx.effect(() => () => {
+    if (localRoutineTimer) {
+      clearInterval(localRoutineTimer)
+      localRoutineTimer = null
+    }
+  })
   setTimeout(() => {
     ensureDefaultModel().catch(() => undefined)
   }, 1_200)

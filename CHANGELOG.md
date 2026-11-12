@@ -1,5 +1,12 @@
 # Changelog
 
+## 5.8.0 — 2026-11-12
+
+- Fix: routines no longer fail with “DSH 调度服务不可用”. They now use a local scheduler while DSH is open for daily / weekly / every schedules; Cron is rejected with a clear message instead of silently failing.
+- Fix: routine create/update/delete no longer depend on the optional schedule service; tested create → run → stop → delete.
+- Add: local scheduler ticks every 15s, tracks `lastRunAt`, and avoids replaying missed runs older than 60s after a restart.
+- Verified: routine create 200 (`local:true`), manual run 200, stop and delete 200.
+
 ## 5.7.0 — 2026-11-12
 
 - Fix: stop noisy automatic skill capture from one-off prompts/delegation boilerplate; unused auto skills are dropped on load, while used/manual skills survive.
