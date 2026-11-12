@@ -6763,16 +6763,34 @@ window.__ModuleLoader__.load({
       useEffect(() => {
         if (!threadId || !booted) return undefined
         let alive = true
+        let timer = null
+        let busy = false
+        let delay = 900
+        const schedule = (ms) => {
+          if (!alive) return
+          if (timer) clearTimeout(timer)
+          timer = setTimeout(tick, ms)
+        }
         const tick = async () => {
-          if (document.hidden) return
+          if (!alive || document.hidden || busy) return
+          busy = true
           try {
             const data = await apiGet(`/state?thread=${encodeURIComponent(threadId)}`)
             if (!alive) return
             setSnap(data)
             setOffline(false)
+            const active = Boolean(
+              data.thread?.running ||
+                data.stream ||
+                data.approval ||
+                data.question ||
+                data.checkpoint?.running,
+            )
+            delay = active ? 900 : 3000
           } catch (error) {
             if (!alive) return
             setOffline(true)
+            delay = 3000
             if (String(error?.message || '').includes('任务不存在')) {
               apiGet('/bootstrap')
                 .then((data) => {
@@ -6783,17 +6801,19 @@ window.__ModuleLoader__.load({
                 })
                 .catch(() => undefined)
             }
+          } finally {
+            busy = false
+            if (alive && !document.hidden) schedule(delay)
           }
         }
         tick()
-        const timer = setInterval(tick, 900)
         const onVisible = () => {
-          if (!document.hidden) tick()
+          if (!document.hidden && !busy) schedule(0)
         }
         document.addEventListener('visibilitychange', onVisible)
         return () => {
           alive = false
-          clearInterval(timer)
+          if (timer) clearTimeout(timer)
           document.removeEventListener('visibilitychange', onVisible)
         }
       }, [threadId, booted])
@@ -9804,7 +9824,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '6.4.0',
+              version: '6.5.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -9825,7 +9845,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '6.4.0',
+                version: '6.5.0',
               },
               null,
               2,

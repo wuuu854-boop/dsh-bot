@@ -1,10 +1,15 @@
-# DSH Bot v6.4.0
+# DSH Bot v6.5.0
 
 **An open-source GrokBot alternative that runs a real bot team on your own Windows machine, inside DeepSeek Harness.**
 
 You talk to one **Boss**. It decides what to do, hires a specialist when nobody fits, delegates real work to bots that each keep their own DSH session, workspace and memory, then reviews the receipts and reports back. Every morning it runs a stand-up where the whole team reports what it did.
 
 ![Architecture](architecture.svg)
+
+## Performance patch (v6.5.0)
+
+- Client state polling is adaptive: 900 ms while a run is active, 3 seconds when idle, paused while the page is hidden.
+- Idle request rate drops from about 67/min to about 20/min; snapshot payload stays at 51 KB.
 
 ## Performance patch (v6.4.0)
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 6.5.0 — 2026-11-12
+
+- Performance: client `/state` polling is adaptive — 900 ms while a run/stream/approval/question is active, 3000 ms when idle, paused when the page is hidden.
+- No feature changes; idle request rate drops from about 67/min to about 20/min, and the existing 51 KB snapshot is unchanged.
+- QQ remains default-off.
+
 ## 6.4.0 — 2026-11-12
 
 - Performance: `/state.safety` now sends 3 compact snapshots and no audit detail; `safety` 12.3 KB → 0.9 KB, `/state` 62 KB → 51 KB.
