@@ -1,4 +1,4 @@
-# DSH Bot v5.8.0
+# DSH Bot v5.9.0
 
 
 **An open-source GrokBot alternative that runs a real bot team on your own Windows machine, inside DeepSeek Harness.**
@@ -8,6 +8,8 @@ You talk to one **Boss**. It decides what to do, hires a specialist when nobody 
 ![Architecture](architecture.svg)
 
 ## Highlights
+
+- **QQ remote works again** — the helper timeout was 40 ms instead of 40 s; fixed, plus real contact-mismatch guidance and a doctor check for comtypes.
 
 - **Routines work offline** — daily/weekly/every routines use a local scheduler while DSH is open; no dependency on the optional DSH schedule service, and create → run → stop → delete is verified.
 

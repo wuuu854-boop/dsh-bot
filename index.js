@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '5.8.0'
+const VERSION = '5.9.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -1258,7 +1258,7 @@ export function apply(ctx) {
   }
 
   function adminCapture(command, timeout = 60_000) {
-    const python = process.env.DSH_PYTHON || 'python'
+    const python = pythonExe
     const result = captureCommand(python, [adminScript, '--command', command, '--timeout', String(Math.max(20, Math.ceil(timeout / 1000)))], timeout + 5_000)
     try {
       const data = JSON.parse(String(result.stdout || '').trim().split(/\r?\n/).filter(Boolean).pop())
@@ -1554,7 +1554,8 @@ export function apply(ctx) {
 
   function execJson(file, args, timeout = 30) {
     return new Promise((resolve) => {
-      execFile(file, args, { timeout, windowsHide: true, encoding: 'buffer' }, (error, stdout, stderr) => {
+      // Callers pass seconds; Node's execFile expects milliseconds.
+      execFile(file, args, { timeout: timeout * 1000, windowsHide: true, encoding: 'buffer' }, (error, stdout, stderr) => {
         const text = decodeProcessOutput(stdout).trim()
         let data = null
         try {
@@ -1567,17 +1568,47 @@ export function apply(ctx) {
     })
   }
 
+  let qqPythonCache = null
+  function qqPython() {
+    if (qqPythonCache) return qqPythonCache
+    try {
+      execFileSync(pythonExe, ['-c', 'import comtypes'], {
+        timeout: 5_000,
+        windowsHide: true,
+        stdio: 'ignore',
+      })
+      qqPythonCache = pythonExe
+    } catch {
+      // QQ's COM/UIA helper needs comtypes; the DSH runtime may not bundle it,
+      // while the system Python often does. Fall back only for this helper.
+      qqPythonCache = 'python'
+    }
+    return qqPythonCache
+  }
+
   async function readQQChat() {
     const notify = state.notify
     if (!notify.remoteControl || notify.method !== 'desktop' || !notify.contact) {
       return { ok: false, error: 'remote control disabled or contact missing' }
     }
     const result = await execJson(
-      process.env.DSH_PYTHON || 'python',
+      qqPython(),
       [qqUiaPy, '--contact', notify.contact, '--tail', '20'],
       40,
     )
     if (!result.data?.b64) {
+      if (result.data?.error) {
+        const errorText = textValue(result.data.error, 300)
+        const hint = /current chat is not/i.test(errorText)
+          ? `请先在 QQ 打开与「${notify.contact}」的聊天，再测试`
+          : ''
+        return {
+          ok: false,
+          error: hint ? `${errorText}；${hint}` : errorText,
+          hint,
+          detail: [result.stderr || '', result.stdout || ''].filter(Boolean).join(' | ').slice(-500),
+        }
+      }
       return {
         ok: false,
         error: 'UIA helper failed',
@@ -1751,7 +1782,7 @@ export function apply(ctx) {
       saveStateSoon()
       return
     }
-    const python = process.env.DSH_PYTHON || 'python'
+    const python = pythonExe
     notifyInFlight = true
     execFile(python, qqArgs(notify, subject, message), { timeout: 45_000, windowsHide: true }, (error, stdout, stderr) => {
       notifyInFlight = false
@@ -1776,7 +1807,7 @@ export function apply(ctx) {
     if (notify.method === 'smtp' && (!notify.email || !notify.authCode || !notify.to)) {
       return Promise.resolve({ ok: false, error: 'QQ 邮箱未配置完整（email/authCode/to）' })
     }
-    const python = process.env.DSH_PYTHON || 'python'
+    const python = pythonExe
     return new Promise((resolve) => {
       execFile(python, qqArgs(notify, 'DSH 通知测试', '这是一条 DSH Bot QQ 通知测试。'), { timeout: 45_000, windowsHide: true }, (error, stdout, stderr) => {
         try {
@@ -6217,6 +6248,28 @@ export function apply(ctx) {
           detail: creativeDetail || '缺少 python-pptx / python-docx / openpyxl / Pillow',
           fix: `使用 DSH 运行时 Python（${python}），不要用系统 Python 安装创作依赖`,
         })
+        if (state.notify.remoteControl && state.notify.method === 'desktop') {
+          let qqOk = false
+          let qqDetail = ''
+          try {
+            qqDetail = String(execFileSync(qqPython(), ['-c', 'import comtypes; print("ok")'], {
+              timeout: 5_000,
+              windowsHide: true,
+              encoding: 'utf8',
+              stdio: ['ignore', 'pipe', 'pipe'],
+            })).trim()
+            qqOk = qqDetail === 'ok'
+          } catch (error) {
+            qqDetail = messageOf(error)
+          }
+          checks.push({
+            id: 'qq-uia',
+            label: 'QQ 远程控制依赖',
+            ok: qqOk,
+            detail: qqOk ? 'comtypes 可用' : qqDetail,
+            fix: '在系统 Python 安装 comtypes，或在 QQ 里打开配置的联系人后重试',
+          })
+        }
         const edgeCandidates = [
           process.env.ProgramFiles && path.join(process.env.ProgramFiles, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
           process.env['ProgramFiles(x86)'] &&
@@ -7229,7 +7282,7 @@ export function apply(ctx) {
         if (process.platform !== 'win32') {
           return json(res, 400, { ok: false, error: '系统听写目前仅支持 Windows' })
         }
-        const python = process.env.DSH_PYTHON || 'python'
+        const python = pythonExe
         try {
           await new Promise((resolve, reject) => {
             execFile(
@@ -7348,6 +7401,7 @@ export function apply(ctx) {
           count: chat?.messages?.length || 0,
           last: chat?.messages?.slice(-1)[0] || null,
           error: chat?.error || null,
+          hint: chat?.hint || null,
           detail: chat?.detail || null,
         })
         return

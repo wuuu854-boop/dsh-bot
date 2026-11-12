@@ -1,5 +1,13 @@
 # Changelog
 
+## 5.9.0 — 2026-11-12
+
+- Fix: QQ remote-control reads were killed after 40 **milliseconds** — `execJson` passed seconds directly to Node's `execFile` timeout. It now converts seconds to milliseconds, so the helper can actually return.
+- Fix: surface the real QQ helper error (“current chat is not …”) plus an actionable hint, instead of always reporting “UIA helper failed”.
+- Fix: use the DSH runtime Python for QQ/voice/admin subprocesses; QQ UIA falls back to a Python that has `comtypes` when the runtime does not.
+- Add: doctor `qq-uia` check when desktop remote control is enabled; verified comtypes available.
+- Verified: remote test now reaches QQ and reports the actual contact mismatch; doctor all green.
+
 ## 5.8.0 — 2026-11-12
 
 - Fix: routines no longer fail with “DSH 调度服务不可用”. They now use a local scheduler while DSH is open for daily / weekly / every schedules; Cron is rejected with a clear message instead of silently failing.
