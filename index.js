@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '5.15.0'
+const VERSION = '5.16.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -155,6 +155,8 @@ export function apply(ctx) {
   const snapshotRoot = path.join(stateDir, 'snapshots')
   const auditFile = path.join(stateDir, 'audit', 'tool-audit.jsonl')
   const memoryFile = path.join(stateDir, 'memory.md')
+  const uploadDir = path.join(stateDir, 'uploads')
+  const UPLOAD_RETENTION_MS = 30 * 24 * 60 * 60 * 1000
   const packageDir = path.dirname(fileURLToPath(import.meta.url))
   const runtimePythonCandidates = [
     path.join(home, 'dsh-runtimes', 'dsh-primary-runtime', 'dependencies', 'python', 'python.exe'),
@@ -1022,6 +1024,44 @@ export function apply(ctx) {
     } catch (error) {
       console.error('[dsh-bot] cannot save state', error)
     }
+  }
+
+  function cleanupUploads() {
+    const result = { at: now(), removed: 0, kept: 0, bytes: 0 }
+    let names = []
+    try {
+      names = fs.readdirSync(uploadDir)
+    } catch {
+      return result
+    }
+    const referenced = [
+      ...(state.runs || []).map((run) => run.prompt || ''),
+      ...(state.assignments || []).map((assignment) => assignment.prompt || ''),
+      ...(state.skills || []).map((skill) => skill.prompt || ''),
+      ...(state.threads || []).flatMap((thread) =>
+        Array.isArray(thread.messages) ? thread.messages.map((message) => message.text || '') : [],
+      ),
+    ]
+      .join('\n')
+      .toLowerCase()
+    const cutoff = Date.now() - UPLOAD_RETENTION_MS
+    for (const name of names) {
+      const target = path.join(uploadDir, name)
+      try {
+        const stat = fs.statSync(target)
+        if (!stat.isFile()) continue
+        if (stat.mtimeMs > cutoff || referenced.includes(name.toLowerCase())) {
+          result.kept += 1
+          continue
+        }
+        fs.unlinkSync(target)
+        result.removed += 1
+        result.bytes += stat.size
+      } catch {
+        /* a concurrent cleanup or locked file is harmless */
+      }
+    }
+    return result
   }
 
   function writeRuntimeInfo() {
@@ -8018,6 +8058,17 @@ export function apply(ctx) {
   saveStateNow()
   writeRuntimeInfo()
   ensureLocalRoutineScheduler()
+  const uploadCleanupResult = cleanupUploads()
+  if (uploadCleanupResult.removed > 0) {
+    console.log('[dsh-bot] upload cleanup', uploadCleanupResult)
+  }
+  const uploadCleanupTimer = setInterval(() => {
+    try {
+      cleanupUploads()
+    } catch {
+      /* cleanup is best effort */
+    }
+  }, 6 * 60 * 60 * 1000)
   const remoteControlTimer = setInterval(() => {
     checkRemoteControl().catch((error) => {
       console.error('[dsh-bot] remote control failed', messageOf(error))
@@ -8028,6 +8079,7 @@ export function apply(ctx) {
   }, 2_000)
   ctx.effect(() => () => {
     clearInterval(remoteControlTimer)
+    clearInterval(uploadCleanupTimer)
     if (localRoutineTimer) {
       clearInterval(localRoutineTimer)
       localRoutineTimer = null

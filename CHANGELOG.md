@@ -1,5 +1,11 @@
 # Changelog
 
+## 5.16.0 — 2026-11-12
+
+- Add: upload lifecycle cleanup. Files older than 30 days are removed on boot and every 6 hours, unless their filename still appears in a persisted run/assignment/skill/group message.
+- Verified: an unreferenced 45-day-old upload file was deleted on reload; referenced files are skipped.
+- Attachment cards and QQ default-off behavior remain unchanged.
+
 ## 5.15.0 — 2026-11-12
 
 - Add: attachments render as real cards in both user and assistant messages, with filename and a “复制路径” action; the local path remains available to the Bot.
