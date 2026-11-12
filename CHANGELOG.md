@@ -1,5 +1,11 @@
 # Changelog
 
+## 5.14.0 — 2026-11-12
+
+- Improve: attachment messages now render each file as a Markdown link with the filename visible, instead of showing a raw local path. The link target still contains the absolute path, and the Bot can read it.
+- Verified: sending an attachment through the new Markdown link form still lets the Bot read the file and reply with its first line (`LINK_ATTACHMENT_OK`); test file and thread cleaned.
+- No behavior change to upload limits or local-only storage.
+
 ## 5.13.0 — 2026-11-12
 
 - Add: group message routing — “全员” (default) or “群主”. In leader mode an unmentioned message goes to the configured leader, who can delegate; `@all` still reaches everyone.

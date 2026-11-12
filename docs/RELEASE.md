@@ -1,4 +1,5 @@
-# DSH Bot v5.13.0
+# DSH Bot v5.14.0
+
 
 
 
@@ -12,6 +13,8 @@ You talk to one **Boss**. It decides what to do, hires a specialist when nobody 
 ![Architecture](architecture.svg)
 
 ## Highlights
+
+- **Readable attachments** — files now appear as named Markdown links instead of raw absolute paths; the link still carries the local path so the Bot can read it.
 
 - **Group routing choice** — choose “全员” or “群主” per group; leader routing sends unmentioned messages to the leader and `@all` still reaches everyone.
 - **Group editor cap fixed** — member picks now allow 8, not 3; meeting routing uses the configured leader instead of a missing role tag.
