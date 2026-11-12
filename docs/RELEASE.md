@@ -1,4 +1,5 @@
-# DSH Bot v5.30.0
+# DSH Bot v5.31.0
+
 
 
 
@@ -29,6 +30,8 @@ You talk to one **Boss**. It decides what to do, hires a specialist when nobody 
 ![Architecture](architecture.svg)
 
 ## Highlights
+
+- **Docs consistency** — README now describes the real five-theme picker, attachment grouping/lightbox and group routing; stale three-dot claim removed.
 
 - **v6 hardening** — CI compiles every Python script, and version drift across package.json/index.js/client.js now fails checks.
 

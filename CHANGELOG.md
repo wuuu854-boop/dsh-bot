@@ -1,5 +1,10 @@
 # Changelog
 
+## 5.31.0 — 2026-11-12
+
+- Docs: fix stale README claims — the top bar is now a five-theme picker, not three dots; remove the duplicate theme bullet; document attachment grouping/lightbox and group routing.
+- No new feature surfaces; QQ remains default-off.
+
 ## 5.30.0 — 2026-11-12
 
 - Harden: CI now compiles every Python script with `compileall`, not just three files.
