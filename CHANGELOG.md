@@ -1,5 +1,11 @@
 # Changelog
 
+## 5.2.0 — 2026-11-12
+
+- Fix: the native-approval “回到 DSH 处理” button now uses `ctx.layout.selectPanel(null)` instead of history/reload, preventing the DSH crash that required a restart.
+- Fix: if the layout API is unavailable, show a manual “click 新会话” hint instead of navigating; no page refresh while an approval is pending.
+- Verified: opened a fake native approval, clicked “回到 DSH 处理”, landed on the DSH conversation with no blank screen or restart.
+
 ## 5.1.0 — 2026-11-11
 
 - Add: `scripts/studio.py` Creative Studio — PPT (themes/cover/stats/quote), DOCX from Markdown, XLSX with formatting/chart, single-file HTML games (snake/memory/runner), WAV + MIDI music, and poster PNG.

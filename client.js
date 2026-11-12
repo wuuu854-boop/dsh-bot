@@ -542,6 +542,7 @@ window.__ModuleLoader__.load({
         approvalNativeTitle: 'DSH 正在等你授权',
         approvalNativeHint: '授权弹窗在 DSH 主界面左侧会话里，Bot 不能代点。请回到 DSH 处理，或先停止任务。',
         approvalNativeOpen: '回到 DSH 处理',
+        approvalNativeManual: '请点左上角「新会话」返回 DSH 处理授权，不要刷新页面。',
         stoppedByUser: '你停止了这一轮',
         retryHint: '让 DSH 继续',
         offlineHint: '后台没有响应，正在重试…',
@@ -1158,6 +1159,7 @@ window.__ModuleLoader__.load({
         approvalNativeTitle: 'DSH is waiting for approval',
         approvalNativeHint: 'The approval popup is in the DSH session list on the left; the Bot cannot answer it. Return to DSH to decide, or stop this task.',
         approvalNativeOpen: 'Return to DSH',
+        approvalNativeManual: 'Click “New chat” at the top-left to return to DSH and handle the approval; do not refresh the page.',
         stoppedByUser: 'You stopped this turn',
         retryHint: 'Let DSH continue',
         offlineHint: 'Backend is not answering, retrying…',
@@ -7584,8 +7586,11 @@ window.__ModuleLoader__.load({
             onApproval: submitApproval,
             onStop: stop,
             onNative: () => {
-              if (window.history.length > 1) window.history.back()
-              else window.location.assign(window.location.origin + '/')
+              try {
+                ctx.layout.selectPanel(null)
+              } catch {
+                showToast(t('approvalNativeManual'))
+              }
             },
             submitting: answerBusy,
           }),
