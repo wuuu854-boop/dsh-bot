@@ -213,14 +213,40 @@ def build_doc(out, markdown, title=None):
                 doc.add_paragraph()
         table_lines = []
 
+    def style_code_paragraph(paragraph):
+        from docx.oxml import OxmlElement
+        from docx.oxml.ns import qn
+
+        paragraph.paragraph_format.left_indent = Inches(0.2)
+        paragraph.paragraph_format.right_indent = Inches(0.1)
+        paragraph.paragraph_format.space_before = Pt(4)
+        paragraph.paragraph_format.space_after = Pt(7)
+        paragraph.paragraph_format.line_spacing = 1.12
+        paragraph.paragraph_format.keep_together = True
+        p_pr = paragraph._p.get_or_add_pPr()
+        borders = OxmlElement("w:pBdr")
+        left = OxmlElement("w:left")
+        left.set(qn("w:val"), "single")
+        left.set(qn("w:sz"), "10")
+        left.set(qn("w:space"), "7")
+        left.set(qn("w:color"), "8AA79A")
+        borders.append(left)
+        p_pr.append(borders)
+        shading = OxmlElement("w:shd")
+        shading.set(qn("w:val"), "clear")
+        shading.set(qn("w:color"), "auto")
+        shading.set(qn("w:fill"), "F3F6F4")
+        p_pr.append(shading)
+
     for line in lines:
         if line.strip().startswith("```"):
             if in_code:
                 paragraph = doc.add_paragraph()
+                style_code_paragraph(paragraph)
                 run = paragraph.add_run("\n".join(code_lines))
                 run.font.name = "Consolas"
-                run.font.size = Pt(8.5)
-                paragraph.paragraph_format.left_indent = Inches(0.2)
+                run.font.size = Pt(8.2)
+                run.font.color.rgb = RGBColor(0x20, 0x2A, 0x26)
                 code_lines = []
             in_code = not in_code
             continue

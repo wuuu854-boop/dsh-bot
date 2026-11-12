@@ -1,4 +1,5 @@
-# DSH Bot v5.28.0
+# DSH Bot v5.29.0
+
 
 
 
@@ -27,6 +28,8 @@ You talk to one **Boss**. It decides what to do, hires a specialist when nobody 
 ![Architecture](architecture.svg)
 
 ## Highlights
+
+- **Polished DOCX code blocks** — fenced Markdown code now gets a shaded panel, left border, tighter spacing and monospace text instead of reading as plain body copy.
 
 - **Real-project validation** — validated README attachment extraction and 4-slide PPT generation against the real `uav-yolo-offboard-tracking` project.
 - **Over-verification fix** — the Bot now verifies creative outputs once (file exists/page count) and reports instead of inspecting XML/fonts/geometry or hunting LibreOffice indefinitely.

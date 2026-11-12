@@ -1,5 +1,11 @@
 # Changelog
 
+## 5.29.0 — 2026-11-12
+
+- Improve: DOCX code blocks from Markdown fences now get a shaded background, left border, tighter spacing and monospace 8.2pt text instead of appearing as plain body paragraphs.
+- Verified against the real `uav-yolo-offboard-tracking/docs/architecture.md`: 131 paragraphs, 4 tables, Mermaid block preserved and styled; test DOCX removed.
+- QQ remains default-off.
+
 ## 5.28.0 — 2026-11-12
 
 - Fix: real-project PPT task over-verified forever after producing the file. Added “verify once” guidance and narrowed the PPT template to page count/file existence only; no XML/font/geometry checks or LibreOffice hunting.
