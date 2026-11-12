@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '5.5.0'
+const VERSION = '5.6.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -156,6 +156,21 @@ export function apply(ctx) {
   const auditFile = path.join(stateDir, 'audit', 'tool-audit.jsonl')
   const memoryFile = path.join(stateDir, 'memory.md')
   const packageDir = path.dirname(fileURLToPath(import.meta.url))
+  const runtimePythonCandidates = [
+    path.join(home, 'dsh-runtimes', 'dsh-primary-runtime', 'dependencies', 'python', 'python.exe'),
+    path.resolve(path.dirname(process.execPath), '..', 'dependencies', 'python', 'python.exe'),
+    path.resolve(path.dirname(process.execPath), '..', '..', 'python', 'python.exe'),
+  ]
+  const pythonExe =
+    process.env.DSH_PYTHON ||
+    runtimePythonCandidates.find((candidate) => {
+      try {
+        return fs.existsSync(candidate)
+      } catch {
+        return false
+      }
+    }) ||
+    'python'
   const computerScript = path.join(packageDir, 'scripts', 'computer.py')
   const appsScript = path.join(packageDir, 'scripts', 'apps.py')
   const proxyScript = path.join(packageDir, 'scripts', 'proxy.py')
@@ -169,6 +184,17 @@ export function apply(ctx) {
   const sandboxScript = path.join(packageDir, 'scripts', 'sandbox.py')
   const memorySearchScript = path.join(packageDir, 'scripts', 'memory_search.py')
   const studioScript = path.join(packageDir, 'scripts', 'studio.py')
+  const scriptPaths = {
+    python: pythonExe,
+    scripts: path.join(packageDir, 'scripts'),
+    edge: edgeScript,
+    computer: computerScript,
+    studio: studioScript,
+    course: path.join(packageDir, 'scripts', 'course.py'),
+    ocr: ocrScript,
+    sandbox: sandboxScript,
+    memory: memorySearchScript,
+  }
 
   try {
     fs.mkdirSync(stateDir, { recursive: true })
@@ -3953,7 +3979,7 @@ export function apply(ctx) {
       `- UIA 坐标已由 uia.py 归一化（UIA 2x → Win32 屏幕坐标）；不要自己再乘/除缩放。窗口截图用 python "${computerScript}" window-shot <标题> <png>，不要默认截整个桌面。`,
       `- 图片/PDF/canvas/验证码等没有控件树时：先 window-shot，再 python "${ocrScript}" window <标题> --lang eng（有中文包用 eng+chi_sim）；OCR 只是兜底，能 read 就不 OCR。`,
       `- 需要隔离环境或不想污染日常浏览器：python "${sandboxScript}" status / create --name <任务> / open --name <任务>；没有 Windows Sandbox 时自动用独立浏览器 profile + 独立工作区，不要声称是云电脑。`,
-      `- 创作交付：PPT/文档/表格/游戏/音乐/海报用 python "${studioScript}"；先问清主题、受众、页数/时长/风格，再生成实际文件并打开检查。不要只给 Markdown 或口头方案。`,
+      `- 创作交付：PPT/文档/表格/游戏/音乐/海报用 "${pythonExe}" "${studioScript}"；先问清主题、受众、页数/时长/风格，再生成实际文件并打开检查。不要只给 Markdown 或口头方案。`,
       `- 默认浏览器：Edge / Chrome / Brave / Chromium / Firefox 自动选择，用户正在用的优先；用 python "${edgeScript}" status 查看，必要时加 --browser chrome|brave|firefox。`,
       `- 打开应用先找桌面版：python "${appsScript}" find <名字>；有就 python "${appsScript}" launch <名字>。只有没有桌面版时才用浏览器（默认 Edge）。不要用浏览器打开已有桌面版的豆包、ChatGPT、Claude 等。`,
       `- 使用国外 AI（ChatGPT / Claude / Copilot / Gemini / Grok）前，先 python "${proxyScript}" ensure；必须看到 verified=true、purity.clean=true、chineseCountry=false、chineseOrg=false，且 country/loc 不是 CN/HK/MO/TW、三次出口稳定、directIp 为空或不同。ensure 会在异常时自动启动 Clash、写系统代理、切换非 CN 节点并重验；仍失败就停，不得用浏览器/直连/computer.py 绕过。verified=false 或 apps.py 返回 PROXY_NOT_VERIFIED 时立即停，把错误原样告诉用户。apps.py 返回 CONTAINMENT_NOT_INSTALLED / CONTAINMENT_BROKEN / CONTAINMENT_UNSUPPORTED 时同样立即停，让用户双击桌面「DSH 国外AI硬隔离」并点 UAC。用户已明确没有住宅 IP，接受低风险商业 IP：purity.residential=false/server=true 不应阻止，也不要反复提醒或为此主动切节点；只要 clean=true 且上述国家/org/黑名单/稳定性都过关就放行。国内 AI（豆包 / Kimi / WorkBuddy / 天禧AI / DeepSeek）不强制开代理。`,
@@ -5834,6 +5860,7 @@ export function apply(ctx) {
         ...threadInfo(group, null),
         running: state.meeting.running === true || groupMemberView(group).some((member) => member.running),
       },
+      paths: scriptPaths,
       channel: publicChannel(group),
       channelHistory,
       channels: state.threads.filter((thread) => thread.kind === 'group').map(publicChannel),
@@ -5924,6 +5951,7 @@ export function apply(ctx) {
         auditCount: state.audits.length,
       },
       thread: threadInfo(thread, rec),
+      paths: scriptPaths,
       modelReady: Boolean(agentOptions(thread)),
       voiceAvailable: process.platform === 'win32',
       update: publicUpdate(),

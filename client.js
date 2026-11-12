@@ -3618,6 +3618,7 @@ window.__ModuleLoader__.load({
       onClearQuote,
       difficulty,
       onDifficulty,
+      paths,
     }) {
       const [dragging, setDragging] = useState(false)
       const [templatesOpen, setTemplatesOpen] = useState(false)
@@ -3659,7 +3660,15 @@ window.__ModuleLoader__.load({
       ]
       const applyTemplate = (template) => {
         const base = String(value || '').trim()
-        onChange(base ? `${base}\n${t(template.prompt)}` : t(template.prompt))
+        let text = t(template.prompt)
+        if (paths?.python) {
+          text = text.replace(/\bpython\s+(?=scripts\/)/g, `"${paths.python}" `)
+        }
+        if (paths?.scripts) {
+          text = text.replace(/scripts\/(?=(?:course|studio|edge|computer|ocr|sandbox|memory_search)\.py)/g, '')
+          text = text.replace(/\b(course|studio|edge|computer|ocr|sandbox|memory_search)\.py\b/g, (name) => `"${paths.scripts}\\${name}"`)
+        }
+        onChange(base ? `${base}\n${text}` : text)
         setTemplatesOpen(false)
         requestAnimationFrame(() => inputRef?.current?.focus())
       }
@@ -7703,6 +7712,7 @@ window.__ModuleLoader__.load({
             inputRef,
             difficulty,
             onDifficulty: setDifficulty,
+            paths: snap?.paths,
             sendMode,
             attachments,
             onUpload: uploadFiles,
@@ -9170,7 +9180,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '5.4.0',
+              version: '5.6.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -9191,7 +9201,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '5.4.0',
+                version: '5.6.0',
               },
               null,
               2,

@@ -1,5 +1,12 @@
 # Changelog
 
+## 5.6.0 — 2026-11-12
+
+- Fix: creative and course templates no longer emit relative `python scripts/...` commands. They are expanded at insertion time to the DSH runtime Python and absolute script paths.
+- Fix: the system `python` on this machine lacks `python-pptx`/`python-docx`, so the previous PPT/DOCX templates would fail on first use; the runtime Python with bundled libraries is now used.
+- Add: snapshot `paths` (`python`, `scripts`, `studio`, `course`, `edge`, etc.) so the UI can render executable commands without guessing the install directory.
+- Verified: PPT and game generation from a Bot workspace with the runtime Python; template insertion shows quoted absolute paths.
+
 ## 5.5.0 — 2026-11-12
 
 - Redesign: “Aurora” becomes 雾海/Mist — cool fog-grey + low-saturation seafoam, no neon navy.
