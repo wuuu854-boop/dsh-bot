@@ -22,4 +22,14 @@ for (const initial of [null, 'old-build']) {
   assert.equal(registrations, 1, 'Client must register exactly once');
   assert.equal(reloads, 0, 'Plugin must not reload the desktop during module activation');
 }
-console.log('PASS: server/client syntax; fresh/stale client activates without hard reload');
+
+const packageVersion = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version;
+const indexVersion = /const VERSION = '([^']+)'/.exec(fs.readFileSync(path.join(root, 'index.js'), 'utf8'))?.[1];
+const clientVersions = [...fs.readFileSync(client, 'utf8').matchAll(/version:\s*'([0-9]+\.[0-9]+\.[0-9]+)'/g)].map(match => match[1]);
+assert.ok(indexVersion, 'index.js must declare VERSION');
+assert.equal(indexVersion, packageVersion, 'index.js VERSION must match package.json');
+assert.ok(clientVersions.length > 0, 'client.js must expose diagnostic version');
+for (const version of clientVersions) {
+  assert.equal(version, packageVersion, 'client.js diagnostic version must match package.json');
+}
+console.log(`PASS: server/client syntax, activation guard and version ${packageVersion}`);

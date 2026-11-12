@@ -1,5 +1,11 @@
 # Changelog
 
+## 5.30.0 — 2026-11-12
+
+- Harden: CI now compiles every Python script with `compileall`, not just three files.
+- Harden: `check-client.cjs` fails when `package.json`, `index.js` VERSION and client diagnostic versions drift apart.
+- No new user-facing features; this is v6 hardening groundwork. QQ remains default-off.
+
 ## 5.29.0 — 2026-11-12
 
 - Improve: DOCX code blocks from Markdown fences now get a shaded background, left border, tighter spacing and monospace 8.2pt text instead of appearing as plain body paragraphs.

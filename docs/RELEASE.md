@@ -1,4 +1,5 @@
-# DSH Bot v5.29.0
+# DSH Bot v5.30.0
+
 
 
 
@@ -28,6 +29,8 @@ You talk to one **Boss**. It decides what to do, hires a specialist when nobody 
 ![Architecture](architecture.svg)
 
 ## Highlights
+
+- **v6 hardening** — CI compiles every Python script, and version drift across package.json/index.js/client.js now fails checks.
 
 - **Polished DOCX code blocks** — fenced Markdown code now gets a shaded panel, left border, tighter spacing and monospace text instead of reading as plain body copy.
 
