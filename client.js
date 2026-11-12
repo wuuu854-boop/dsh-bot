@@ -212,8 +212,13 @@ window.__ModuleLoader__.load({
         themeDark: '暗色',
         themeWarm: '暖色',
         themeInk: '水墨',
-        themeAurora: '极光',
-        themeEmber: '余烬',
+        themeAurora: '雾海',
+        themeEmber: '陶土',
+        themeDarkHint: '黑绿 · 克制高对比',
+        themeWarmHint: '奶油纸 · 陶土橙',
+        themeInkHint: '宣纸 · 水墨朱砂',
+        themeMistHint: '冷雾青 · 海沫低饱和',
+        themeClayHint: '暖石 · 杏色与陶土',
         modelMissingHint: '请先在 DSH 设置里接入 API 并选择默认模型，再发任务。',
         modelRetry: '重新检测',
         modelConnected: '模型已连接',
@@ -362,6 +367,7 @@ window.__ModuleLoader__.load({
         botSaving: '保存中',
         botCreated: 'Bot 已创建',
         botUpdated: 'Bot 已更新',
+        privilegeLiveFailed: '权限已保存，但当前会话切换失败',
         botDeleted: 'Bot 已删除',
         botNamePlaceholder: '例如：侦察员',
         botNameRequired: '请填写 Bot 名字',
@@ -829,8 +835,13 @@ window.__ModuleLoader__.load({
         themeDark: 'Dark',
         themeWarm: 'Warm',
         themeInk: 'Ink',
-        themeAurora: 'Aurora',
-        themeEmber: 'Ember',
+        themeAurora: 'Mist',
+        themeEmber: 'Clay',
+        themeDarkHint: 'Ink-black · restrained contrast',
+        themeWarmHint: 'Cream paper · terracotta',
+        themeInkHint: 'Rice paper · ink and vermilion',
+        themeMistHint: 'Cool fog · low-saturation seafoam',
+        themeClayHint: 'Warm stone · apricot and clay',
         modelMissingHint: 'Connect an API and choose a default model in DSH settings before sending a task.',
         modelRetry: 'Retry',
         modelConnected: 'Model connected',
@@ -979,6 +990,7 @@ window.__ModuleLoader__.load({
         botSaving: 'Saving',
         botCreated: 'Bot created',
         botUpdated: 'Bot updated',
+        privilegeLiveFailed: 'Permission saved, but the live session could not switch',
         botDeleted: 'Bot deleted',
         botNamePlaceholder: 'e.g. Scout',
         botNameRequired: 'Enter a bot name',
@@ -3352,6 +3364,29 @@ window.__ModuleLoader__.load({
       const members = channel?.members || []
       const [editing, setEditing] = useState(false)
       const [draft, setDraft] = useState('')
+      const [themeOpen, setThemeOpen] = useState(false)
+      const themeOptions = [
+        { id: 'dark', label: 'themeDark', hint: 'themeDarkHint' },
+        { id: 'warm', label: 'themeWarm', hint: 'themeWarmHint' },
+        { id: 'ink', label: 'themeInk', hint: 'themeInkHint' },
+        { id: 'aurora', label: 'themeAurora', hint: 'themeMistHint' },
+        { id: 'ember', label: 'themeEmber', hint: 'themeClayHint' },
+      ]
+      const currentTheme = themeOptions.find((item) => item.id === theme) || themeOptions[0]
+      useEffect(() => {
+        if (!themeOpen) return undefined
+        const close = (event) => {
+          if (event.type === 'keydown' && event.key !== 'Escape') return
+          if (event.type === 'pointerdown' && event.target?.closest?.('.gb-theme-picker')) return
+          setThemeOpen(false)
+        }
+        window.addEventListener('keydown', close)
+        window.addEventListener('pointerdown', close)
+        return () => {
+          window.removeEventListener('keydown', close)
+          window.removeEventListener('pointerdown', close)
+        }
+      }, [themeOpen])
       const title = channel ? `${channel.emoji || '◈'} ${channel.name}` : thread?.title || t('untitled')
       const beginRename = () => {
         setDraft(thread?.title || channel?.name || '')
@@ -3489,23 +3524,54 @@ window.__ModuleLoader__.load({
             : null,
           h(
             'div',
-            { className: 'gb-theme-switch', role: 'group', 'aria-label': t('theme') },
-            [
-              ['dark', 'themeDark'],
-              ['warm', 'themeWarm'],
-              ['ink', 'themeInk'],
-              ['aurora', 'themeAurora'],
-              ['ember', 'themeEmber'],
-            ].map(([id, label]) =>
-              h('button', {
-                key: id,
+            { className: 'gb-theme-picker' },
+            h(
+              'button',
+              {
                 type: 'button',
-                className: `gb-theme-dot is-${id}${theme === id ? ' is-active' : ''}`,
-                title: t(label),
-                'aria-label': t(label),
-                onClick: () => onTheme?.(id),
-              }),
+                className: 'gb-theme-trigger',
+                onClick: () => setThemeOpen((open) => !open),
+                'aria-expanded': themeOpen,
+                'aria-label': t('theme'),
+                title: t('theme'),
+              },
+              h('span', { className: `gb-theme-swatch is-${theme}` }),
+              h('span', null, t(currentTheme.label)),
+              h(Icon, { name: 'chevronDown', size: 10 }),
             ),
+            themeOpen
+              ? h(
+                  'div',
+                  { className: 'gb-theme-pop', role: 'listbox', 'aria-label': t('theme') },
+                  h('div', { className: 'gb-theme-pop-head' }, t('theme')),
+                  themeOptions.map((option) =>
+                    h(
+                      'button',
+                      {
+                        key: option.id,
+                        type: 'button',
+                        role: 'option',
+                        'aria-selected': theme === option.id,
+                        'aria-label': t(option.label),
+                        title: t(option.hint),
+                        className: `gb-theme-option${theme === option.id ? ' is-active' : ''}`,
+                        onClick: () => {
+                          onTheme?.(option.id)
+                          setThemeOpen(false)
+                        },
+                      },
+                      h('span', { className: `gb-theme-swatch is-${option.id}` }),
+                      h(
+                        'span',
+                        { className: 'gb-theme-option-text' },
+                        h('strong', null, t(option.label)),
+                        h('small', null, t(option.hint)),
+                      ),
+                      theme === option.id ? h(Icon, { name: 'check', size: 12 }) : null,
+                    ),
+                  ),
+                )
+              : null,
           ),
           h(
             'span',
@@ -5590,7 +5656,7 @@ window.__ModuleLoader__.load({
 
       return h(
         'aside',
-        { className: 'gb-deck', 'aria-label': t('localComputer'), style: { background: theme === 'warm' ? '#fff8ec' : theme === 'ink' ? '#fbfaf6' : theme === 'aurora' ? '#0b1220' : theme === 'ember' ? '#180f0b' : '#0a0b09', zIndex: 100, isolation: 'isolate' } },
+        { className: 'gb-deck', 'aria-label': t('localComputer'), style: { background: theme === 'warm' ? '#fff8ec' : theme === 'ink' ? '#fbfaf6' : theme === 'aurora' ? '#0f1819' : theme === 'ember' ? '#1c1815' : '#0a0b09', zIndex: 100, isolation: 'isolate' } },
         h(
           'div',
           { className: 'gb-deck-head' },
@@ -6587,10 +6653,14 @@ window.__ModuleLoader__.load({
         async (data) => {
           try {
             if (data.id) {
-              await apiPost('/bot/update', { ...data, botId: data.id })
+              const saved = await apiPost('/bot/update', { ...data, botId: data.id })
               await refreshSnapshot()
               setBotEditor(null)
-              showToast(t('botUpdated'))
+              if (saved?.privilege && saved.privilege.ok === false) {
+                showToast(`${t('botUpdated')} · ${t('privilegeLiveFailed')}: ${saved.privilege.error || ''}`)
+              } else {
+                showToast(t('botUpdated'))
+              }
             } else {
               const next = await apiPost('/bot/create', data)
               setSnap(next)
@@ -8009,37 +8079,37 @@ window.__ModuleLoader__.load({
   color-scheme: light;
 }
 :root[data-dsh-bot-theme="aurora"] {
-  --gb-bg: #070b14;
-  --gb-panel: #0d1422;
-  --gb-panel-2: #131d2e;
-  --gb-overlay: #172338;
-  --gb-line: #203049;
-  --gb-line-strong: #324866;
-  --gb-text: #edf5ff;
-  --gb-muted: #94a8c2;
-  --gb-faint: #637894;
-  --gb-accent: #67e8f9;
-  --gb-signal: #6ee7b7;
-  --gb-error: #fb7185;
-  --gb-warn: #fbbf24;
-  --gb-success: #34d399;
+  --gb-bg: #0d1415;
+  --gb-panel: #131d1e;
+  --gb-panel-2: #1a2728;
+  --gb-overlay: #223234;
+  --gb-line: #2a3a3c;
+  --gb-line-strong: #3f5557;
+  --gb-text: #e7efec;
+  --gb-muted: #a3b5af;
+  --gb-faint: #6f837d;
+  --gb-accent: #9ccfd8;
+  --gb-signal: #8fbcbb;
+  --gb-error: #e78284;
+  --gb-warn: #ebcb8b;
+  --gb-success: #a3be8c;
   color-scheme: dark;
 }
 :root[data-dsh-bot-theme="ember"] {
-  --gb-bg: #120d0a;
-  --gb-panel: #1b1310;
-  --gb-panel-2: #261a15;
-  --gb-overlay: #30211a;
-  --gb-line: #3b2921;
-  --gb-line-strong: #5a4032;
-  --gb-text: #fff4e8;
-  --gb-muted: #c3a895;
-  --gb-faint: #8f7464;
-  --gb-accent: #ff8a4c;
-  --gb-signal: #ffb454;
-  --gb-error: #ff6b6b;
-  --gb-warn: #ffd166;
-  --gb-success: #9ae6b4;
+  --gb-bg: #191613;
+  --gb-panel: #211d19;
+  --gb-panel-2: #2b2520;
+  --gb-overlay: #352d26;
+  --gb-line: #40362d;
+  --gb-line-strong: #5a4b3e;
+  --gb-text: #f4ede4;
+  --gb-muted: #b9a99a;
+  --gb-faint: #88786a;
+  --gb-accent: #e0a370;
+  --gb-signal: #d98b5f;
+  --gb-error: #e07a7a;
+  --gb-warn: #e6c27a;
+  --gb-success: #9fb48a;
   color-scheme: dark;
 }
 :root[data-dsh-bot-theme="warm"] .gb-deck,
@@ -8065,14 +8135,14 @@ window.__ModuleLoader__.load({
 }
 :root[data-dsh-bot-theme="aurora"] .gb-main {
   background:
-    radial-gradient(900px 560px at 80% -10%, rgba(103, 232, 249, .09), transparent 64%),
-    radial-gradient(700px 500px at 8% 112%, rgba(110, 231, 183, .06), transparent 70%),
+    radial-gradient(900px 560px at 80% -10%, rgba(156, 207, 216, .07), transparent 64%),
+    radial-gradient(700px 500px at 8% 112%, rgba(143, 188, 187, .04), transparent 70%),
     var(--gb-bg) !important;
 }
 :root[data-dsh-bot-theme="ember"] .gb-main {
   background:
-    radial-gradient(900px 540px at 82% -8%, rgba(255, 138, 76, .10), transparent 64%),
-    radial-gradient(700px 500px at 6% 112%, rgba(255, 180, 84, .05), transparent 70%),
+    radial-gradient(900px 540px at 82% -8%, rgba(224, 163, 112, .07), transparent 64%),
+    radial-gradient(700px 500px at 6% 112%, rgba(217, 139, 95, .035), transparent 70%),
     var(--gb-bg) !important;
 }
 :root[data-dsh-bot-theme="warm"] .gb-user-bubble {
@@ -8146,37 +8216,37 @@ window.__ModuleLoader__.load({
   background-color: var(--gb-bg) !important;
 }
 .gb-root[data-theme="aurora"] {
-  --gb-bg: #070b14;
-  --gb-panel: #0d1422;
-  --gb-panel-2: #131d2e;
-  --gb-overlay: #172338;
-  --gb-line: #203049;
-  --gb-line-strong: #324866;
-  --gb-text: #edf5ff;
-  --gb-muted: #94a8c2;
-  --gb-faint: #637894;
-  --gb-accent: #67e8f9;
-  --gb-signal: #6ee7b7;
-  --gb-error: #fb7185;
-  --gb-warn: #fbbf24;
-  --gb-success: #34d399;
+  --gb-bg: #0d1415;
+  --gb-panel: #131d1e;
+  --gb-panel-2: #1a2728;
+  --gb-overlay: #223234;
+  --gb-line: #2a3a3c;
+  --gb-line-strong: #3f5557;
+  --gb-text: #e7efec;
+  --gb-muted: #a3b5af;
+  --gb-faint: #6f837d;
+  --gb-accent: #9ccfd8;
+  --gb-signal: #8fbcbb;
+  --gb-error: #e78284;
+  --gb-warn: #ebcb8b;
+  --gb-success: #a3be8c;
   color-scheme: dark;
 }
 .gb-root[data-theme="ember"] {
-  --gb-bg: #120d0a;
-  --gb-panel: #1b1310;
-  --gb-panel-2: #261a15;
-  --gb-overlay: #30211a;
-  --gb-line: #3b2921;
-  --gb-line-strong: #5a4032;
-  --gb-text: #fff4e8;
-  --gb-muted: #c3a895;
-  --gb-faint: #8f7464;
-  --gb-accent: #ff8a4c;
-  --gb-signal: #ffb454;
-  --gb-error: #ff6b6b;
-  --gb-warn: #ffd166;
-  --gb-success: #9ae6b4;
+  --gb-bg: #191613;
+  --gb-panel: #211d19;
+  --gb-panel-2: #2b2520;
+  --gb-overlay: #352d26;
+  --gb-line: #40362d;
+  --gb-line-strong: #5a4b3e;
+  --gb-text: #f4ede4;
+  --gb-muted: #b9a99a;
+  --gb-faint: #88786a;
+  --gb-accent: #e0a370;
+  --gb-signal: #d98b5f;
+  --gb-error: #e07a7a;
+  --gb-warn: #e6c27a;
+  --gb-success: #9fb48a;
   color-scheme: dark;
 }
 .gb-root[data-theme="warm"] .gb-stage,
@@ -8201,14 +8271,26 @@ window.__ModuleLoader__.load({
 :root[data-dsh-bot-theme="ink"] .gb-modal { background: #fbfaf6; }
 :root[data-dsh-bot-theme="warm"] .gb-toast { background: #fff8ec; color: #2f2418; }
 :root[data-dsh-bot-theme="ink"] .gb-toast { background: #fbfaf6; color: #1d1c19; }
-.gb-theme-switch { display: flex; align-items: center; gap: 3px; padding: 2px; border: 1px solid var(--gb-line); border-radius: 999px; }
-.gb-theme-dot { width: 12px; height: 12px; padding: 0; border: 1px solid color-mix(in srgb, var(--gb-line-strong) 70%, transparent); border-radius: 50%; }
-.gb-theme-dot.is-dark { background: #101110; }
-.gb-theme-dot.is-warm { background: linear-gradient(135deg, #fff3df 0 48%, #c26422 48% 100%); }
-.gb-theme-dot.is-ink { background: linear-gradient(135deg, #f7f4ec 0 48%, #33312b 48% 100%); }
-.gb-theme-dot.is-aurora { background: linear-gradient(135deg, #0d1422 0 48%, #6ee7b7 48% 100%); }
-.gb-theme-dot.is-ember { background: linear-gradient(135deg, #1b1310 0 48%, #ff8a4c 48% 100%); }
-.gb-theme-dot.is-active { box-shadow: 0 0 0 2px var(--gb-signal); }
+.gb-theme-picker { position: relative; }
+.gb-theme-trigger { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 8px; border: 1px solid var(--gb-line); border-radius: 999px; background: color-mix(in srgb, var(--gb-panel-2) 55%, transparent); color: var(--gb-muted); font-size: 8px; }
+.gb-theme-trigger:hover { color: var(--gb-text); border-color: var(--gb-line-strong); }
+.gb-theme-trigger > svg { opacity: .65; }
+.gb-theme-swatch { width: 13px; height: 13px; flex: none; border-radius: 50%; border: 1px solid color-mix(in srgb, var(--gb-line-strong) 70%, transparent); }
+.gb-theme-swatch.is-dark { background: #101110; }
+.gb-theme-swatch.is-warm { background: linear-gradient(135deg, #fff3df 0 48%, #c26422 48% 100%); }
+.gb-theme-swatch.is-ink { background: linear-gradient(135deg, #f7f4ec 0 48%, #33312b 48% 100%); }
+.gb-theme-swatch.is-aurora { background: linear-gradient(135deg, #131d1e 0 48%, #9ccfd8 48% 100%); }
+.gb-theme-swatch.is-ember { background: linear-gradient(135deg, #211d19 0 48%, #e0a370 48% 100%); }
+.gb-theme-pop { position: absolute; right: 0; top: calc(100% + 8px); z-index: 60; width: 250px; padding: 6px; border: 1px solid var(--gb-line-strong); border-radius: 12px; background: var(--gb-overlay); box-shadow: 0 20px 55px rgba(0,0,0,.4); }
+.gb-theme-pop-head { padding: 5px 7px 7px; color: var(--gb-faint); font-size: 7.5px; letter-spacing: .12em; text-transform: uppercase; }
+.gb-theme-option { display: flex; align-items: center; gap: 9px; width: 100%; padding: 8px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--gb-text); text-align: left; }
+.gb-theme-option:hover { background: color-mix(in srgb, var(--gb-panel-2) 70%, transparent); }
+.gb-theme-option.is-active { border-color: color-mix(in srgb, var(--gb-signal) 40%, var(--gb-line)); background: color-mix(in srgb, var(--gb-signal) 7%, transparent); }
+.gb-theme-option .gb-theme-swatch { width: 24px; height: 24px; border-radius: 8px; }
+.gb-theme-option-text { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 2px; }
+.gb-theme-option-text strong { font-size: 10px; font-weight: 600; }
+.gb-theme-option-text small { color: var(--gb-faint); font-size: 8px; }
+.gb-theme-option > svg { flex: none; color: var(--gb-signal); }
 
 .gb-root *, .gb-root *::before, .gb-root *::after { box-sizing: border-box; }
 .gb-root, .gb-root * { -webkit-app-region: no-drag; }

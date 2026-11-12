@@ -1,4 +1,4 @@
-# DSH Bot v5.4.0
+# DSH Bot v5.5.0
 
 **An open-source GrokBot alternative that runs a real bot team on your own Windows machine, inside DeepSeek Harness.**
 
@@ -7,6 +7,8 @@ You talk to one **Boss**. It decides what to do, hires a specialist when nobody 
 ![Architecture](architecture.svg)
 
 ## Highlights
+
+- **Refined themes** — Mist and Clay replace the harsh Aurora/Ember palettes; the theme picker now shows names, descriptions and dual-color previews.
 
 - **Safer UI** — a render error now shows a safe-mode card with retry/copy diagnostics instead of a blank page; course cache only serves an active browser window.
 

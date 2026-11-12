@@ -1,5 +1,13 @@
 # Changelog
 
+## 5.5.0 — 2026-11-12
+
+- Redesign: “Aurora” becomes 雾海/Mist — cool fog-grey + low-saturation seafoam, no neon navy.
+- Redesign: “Ember” becomes 陶土/Clay — warm stone neutral surfaces + apricot/clay accents, no muddy brown wash.
+- Add: theme picker popover with names, description, dual-color preview, active check, Esc/outside close and accessible option states.
+- Add: `docs/UI_DESIGN.md` with shadcn/Tailwind/Catppuccin/Nord/Radix references and token rules.
+- Fix: bot update now reports when permission was saved but the live session could not switch, instead of a misleading success toast.
+
 ## 5.4.0 — 2026-11-12
 
 - Add: client render error boundary with “重试渲染 / 复制诊断” safe-mode card and localStorage diagnostics, so a frontend exception no longer leaves a blank page.
