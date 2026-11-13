@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '6.6.0'
+const VERSION = '6.6.1'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -332,7 +332,15 @@ export function apply(ctx) {
     assignment.reported = true
     interruptedAssignments += 1
   }
-  if (interruptedAssignments > 0) saveStateSoon()
+  let interruptedRuns = 0
+  for (const run of state.runs) {
+    if (run.status !== 'running') continue
+    run.status = 'aborted'
+    run.endedAt = now()
+    run.error = '宿主重启，本轮已中断'
+    interruptedRuns += 1
+  }
+  if (interruptedAssignments > 0 || interruptedRuns > 0) saveStateSoon()
   const live = new Map()
   const opening = new Map()
   const failures = new Map()
@@ -3071,12 +3079,17 @@ export function apply(ctx) {
 
   function groupMemberView(group) {
     const children = memberThreadsOf(group)
+    const childIds = new Set(children.map((thread) => thread.id))
     return groupMembers(group).map((bot) => {
       const child = children.find((thread) => thread.botId === bot.id)
       const rec = child ? live.get(child.id) : null
-      const persistingRun = state.runs.some((run) => run.botId === bot.id && run.status === 'running')
+      const persistingRun = state.runs.some(
+        (run) => childIds.has(run.threadId) && run.botId === bot.id && run.status === 'running',
+      )
       const persistingAssignment = state.assignments.some(
-        (assignment) => assignment.toBotId === bot.id && assignment.status === 'running',
+        (assignment) =>
+          assignment.status === 'running' &&
+          (childIds.has(assignment.toThreadId) || childIds.has(assignment.fromThreadId)),
       )
       return {
         id: bot.id,

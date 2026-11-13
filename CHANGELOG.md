@@ -1,5 +1,10 @@
 # Changelog
 
+## 6.6.1 — 2026-11-13
+
+- Fix: morning meeting stayed "执行中" after a host restart because orphaned `running` runs were never reconciled. Boot now marks stale runs aborted; group member status only considers runs/assignments belonging to that group's member threads.
+- No feature changes; QQ remains default-off.
+
 ## 6.6.0 — 2026-11-12
 
 - Performance: course reads use a local Python UIA service instead of starting PowerShell on every call. Cold course status ~1.2–1.5 s vs ~2.3 s; cached ~0.15–0.2 s. Service is loopback-only, token-protected, and falls back to `edge.py`.
