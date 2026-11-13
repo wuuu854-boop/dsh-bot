@@ -1,5 +1,10 @@
 # Changelog
 
+## 6.6.2 — 2026-11-13
+
+- Fix: watchdog now releases a live agent whose run is still marked `running` but whose agent has been idle for over 90 seconds, and stops stale activity rows. This covers in-process lost `turn/end` events, not just host restarts.
+- No feature changes; QQ remains default-off.
+
 ## 6.6.1 — 2026-11-13
 
 - Fix: morning meeting stayed "执行中" after a host restart because orphaned `running` runs were never reconciled. Boot now marks stale runs aborted; group member status only considers runs/assignments belonging to that group's member threads.

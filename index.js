@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '6.6.1'
+const VERSION = '6.6.2'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -2304,6 +2304,20 @@ export function apply(ctx) {
 
   function checkWatchdogs() {
     for (const rec of live.values()) {
+      if (rec.run?.status === 'running' && rec.agent.status !== 'running') {
+        const age = now() - (Number(rec.run.startedAt) || now())
+        if (age > 90_000) {
+          for (const item of rec.transcript.activities.values()) {
+            if (item.status !== 'running') continue
+            item.status = 'stopped'
+            item.endedAt = now()
+            item.durationMs = Math.max(0, item.endedAt - item.startedAt)
+          }
+          pushNotice(rec, '运行记录已释放：Agent 空闲但 run 仍是运行中', 'warn', rec.transcript.lastSeq || 0, now())
+          closeRun(rec, 'aborted', now(), 'Agent 空闲但 run 仍为 running')
+          continue
+        }
+      }
       if (rec.agent.status !== 'running') continue
       checkRunBudget(rec)
       const stamp = now()
