@@ -168,9 +168,9 @@ def load_snapshot():
         return None
 
 
-def summarize(data):
+def summarize(data, brief=False):
     frames = data.get("frames") or []
-    return {
+    result = {
         "ok": True,
         "schema": data.get("schema"),
         "capturedAt": data.get("capturedAt"),
@@ -190,22 +190,25 @@ def summarize(data):
             }
             for frame in frames
         ],
-        "api": [
-            {"method": entry.get("method"), "url": entry.get("url"), "at": entry.get("at")}
-            for entry in (data.get("api") or [])[:30]
-        ],
-        "questions": [
-            {
-                "text": clean(question.get("text"), 800),
-                "options": [
-                    {"text": clean(option.get("text"), 200), "checked": bool(option.get("checked"))}
-                    for option in (question.get("options") or [])[:12]
-                ],
-            }
-            for frame in frames
-            for question in (frame.get("questions") or [])[:5]
-        ][:20],
     }
+    if brief:
+        return result
+    result["api"] = [
+        {"method": entry.get("method"), "url": entry.get("url"), "at": entry.get("at")}
+        for entry in (data.get("api") or [])[:30]
+    ]
+    result["questions"] = [
+        {
+            "text": clean(question.get("text"), 800),
+            "options": [
+                {"text": clean(option.get("text"), 200), "checked": bool(option.get("checked"))}
+                for option in (question.get("options") or [])[:12]
+            ],
+        }
+        for frame in frames
+        for question in (frame.get("questions") or [])[:5]
+    ][:20]
+    return result
 
 
 def read_text(data, limit=20_000):
@@ -224,6 +227,7 @@ def main():
     parser.add_argument("command", choices=["save", "latest", "summary", "read", "controls", "questions", "file"])
     parser.add_argument("--file", default="")
     parser.add_argument("--limit", type=int, default=20_000)
+    parser.add_argument("--brief", action="store_true")
     args = parser.parse_args()
 
     if args.command == "latest":
@@ -231,7 +235,7 @@ def main():
         with open(path, "r", encoding="utf-8-sig") as handle:
             data = parse_payload(handle.read())
         save_snapshot(data)
-        emit({"ok": True, "source": str(path), "saved": SNAPSHOT_FILE, **summarize(data)})
+        emit({"ok": True, "source": str(path), "saved": SNAPSHOT_FILE, **summarize(data, args.brief)})
 
     if args.command == "file":
         if not args.file:

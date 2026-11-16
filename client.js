@@ -542,7 +542,7 @@ window.__ModuleLoader__.load({
         templateMusic: '做音乐',
         templateMusicPrompt: '生成一段 <风格：lofi/upbeat/ambient> 的本地音乐：用 python scripts/studio.py music --out <路径.wav> --style <风格> --seconds <秒数> 生成 wav + mid；给出时长、BPM、文件路径。说明这是本地合成，不是云端模型；需要重新编曲就改参数重生成。',
         templateVocational: '智慧职教 / 刷课',
-        templateVocationalPrompt: '打开智慧职教课程页 <粘贴 URL>。扩展会自动把当前页面快照保存到下载目录 dsh-icve-latest.json；先运行 python scripts/icve_snapshot.py latest 读取页面/题目/控件，优先按快照作答，不要先截图、翻页或点「复制 JSON」。只有快照缺失或过期时才刷新页面后再 latest。批量选择题把答案写成 JSON，用 python scripts/icve_quiz.py --answers <json> --dry-run 校验，再加 --submit 一次提交；不要逐题 edge.py click。视频用 course.py play，PPT 用 course.py ppt；changed:false 时禁止重复点击。检测到考试/监考/交卷页面必须停止，不自动作答。',
+        templateVocationalPrompt: '打开智慧职教课程页 <粘贴 URL>。扩展会自动把当前页面快照保存到下载目录 dsh-icve-latest.json；先运行 python scripts/icve_snapshot.py latest --brief 只拿页/题数，不要先截图、翻页或点「复制 JSON」。先运行 python scripts/icve_quiz.py --auto --dry-run 用本地题库匹配；全命中就直接 --auto --submit，只对未命中题生成答案 JSON，再用 --answers <json> --learn 批量点击并回填题库。不要逐题 edge.py click。视频用 course.py play，PPT 用 course.py ppt；changed:false 时禁止重复点击。检测到考试/监考/交卷页面必须停止，不自动作答。',
         attachment: '附件',
         attachmentCopy: '复制路径',
         attachmentCopied: '已复制',
@@ -1193,7 +1193,7 @@ window.__ModuleLoader__.load({
         templateMusic: 'Make music',
         templateMusicPrompt: 'Generate local <style: lofi/upbeat/ambient> music: run python scripts/studio.py music --out <theme.wav> --style <style> --seconds <seconds> to produce WAV + MIDI. Return duration, BPM and path. State that it is local synthesis, not a cloud model; regenerate with new parameters for another arrangement.',
         templateVocational: 'Vocational course',
-        templateVocationalPrompt: 'Open the ICVE course page <URL>. The extension auto-saves the current page snapshot to Downloads as dsh-icve-latest.json; run python scripts/icve_snapshot.py latest first and use that snapshot for questions/controls. Do not screenshot, page through, or press Copy JSON first. Only refresh the page and re-run latest if the snapshot is missing/stale. For batch choice questions write an answers JSON and verify with python scripts/icve_quiz.py --answers <json> --dry-run, then add --submit; do not click each question through edge.py. Use course.py play for video and ppt for slides. Never repeat a click that returns changed:false. Stop immediately on exam/proctored/submit-exam pages.',
+        templateVocationalPrompt: 'Open the ICVE course page <URL>. The extension auto-saves the current page snapshot to Downloads as dsh-icve-latest.json; run python scripts/icve_snapshot.py latest --brief first (counts only). Run python scripts/icve_quiz.py --auto --dry-run to match the local bank; if all questions match, use --auto --submit. Only generate answers for unresolved questions, then run --answers <json> --learn to click and fill the bank. Do not click each question through edge.py. Use course.py play for video and ppt for slides. Never repeat a click that returns changed:false. Stop immediately on exam/proctored/submit-exam pages.',
         attachment: 'Attachment',
         attachmentCopy: 'Copy path',
         attachmentCopied: 'Copied',
@@ -9824,7 +9824,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '6.9.0',
+              version: '6.10.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -9845,7 +9845,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '6.9.0',
+                version: '6.10.0',
               },
               null,
               2,

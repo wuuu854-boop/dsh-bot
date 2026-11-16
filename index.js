@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '6.9.0'
+const VERSION = '6.10.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -4264,8 +4264,8 @@ export function apply(ctx) {
       '- 只有 read.textLength = 0，或页面明确是 canvas、PDF、图片题、验证码时，才 screenshot + read_image；截图不是默认路径。',
       '- 禁止“先截图看看再说”；能 read 就不截图，能 click/type 就不模拟鼠标坐标。',
       '- 智慧职教 / ICVE：先用 `course.py progress` 看已完成/未完成（fast，缓存命中会返回 cached:true），再用 `course.py status` 判断 phase；动作命令返回的 page/phase/progress 直接复用，不要每个动作重新 full read。只有页面变化/缓存过期/卡住时才 `status --full`。点击用 `edge.py click --all --verify`。返回 `changed:false` / `stalled:true` 时禁止重复点击，先检查新 frame、滚动、等待；仍无变化就停下并报告卡点，不能循环。',
-      `- 智慧职教作业/测验（优先快路径）：扩展会自动把当前页面快照写到下载目录 dsh-icve-latest.json；先运行一次 "${pythonExe}" "${icveSnapshotScript}" latest，直接读题面/选项/控件。不要先扫 zjy2 API、workspace 或登录态，也不要先 UIA 翻页、截图或点「复制 JSON」；只有快照缺失/过期时才刷新 ICVE 页面再 latest。需要提交或最终点击时再用 edge.py，一次验证即可，失败就报告。`,
-      `- 智慧职教批量作答：把答案写成 {"answers":[{"question":"题号/关键字","choice":"A或选项文字"}]}，用 "${pythonExe}" "${icveQuizScript}" --answers <json> 一次点击所有选项；确认无误后加 --submit。不要逐题调用 edge.py click；先 --dry-run 校验匹配，匹配不到就停下报告，不要硬点。`,
+      `- 智慧职教作业/测验（优先快路径）：扩展会自动把当前页面快照写到下载目录 dsh-icve-latest.json；先运行一次 "${pythonExe}" "${icveSnapshotScript}" latest --brief，只拿帧数和题数；接着用 "${pythonExe}" "${icveQuizScript}" --auto --dry-run 查题库。不要先扫 zjy2 API、workspace 或登录态，也不要先 UIA 翻页、截图或点「复制 JSON」；只有快照缺失/过期时才刷新 ICVE 页面再 latest。需要提交或最终点击时再用 edge.py，一次验证即可，失败就报告。`,
+      `- 智慧职教批量作答：先 "${pythonExe}" "${icveQuizScript}" --auto --dry-run 用本地题库匹配；全命中就直接 --auto --submit，只把 unresolved 题面交给模型，不要读整份快照。未命中时把答案写成 {"answers":[{"question":"题号/关键字","choice":"A或选项文字"}]}，用 --answers <json> --learn 一次点击并回填题库；确认无误后加 --submit。不要逐题调用 edge.py click；匹配不到就停下报告，不要硬点。`,
       `- Clash / 系统代理：${proxyScript}`,
       `- 权限模式：${bot.privilege === 'admin' ? '完全权限 + 管理员' : '标准（文件沙箱）'}`,
       `- 任务模式：${bot.autonomy === 'unattended' ? '无人值守（不打断用户）' : '交互（必要时可拍板）'}`,

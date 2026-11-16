@@ -1,5 +1,13 @@
 # Changelog
 
+## 6.10.0 — 2026-11-16
+
+- Speed/tokens: add a local ICVE question bank (seeded with 63 questions from previously completed quizzes) and `--auto` lookup in `icve_quiz.py`. Known questions are clicked without model-generated answers; only `unresolved` questions are returned compactly.
+- Add `icve_bank.py seed/stats` and `docs/ICVE_QUESTION_BANK.md`; `--learn` writes successful answers back to the bank.
+- Token: `latest --brief` returns only page/frame/question counts; the prompt no longer asks for full question text before the bank check.
+- Bot prompt/template now starts with `--auto --dry-run`, then submits only when everything is resolved.
+- No QQ changes.
+
 ## 6.9.0 — 2026-11-16
 
 - Speed: add `icve_quiz.py` batch answering — one process clicks all matched choices and optionally submits, instead of one UIA process per question. Dry-run validates matches first.
