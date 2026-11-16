@@ -1,5 +1,14 @@
 # Changelog
 
+## 6.8.0 — 2026-11-16
+
+- Speed: ICVE extension now auto-saves the latest page snapshot to the system Downloads folder as `dsh-icve-latest.json`; no button click or clipboard read is needed.
+- Speed: `icve_snapshot.py latest` finds that file, validates/sanitizes it, and saves the Bot-readable copy. The Bot system prompt now uses this path first and forbids preliminary UIA paging/screenshots for homework.
+- Speed: the “智慧职教 / 刷课” template now starts from the auto-saved snapshot too.
+- Speed: ICVE homework prompt explicitly forbids scanning zjy2 APIs/workspace/login state before the snapshot.
+- Extension version 1.1.0.
+- No QQ changes.
+
 ## 6.7.1 — 2026-11-16
 
 - Security: ICVE snapshots no longer capture `/system/user/getInfo` or other login/profile endpoints; personal fields (phone, real name, student ID, avatar, school/class, tokens) are redacted in the extension and again in `icve_snapshot.py`.

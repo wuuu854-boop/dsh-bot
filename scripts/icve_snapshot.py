@@ -18,6 +18,8 @@ import json
 import os
 import re
 import sys
+import winreg
+from pathlib import Path
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 if HERE not in sys.path:
@@ -115,6 +117,31 @@ def parse_payload(raw):
     return sanitize_snapshot(data)
 
 
+def download_dirs():
+    dirs = []
+    try:
+        key = r"Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders"
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key) as handle:
+            value, _ = winreg.QueryValueEx(handle, "{374DE290-123F-4565-9164-39C4925E467B}")
+        dirs.append(Path(os.path.expandvars(value)))
+    except Exception:
+        pass
+    dirs.append(Path.home() / "Downloads")
+    dirs.append(Path.home() / "OneDrive" / "Downloads")
+    return [path for path in dirs if path.is_dir()]
+
+
+def find_download_snapshot():
+    candidates = []
+    for directory in download_dirs():
+        candidates.extend(directory.glob("dsh-icve-latest*.json"))
+    if not candidates:
+        raise FileNotFoundError(
+            "没有找到自动快照；请确认 ICVE 扩展已开启自动保存，或先点「复制 JSON 给 DSH」再运行 save"
+        )
+    return max(candidates, key=lambda path: path.stat().st_mtime)
+
+
 def clipboard_payload():
     import computer
 
@@ -194,10 +221,17 @@ def read_text(data, limit=20_000):
 
 def main():
     parser = argparse.ArgumentParser(description="DSH ICVE extension snapshot reader")
-    parser.add_argument("command", choices=["save", "summary", "read", "controls", "questions", "file"])
+    parser.add_argument("command", choices=["save", "latest", "summary", "read", "controls", "questions", "file"])
     parser.add_argument("--file", default="")
     parser.add_argument("--limit", type=int, default=20_000)
     args = parser.parse_args()
+
+    if args.command == "latest":
+        path = find_download_snapshot()
+        with open(path, "r", encoding="utf-8-sig") as handle:
+            data = parse_payload(handle.read())
+        save_snapshot(data)
+        emit({"ok": True, "source": str(path), "saved": SNAPSHOT_FILE, **summarize(data)})
 
     if args.command == "file":
         if not args.file:

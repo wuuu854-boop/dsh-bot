@@ -542,7 +542,7 @@ window.__ModuleLoader__.load({
         templateMusic: '做音乐',
         templateMusicPrompt: '生成一段 <风格：lofi/upbeat/ambient> 的本地音乐：用 python scripts/studio.py music --out <路径.wav> --style <风格> --seconds <秒数> 生成 wav + mid；给出时长、BPM、文件路径。说明这是本地合成，不是云端模型；需要重新编曲就改参数重生成。',
         templateVocational: '智慧职教 / 刷课',
-        templateVocationalPrompt: '打开智慧职教课程页 <粘贴 URL>。先 python scripts/course.py progress 看已完成/未完成（fast 缓存；cached:true 不要重复读），再用 course.py status 判断 phase。视频用 course.py play，PPT 用 course.py ppt，题目用 course.py question 读题干和选项，再用 course.py answer --choice N --submit 作答，完成后 course.py next 进入下一回合。动作命令会返回 page/phase/progress，直接采用它，不要每个动作再跑一次 full status；只有 page 缺失、缓存过期或卡住时才 course.py status --full。如果 click 返回 changed:false/stalled:true，禁止重复点击，先 read --all 检查 iframe、scroll、wait-change，仍无变化就停下说明卡点。检测到考试/监考/交卷页面必须停止，不自动作答。',
+        templateVocationalPrompt: '打开智慧职教课程页 <粘贴 URL>。扩展会自动把当前页面快照保存到下载目录 dsh-icve-latest.json；先运行 python scripts/icve_snapshot.py latest 读取页面/题目/控件，优先按快照作答，不要先截图、翻页或点「复制 JSON」。只有快照缺失或过期时才刷新页面后再 latest。视频用 course.py play，PPT 用 course.py ppt，提交/点击用 edge.py 点击一次并验证；changed:false 时禁止重复点击。检测到考试/监考/交卷页面必须停止，不自动作答。',
         attachment: '附件',
         attachmentCopy: '复制路径',
         attachmentCopied: '已复制',
@@ -1193,7 +1193,7 @@ window.__ModuleLoader__.load({
         templateMusic: 'Make music',
         templateMusicPrompt: 'Generate local <style: lofi/upbeat/ambient> music: run python scripts/studio.py music --out <theme.wav> --style <style> --seconds <seconds> to produce WAV + MIDI. Return duration, BPM and path. State that it is local synthesis, not a cloud model; regenerate with new parameters for another arrangement.',
         templateVocational: 'Vocational course',
-        templateVocationalPrompt: 'Open the vocational course page <URL>. Run python scripts/course.py progress first for completed/pending counts (fast cache; if cached:true, do not re-read), then course.py status for the phase. Use course.py play for video, ppt for slides, question for quiz text/options, answer --choice N --submit to answer, and next to advance. Action commands return page/phase/progress — reuse that result instead of running full status after every click; only run status --full when the page is missing, cache is stale, or you are stuck. If a click returns changed:false/stalled:true, do not repeat it: read --all, check iframes, scroll, wait-change, then stop and report the blocker. Stop immediately on exam/proctored/submit-exam pages.',
+        templateVocationalPrompt: 'Open the ICVE course page <URL>. The extension auto-saves the current page snapshot to Downloads as dsh-icve-latest.json; run python scripts/icve_snapshot.py latest first and use that snapshot for questions/controls. Do not screenshot, page through, or press Copy JSON first. Only refresh the page and re-run latest if the snapshot is missing/stale. Use course.py play for video and ppt for slides; submit/click through edge.py once and verify. Never repeat a click that returns changed:false. Stop immediately on exam/proctored/submit-exam pages.',
         attachment: 'Attachment',
         attachmentCopy: 'Copy path',
         attachmentCopied: 'Copied',
@@ -9824,7 +9824,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '6.7.1',
+              version: '6.8.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -9845,7 +9845,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '6.7.1',
+                version: '6.8.0',
               },
               null,
               2,

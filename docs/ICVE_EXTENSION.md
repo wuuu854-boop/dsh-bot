@@ -45,16 +45,22 @@ E:\DSH bot\dsh-bot\browser-extension\icve-assistant
 
 ## Bot 使用
 
+扩展默认自动保存最新快照到下载目录的 `dsh-icve-latest.json`，Bot 先跑：
+
 ```powershell
-python scripts/edge.py click --name "复制 JSON 给 DSH"
-python scripts/icve_snapshot.py save
+python scripts/icve_snapshot.py latest
 python scripts/icve_snapshot.py summary
 python scripts/icve_snapshot.py questions
 python scripts/icve_snapshot.py controls
 python scripts/icve_snapshot.py read
 ```
 
-如果按钮不可见，可以用 UIA 滚动/激活页面，或让 Bot 发送 `Alt+Shift+C`。
+脚本会自动在系统下载目录里找 `dsh-icve-latest*.json`；找不到时才回退到按钮复制：
+
+```powershell
+python scripts/edge.py click --name "复制 JSON 给 DSH"
+python scripts/icve_snapshot.py save
+```
 
 ## 数据安全
 

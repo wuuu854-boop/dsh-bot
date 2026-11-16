@@ -1,10 +1,17 @@
-# DSH Bot v6.7.1
+# DSH Bot v6.8.0
 
 **An open-source GrokBot alternative that runs a real bot team on your own Windows machine, inside DeepSeek Harness.**
 
 You talk to one **Boss**. It decides what to do, hires a specialist when nobody fits, delegates real work to bots that each keep their own DSH session, workspace and memory, then reviews the receipts and reports back. Every morning it runs a stand-up where the whole team reports what it did.
 
 ![Architecture](architecture.svg)
+
+## Speed (v6.8.0)
+
+- The ICVE extension auto-saves `dsh-icve-latest.json` to Downloads on page load/change; Bot runs `icve_snapshot.py latest` directly.
+- The Bot prompt now prefers this snapshot and forbids preliminary UIA paging/screenshots for ICVE homework; submission still goes through normal verified clicks.
+- The “智慧职教 / 刷课” template now starts from the same auto-saved snapshot.
+- No button click or clipboard read is needed in the normal path.
 
 ## Security fix (v6.7.1)
 
