@@ -55,6 +55,21 @@ python scripts/icve_snapshot.py controls
 python scripts/icve_snapshot.py read
 ```
 
+选择题批量作答：
+
+```powershell
+python scripts/icve_quiz.py --answers answers.json --dry-run
+python scripts/icve_quiz.py --answers answers.json --submit
+```
+
+`answers.json`：
+
+```json
+{"answers":[{"question":"1. ...","choice":"A"},{"question":"2. ...","choice":"图片"}]}
+```
+
+`--dry-run` 只校验题目/选项匹配；匹配失败会返回 `failed`，不会硬点。
+
 脚本会自动在系统下载目录里找 `dsh-icve-latest*.json`；找不到时才回退到按钮复制：
 
 ```powershell

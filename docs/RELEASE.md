@@ -1,4 +1,4 @@
-# DSH Bot v6.8.0
+# DSH Bot v6.9.0
 
 **An open-source GrokBot alternative that runs a real bot team on your own Windows machine, inside DeepSeek Harness.**
 
@@ -6,11 +6,17 @@ You talk to one **Boss**. It decides what to do, hires a specialist when nobody 
 
 ![Architecture](architecture.svg)
 
+## Speed (v6.9.0)
+
+- Add `icve_quiz.py` batch answering: one process clicks all matched choice options and optionally submits; `--dry-run` validates question/option matches first.
+- This replaces one PowerShell/UIA process per question on ICVE quizzes.
+
 ## Speed (v6.8.0)
 
 - The ICVE extension auto-saves `dsh-icve-latest.json` to Downloads on page load/change; Bot runs `icve_snapshot.py latest` directly.
 - The Bot prompt now prefers this snapshot and forbids preliminary UIA paging/screenshots for ICVE homework; submission still goes through normal verified clicks.
 - The “智慧职教 / 刷课” template now starts from the same auto-saved snapshot.
+- Add batch answering: `icve_quiz.py --answers answers.json [--submit]` clicks all matched choices in one process; dry-run validates matches first.
 - No button click or clipboard read is needed in the normal path.
 
 ## Security fix (v6.7.1)

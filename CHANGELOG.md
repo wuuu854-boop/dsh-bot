@@ -1,5 +1,10 @@
 # Changelog
 
+## 6.9.0 — 2026-11-16
+
+- Speed: add `icve_quiz.py` batch answering — one process clicks all matched choices and optionally submits, instead of one UIA process per question. Dry-run validates matches first.
+- No QQ changes.
+
 ## 6.8.0 — 2026-11-16
 
 - Speed: ICVE extension now auto-saves the latest page snapshot to the system Downloads folder as `dsh-icve-latest.json`; no button click or clipboard read is needed.
