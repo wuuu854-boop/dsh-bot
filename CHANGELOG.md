@@ -1,5 +1,12 @@
 # Changelog
 
+## 6.7.0 — 2026-11-16
+
+- Add: dedicated Edge/Chrome extension `browser-extension/icve-assistant` for 智慧职教 / ICVE. It extracts page + iframe text, controls, questions, links, tables and best-effort JSON API responses, with a visible panel, one-click JSON copy and `Alt+Shift+C`.
+- Add: `scripts/icve_snapshot.py` reads the clipboard snapshot, validates the schema, saves `storages/dsh-bot/icve/latest.json`, and exposes `summary/questions/controls/read`.
+- Verified on a realistic mock ICVE page: 2 frames, 7 controls, 2 question blocks; clipboard copy and Bot-side save succeed. Installed as an unpacked extension in Edge.
+- QQ remains default-off.
+
 ## 6.6.2 — 2026-11-13
 
 - Fix: watchdog now releases a live agent whose run is still marked `running` but whose agent has been idle for over 90 seconds, and stops stale activity rows. This covers in-process lost `turn/end` events, not just host restarts.

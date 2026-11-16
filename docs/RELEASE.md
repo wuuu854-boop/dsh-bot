@@ -1,10 +1,16 @@
-# DSH Bot v6.6.2
+# DSH Bot v6.7.0
 
 **An open-source GrokBot alternative that runs a real bot team on your own Windows machine, inside DeepSeek Harness.**
 
 You talk to one **Boss**. It decides what to do, hires a specialist when nobody fits, delegates real work to bots that each keep their own DSH session, workspace and memory, then reviews the receipts and reports back. Every morning it runs a stand-up where the whole team reports what it did.
 
 ![Architecture](architecture.svg)
+
+## New (v6.7.0)
+
+- Dedicated Edge/Chrome extension for 智慧职教 (ICVE): page + iframe extraction, question/controls overview, one-click JSON copy, `Alt+Shift+C`, and a Bot-side `icve_snapshot.py` reader.
+- The extension is installed in Edge as an unpacked extension; source is in `browser-extension/icve-assistant/`.
+- Verified on a realistic mock ICVE page: 2 frames, 7 controls, 2 question blocks; clipboard snapshot saves and re-reads correctly.
 
 ## Fix (v6.6.2)
 
