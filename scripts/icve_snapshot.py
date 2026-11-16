@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -29,6 +30,13 @@ STATE_DIR = os.path.join(
 )
 SNAPSHOT_FILE = os.path.join(STATE_DIR, "icve", "latest.json")
 SCHEMA = "dsh.icve.snapshot.v1"
+SENSITIVE_KEY = re.compile(
+    r"(password|passwd|phone|mobile|email|avatar|real.?name|nick.?name|user.?name|user.?id|"
+    r"job.?no|student.?id|student.?no|id.?card|school.?name|school.?number|class.?name|"
+    r"token|session|ticket|authorization)",
+    re.I,
+)
+SENSITIVE_URL = re.compile(r"/system/user/|getInfo|login|logout|auth|sso|token|session", re.I)
 
 
 def emit(value, code=0):
@@ -39,6 +47,54 @@ def emit(value, code=0):
 def clean(value, limit=4_000):
     text = str(value or "").replace("\r\n", "\n").strip()
     return text[:limit] + ("…" if len(text) > limit else "")
+
+
+def clean_url(raw):
+    text = str(raw or "")
+    try:
+        from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+
+        parts = urlsplit(text)
+        query = [
+            (key, "[redacted]" if key.lower() in {"token", "ticket", "session", "sessionid", "authorization"} else value)
+            for key, value in parse_qsl(parts.query, keep_blank_values=True)
+        ]
+        return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
+    except Exception:
+        return text
+
+
+def redact(value, depth=0):
+    if depth > 8:
+        return "[depth]"
+    if isinstance(value, list):
+        return [redact(item, depth + 1) for item in value[:200]]
+    if not isinstance(value, dict):
+        return value
+    output = {}
+    for key, item in list(value.items())[:200]:
+        if SENSITIVE_KEY.search(str(key)):
+            output[key] = "[redacted]"
+        else:
+            output[key] = redact(item, depth + 1)
+    return output
+
+
+def sanitize_snapshot(data):
+    data = redact(data)
+    data["tab"] = data.get("tab") if isinstance(data.get("tab"), dict) else {}
+    data["tab"]["url"] = clean_url(data["tab"].get("url"))
+    for frame in data.get("frames") or []:
+        frame["url"] = clean_url(frame.get("url"))
+        frame["api"] = [
+            entry for entry in (frame.get("api") or [])
+            if isinstance(entry, dict) and not SENSITIVE_URL.search(str(entry.get("url") or ""))
+        ]
+    data["api"] = [
+        entry for entry in (data.get("api") or [])
+        if isinstance(entry, dict) and not SENSITIVE_URL.search(str(entry.get("url") or ""))
+    ]
+    return data
 
 
 def parse_payload(raw):
@@ -56,7 +112,7 @@ def parse_payload(raw):
         raise ValueError(f"快照 schema 不是 {SCHEMA}")
     if not isinstance(data.get("frames"), list):
         raise ValueError("快照缺少 frames")
-    return data
+    return sanitize_snapshot(data)
 
 
 def clipboard_payload():

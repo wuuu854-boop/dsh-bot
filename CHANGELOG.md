@@ -1,5 +1,11 @@
 # Changelog
 
+## 6.7.1 — 2026-11-16
+
+- Security: ICVE snapshots no longer capture `/system/user/getInfo` or other login/profile endpoints; personal fields (phone, real name, student ID, avatar, school/class, tokens) are redacted in the extension and again in `icve_snapshot.py`.
+- The real-site smoke test exposed this; the captured snapshot and clipboard were removed immediately.
+- No feature changes; QQ remains default-off.
+
 ## 6.7.0 — 2026-11-16
 
 - Add: dedicated Edge/Chrome extension `browser-extension/icve-assistant` for 智慧职教 / ICVE. It extracts page + iframe text, controls, questions, links, tables and best-effort JSON API responses, with a visible panel, one-click JSON copy and `Alt+Shift+C`.

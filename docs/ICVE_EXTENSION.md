@@ -60,5 +60,7 @@ python scripts/icve_snapshot.py read
 
 - 快照只在本机 `storages\dsh-bot\icve\latest.json`。
 - 不采集密码输入值。
+- 跳过登录/个人资料接口，并对手机号、真实姓名、学号、头像、学校/班级和 token 字段脱敏。
+- `icve_snapshot.py` 会再次执行同样的脱敏，旧快照或手工粘贴也不会把个人字段写进 Bot 状态。
 - 不上传任何页面内容。
 - 提交作业仍然走正常页面点击，不自动提交。
