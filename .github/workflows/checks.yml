@@ -38,6 +38,8 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: ICVE panel and iframe regressions
         run: python scripts/test-icve-browser.py --artifacts browser-artifacts
+      - name: ICVE unpacked extension and download integration
+        run: python scripts/test-icve-live-extension.py --artifacts browser-artifacts
       - uses: actions/upload-artifact@v4
         if: always()
         with:

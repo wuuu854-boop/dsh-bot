@@ -170,8 +170,16 @@ def save_snapshot(data):
 
 
 def read_latest(max_age=90):
-    path = find_download_snapshot()
-    data = parse_payload(path.read_text(encoding="utf-8-sig"))
+    for attempt in range(3):
+        try:
+            path = find_download_snapshot()
+            data = parse_payload(path.read_text(encoding="utf-8-sig"))
+            break
+        except (OSError, ValueError):
+            if attempt == 2:
+                raise
+            # The browser may be replacing the file while it is being read.
+            time.sleep(0.2)
     stamp = datetime.fromisoformat(str(data.get("capturedAt", "")).replace("Z", "+00:00"))
     age = (datetime.now(timezone.utc) - stamp).total_seconds()
     if not -5 <= age <= max_age:
@@ -203,6 +211,8 @@ def course_view(data):
             phase = "media-error"
     elif actions:
         phase = "next"
+    if data.get("missingFrames"):
+        phase = "loading"
     if any(marker in text for marker in ("考试", "监考", "闭卷", "交卷", "答题卡")):
         phase = "exam"
     result = {
@@ -215,28 +225,37 @@ def course_view(data):
         "missingFrames": data.get("missingFrames", 0),
     }
     # Playback seconds advance without requiring another model decision.
-    decision = {**result, "media": [{k: v for k, v in item.items() if k != "currentTime"} for item in media],
+    decision = {**result, "media": [{k: v for k, v in item.items() if k not in ("currentTime", "readyState")} for item in media],
+                "documents": [(frame.get("frameId"), frame.get("documentId"), frame.get("url")) for frame in frames],
                 "questionState": questions, "content": "" if media else text}
     result["revision"] = hashlib.sha256(json.dumps(decision, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:16]
     return result
 
 
-def wait_for_change(revision, timeout=60):
-    deadline = time.monotonic() + timeout
-    initial_positions = None
+def wait_for_change(revision, timeout=300):
+    started = time.monotonic()
+    deadline = started + timeout
+    last_progress = started
+    progressed = False
+    previous_positions = []
     while True:
         data = read_latest()
         result = course_view(data)
+        now = time.monotonic()
         positions = [item.get("currentTime", 0) for item in result["media"]]
-        if initial_positions is None:
-            initial_positions = positions
+        if any(current > previous for current, previous in zip(positions, previous_positions)):
+            last_progress = now
+            progressed = True
+        previous_positions = positions
         if result["revision"] != revision:
             save_snapshot(data)
             return {**result, "changed": True}
-        remaining = deadline - time.monotonic()
-        if remaining <= 0:
+        remaining = deadline - now
+        stalled = result["phase"] == "playing" and now - last_progress >= 45
+        if remaining <= 0 or stalled or result["phase"] != "playing":
             return {"ok": True, "changed": False, "revision": revision, "phase": result["phase"],
-                    "progressed": positions != initial_positions, "media": result["media"], "waitedSeconds": timeout}
+                    "progressed": progressed and not stalled,
+                    "stalled": stalled, "media": result["media"], "waitedSeconds": round(now - started, 1)}
         time.sleep(min(1, remaining))
 
 
@@ -309,7 +328,7 @@ def main():
     parser.add_argument("--limit", type=int, default=20_000)
     parser.add_argument("--brief", action="store_true")
     parser.add_argument("--since", default="")
-    parser.add_argument("--timeout", type=int, choices=range(1, 61), default=60, metavar="1..60")
+    parser.add_argument("--timeout", type=int, choices=range(1, 601), default=300, metavar="1..600")
     args = parser.parse_args()
 
     if args.command == "course":

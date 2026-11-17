@@ -182,3 +182,34 @@ uv run --with playwright python scripts/test-icve-browser.py --browser "C:\Progr
 本机通过：16 条 Python、5 条扩展、2 条恢复用例，版本/模块激活/含空格路径检查。Edge 157.0.4341.60 合成页面通过嵌套题目、面板不自循环、iframe 媒体事件、保存错误与重试、文本去面板、收起状态、280px 命中测试及超量题目标记。CI 使用独立 Chromium 并保存截图和探针结果。
 
 未进行真实账号课程提交、平台计时/判分验收、DSH 宿主模型调用或费用测量。
+
+
+## 6.12.0 长播放与快照可靠性（2026-11-17）
+
+对比 6.11.0 的默认 60 秒等待和 6.12.0 的默认 300 秒等待。使用虚拟时钟和同一段连续播放 300 秒的合成媒体状态，输出以命令默认 JSON 格式计量。
+
+| 指标 | 6.11.0 | 6.12.0 |
+|---|---:|---:|
+| 返回模型的等待结果 | 5 次 | 1 次 |
+| 输出字符 | 1,323 | 283 |
+| cl100k_base token | 470 | 102 |
+
+等待结果数量减少 80%，样例输出 token 减少 78.3%。脚本内部仍检查播放进度；45 秒没有观察到进度会提前返回停滞，暂停、换文档、替换视频和题目变化也会返回。缺少 iframe 时标记 loading。平台的学习记录不会被这些本地等待修改。
+
+```powershell
+python scripts/bench-icve.py --watch
+uv run --with tiktoken python scripts/bench-icve.py --watch --tokens
+# 默认 300 秒；允许 1–600 秒
+python scripts/icve_snapshot.py watch --since <revision> --timeout 300
+```
+
+这是虚拟时间下的工具输出基准，未计入真实宿主的后台通知、模型推理与缓存，也未测量模型账单。后台任务应等待完成通知；频繁询问后台状态会增加调用。
+
+自动检查加入独立 Chromium 完整加载扩展，核对下载文件落盘、documentId、同 URL 重载和双窗口当前页隔离；页面内容使用合成课程，浏览器 profile 和下载目录均隔离。无头环境无法可靠切回操作系统窗口焦点，此项仅有事件模拟回归，真实桌面焦点恢复尚未验收。
+
+```powershell
+uv run --with playwright==1.65.2 python -m playwright install chromium
+uv run --with playwright==1.65.2 python scripts/test-icve-live-extension.py --artifacts <目录>
+```
+
+浏览器接口依据：[活动标签与最近聚焦窗口](https://developer.chrome.com/docs/extensions/reference/api/tabs#method-query)、[下载完成事件](https://developer.chrome.com/docs/extensions/reference/api/downloads#event-onChanged)。集成测试使用 [Playwright 的扩展加载方式](https://playwright.dev/python/docs/chrome-extensions)。

@@ -1,5 +1,13 @@
 # Changelog
 
+## 6.12.0 — 2026-11-17
+
+- ICVE extension 1.3.0 saves only the last focused browser window's active tab. Frame document IDs reject snapshots from a same-URL reload; late older captures cannot replace newer data.
+- Sync now waits for the download to complete on disk. Failed/interrupted/timed-out downloads remain retryable; the panel distinguishes saving, inactive tabs and page changes.
+- Local playback waits default to 300 seconds (configurable 1–600); 45 seconds without observed progress returns a stall. Media replacement and document reload wake the Bot; brief ready-state changes do not.
+- Temporary snapshot read conflicts retry locally. Missing frames report loading instead of normal playback. Course prompts wait for background-job completion instead of frequent polling.
+- A five-minute virtual-clock fixture reduces wait results from 5 to 1 and tool-output cl100k_base tokens from 470 to 102 (78.3%); this is not a billing measurement. Add full unpacked-extension download/window tests alongside regression fixtures.
+
 ## 6.11.0 — 2026-11-17
 
 - ICVE: `course` returns a compact phase/media/revision; `watch --since <revision>` waits locally for a decision change. Playback seconds do not wake the model; a timeout distinguishes continuing playback from a stall.
