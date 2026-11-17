@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '6.10.0'
+const VERSION = '6.11.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -366,15 +366,16 @@ export function apply(ctx) {
 
   /* ── state ─────────────────────────────────────────────────────────── */
 
-  function latestStateBackup() {
-    try {
-      const files = fs.readdirSync(stateDir)
-        .filter((name) => /^state-backup-\d+\.json$/.test(name))
-        .sort()
-      return files.length ? path.join(stateDir, files[files.length - 1]) : null
-    } catch {
-      return null
-    }
+  function stateBackupNames() {
+    return fs.readdirSync(stateDir)
+      .filter((name) => /^state-backup-\d+\.json$/.test(name))
+      .sort()
+  }
+
+  function parseStoredState(contents) {
+    const raw = JSON.parse(contents)
+    if (!Array.isArray(raw?.threads)) throw new Error('Stored state is missing the threads array')
+    return raw
   }
 
   function loadState() {
@@ -397,14 +398,20 @@ export function apply(ctx) {
     try {
       let raw
       try {
-        raw = JSON.parse(fs.readFileSync(stateFile, 'utf8'))
+        raw = parseStoredState(fs.readFileSync(stateFile, 'utf8'))
       } catch (primaryError) {
-        const backup = latestStateBackup()
-        if (!backup) throw primaryError
-        raw = JSON.parse(fs.readFileSync(backup, 'utf8'))
-        console.warn('[dsh-bot] state.json unreadable; restored from', backup)
+        for (const name of stateBackupNames().reverse()) {
+          const backup = path.join(stateDir, name)
+          try {
+            raw = parseStoredState(fs.readFileSync(backup, 'utf8'))
+            console.warn('[dsh-bot] state.json unreadable; restored from', backup)
+            break
+          } catch {
+            // A bad backup can coexist with an older usable copy.
+          }
+        }
+        if (!raw) throw primaryError
       }
-      if (!raw || typeof raw !== 'object' || !Array.isArray(raw.threads)) return fallback
 
       const bots = []
       const seen = new Set()
@@ -577,7 +584,8 @@ export function apply(ctx) {
         activeBotId: botIds.has(raw.activeBotId) ? raw.activeBotId : fallbackBotId,
         lastThreadId: typeof raw.lastThreadId === 'string' ? raw.lastThreadId : null,
       }
-    } catch {
+    } catch (error) {
+      if (error?.code !== 'ENOENT') console.error('[dsh-bot] cannot load state', messageOf(error))
       return fallback
     }
   }
@@ -1020,10 +1028,10 @@ export function apply(ctx) {
     try {
       fs.mkdirSync(stateDir, { recursive: true })
       const backup = path.join(stateDir, `state-backup-${lastStateBackupAt}.json`)
-      fs.copyFileSync(stateFile, backup)
-      const backups = fs.readdirSync(stateDir)
-        .filter((name) => /^state-backup-\d+\.json$/.test(name))
-        .sort()
+      const contents = fs.readFileSync(stateFile, 'utf8')
+      parseStoredState(contents)
+      fs.writeFileSync(backup, contents, { encoding: 'utf8', flag: 'wx' })
+      const backups = stateBackupNames()
       while (backups.length > MAX_STATE_BACKUPS) {
         fs.rmSync(path.join(stateDir, backups.shift()), { force: true })
       }
@@ -4185,6 +4193,13 @@ export function apply(ctx) {
       autonomyMode
         ? `## 无人值守模式（最高优先级）\n- 用户可能不在电脑前，无法回答问题。不要调用 bot_ask、ask_user_question、exit_plan_mode，也不要用“需要你确认/请问/是否要/要不要/等你回复”这类问句结束任务。\n- 这条覆盖前面所有“先问用户”的说明。信息不足时按你认为最优、最可逆的假设继续，并在最终报告里列出假设。\n- 遇到删除数据、付款、对外发送消息等不可逆操作：优先选可逆替代方案、跳过并记录原因，或按最小影响方式执行；不要停下来等用户。\n- 长任务用 goal / 后台 job / 子代理持续推进；不要在中途停住。完成或确实无法继续时，给出结果、证据、阻塞点和下一步建议。`
         : '',
+      '## 浏览器与课程工具',
+      `- 浏览器先用 python "${edgeScript}" read 读文本和控件，click/type 操作后复用返回状态。仅 canvas/PDF 或无文本时截图。`,
+      `- ICVE 优先运行一次 "${pythonExe}" "${icveSnapshotScript}" course，返回 phase、媒体状态和 revision。它自动获取最新快照；过期就切回课程标签并刷新助手。`,
+      `- phase=playing 时运行 "${pythonExe}" "${icveSnapshotScript}" watch --since <revision> --timeout 60，在本地等待变化后再决定下一步；changed:false 且 progressed:true 表示播放仍在推进，可继续等待；progressed:false 时检查卡点。复用输出，避免每几秒调用模型读整页。video-ended 只表示播放器结束，完成学习仍以课程页面记录为准。`,
+      `- 课程动作使用 "${pythonExe}" "${scriptPaths.course}" play/next/ppt；复用动作结果。changed:false 或 stalled:true 时检查一次页面并报告卡点。`,
+      `- 遇到题目运行 "${pythonExe}" "${icveQuizScript}" --auto --dry-run，默认只输出计数和 unresolved。只为 unresolved 写答案 JSON，支持 choices 数组；用 --auto --answers <file> --dry-run 合并题库与补充答案。需要逐题核对时才加 --verbose。`,
+      `- 确认答案后 --auto --answers <file> --learn 批量点击，按用户任务需要加 --submit。旧题库缺少选项文本时重新核对一次，保存后按文本匹配重排选项；题库命中不等于平台判分。考试/监考/交卷页面停止课程自动操作。`,
       own,
     ].join('\n')
   }
@@ -4255,17 +4270,6 @@ export function apply(ctx) {
       `- 多显示器：python "${computerScript}" screen 查看布局；screenshot 默认截取全部显示器，可加 primary 或 monitor:N。坐标使用虚拟桌面坐标。`,
       '',
       difficultyBlock,
-      '## 浏览器任务（默认底层，不走视觉）',
-      `- 默认用 Edge + UI Automation：python "${edgeScript}" read 读取页面全文和控件；click/type/select 直接操作控件。`,
-      `- 所有网页内容（文章、搜索、文档、作业、表单）都先 read；只要 read.textLength > 0，就不要截图。`,
-      `- 只打开一次：python "${edgeScript}" open <url>；之后用 read/click/type/select；不要每一步重新 open，也不要反复开新窗口。`,
-      `- 长页面用 python "${edgeScript}" scroll down 分页读取，再 read；不要截图滚动。`,
-      '- 表单/作业：一次 read 拿到 text + controls；按控件 name 填写/选择，再 click 提交；提交后再 read 一次确认结果。',
-      '- 只有 read.textLength = 0，或页面明确是 canvas、PDF、图片题、验证码时，才 screenshot + read_image；截图不是默认路径。',
-      '- 禁止“先截图看看再说”；能 read 就不截图，能 click/type 就不模拟鼠标坐标。',
-      '- 智慧职教 / ICVE：先用 `course.py progress` 看已完成/未完成（fast，缓存命中会返回 cached:true），再用 `course.py status` 判断 phase；动作命令返回的 page/phase/progress 直接复用，不要每个动作重新 full read。只有页面变化/缓存过期/卡住时才 `status --full`。点击用 `edge.py click --all --verify`。返回 `changed:false` / `stalled:true` 时禁止重复点击，先检查新 frame、滚动、等待；仍无变化就停下并报告卡点，不能循环。',
-      `- 智慧职教作业/测验（优先快路径）：扩展会自动把当前页面快照写到下载目录 dsh-icve-latest.json；先运行一次 "${pythonExe}" "${icveSnapshotScript}" latest --brief，只拿帧数和题数；接着用 "${pythonExe}" "${icveQuizScript}" --auto --dry-run 查题库。不要先扫 zjy2 API、workspace 或登录态，也不要先 UIA 翻页、截图或点「复制 JSON」；只有快照缺失/过期时才刷新 ICVE 页面再 latest。需要提交或最终点击时再用 edge.py，一次验证即可，失败就报告。`,
-      `- 智慧职教批量作答：先 "${pythonExe}" "${icveQuizScript}" --auto --dry-run 用本地题库匹配；全命中就直接 --auto --submit，只把 unresolved 题面交给模型，不要读整份快照。未命中时把答案写成 {"answers":[{"question":"题号/关键字","choice":"A或选项文字"}]}，用 --answers <json> --learn 一次点击并回填题库；确认无误后加 --submit。不要逐题调用 edge.py click；匹配不到就停下报告，不要硬点。`,
       `- Clash / 系统代理：${proxyScript}`,
       `- 权限模式：${bot.privilege === 'admin' ? '完全权限 + 管理员' : '标准（文件沙箱）'}`,
       `- 任务模式：${bot.autonomy === 'unattended' ? '无人值守（不打断用户）' : '交互（必要时可拍板）'}`,

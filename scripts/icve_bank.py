@@ -40,9 +40,9 @@ def load_bank():
             data = json.load(handle)
         if isinstance(data, dict) and isinstance(data.get("items"), list):
             return data
-    except Exception:
-        pass
-    return {"version": 1, "updatedAt": 0, "items": []}
+    except FileNotFoundError:
+        return {"version": 1, "updatedAt": 0, "items": []}
+    raise ValueError("题库格式损坏，请恢复备份后重试")
 
 
 def save_bank(data):
@@ -98,6 +98,8 @@ def merge_entries(bank, entries):
         if key in by_norm:
             existing = by_norm[key]
             existing["answers"] = entry["answers"]
+            existing.pop("options", None)
+            existing.pop("questionKey", None)
             existing["type"] = entry.get("type") or existing.get("type")
             existing["updatedAt"] = int(time.time() * 1000)
             continue

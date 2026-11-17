@@ -270,7 +270,7 @@ def classify(page):
 
 
 def signature(page):
-    raw = f"{page.get('url','')}|{page.get('textLength',0)}|" + "|".join(
+    raw = f"{page.get('url','')}|{text_of(page)}|" + "|".join(
         f"{c.get('frame')}:{c.get('name')}:{c.get('value')}:{c.get('enabled')}" for c in controls(page)[:120]
     )
     return hashlib.sha1(raw.encode("utf-8", "replace")).hexdigest()
@@ -384,7 +384,8 @@ def do_play(page):
             return {"ok": False, "action": "play", "error": "点击播放后页面没有变化", "result": last}
     computer.press_combo("space")
     after = read_page()
-    return {"ok": True, "action": "play", "method": "space", "changed": after.get("signature") != page.get("signature"), "page": summary(after)}
+    changed = bool(after.get("ok") and after.get("signature") != page.get("signature"))
+    return {"ok": changed, "action": "play", "method": "space", "changed": changed, "stalled": not changed, "page": summary(after)}
 
 
 def do_next(page):
@@ -417,7 +418,9 @@ def do_ppt(page):
         if result.get("ok") and result.get("changed"):
             return {"ok": True, "action": "ppt", "clicked": candidate, "page": summary(read_page())}
     computer.press_combo("right")
-    return {"ok": True, "action": "ppt", "method": "right-arrow", "page": summary(read_page())}
+    after = read_page()
+    changed = bool(after.get("ok") and after.get("signature") != page.get("signature"))
+    return {"ok": changed, "action": "ppt", "method": "right-arrow", "changed": changed, "stalled": not changed, "page": summary(after)}
 
 
 def do_answer(page, choice=None, text=None, submit=False):
@@ -429,9 +432,10 @@ def do_answer(page, choice=None, text=None, submit=False):
     clicked = None
     if choice not in (None, ""):
         try:
-            index = int(str(choice).strip().upper().replace("A", "1").replace("B", "2").replace("C", "3").replace("D", "4")) - 1
+            value = str(choice).strip().upper()
+            index = ord(value) - ord("A") if len(value) == 1 and "A" <= value <= "Z" else int(value) - 1
         except Exception:
-            index = 0
+            return {"ok": False, "error": "选项必须是字母或从 1 开始的序号"}
         if index < 0 or index >= len(options):
             return {"ok": False, "error": f"选项序号超出范围（共 {len(options)} 个）", "options": options[:8]}
         result = click_candidate(options[index])
@@ -444,12 +448,14 @@ def do_answer(page, choice=None, text=None, submit=False):
         clicked = {"option": edits[0], "result": result}
     else:
         return {"ok": False, "error": "answer 需要 --choice 或 --text"}
+    if not clicked["result"].get("ok"):
+        return {"ok": False, "action": "answer", "clicked": clicked, "error": "作答操作失败，未提交"}
     submitted = None
     if submit:
         submit_controls = [c for c in controls(page) if "提交" in str(c.get("name") or "")]
         if submit_controls:
             submitted = click_candidate(submit_controls[0])
-    return {"ok": True, "action": "answer", "clicked": clicked, "submitted": submitted, "page": summary(read_page())}
+    return {"ok": not submit or bool(submitted and submitted.get("ok")), "action": "answer", "clicked": clicked, "submitted": submitted, "page": summary(read_page())}
 
 
 def summary(page):

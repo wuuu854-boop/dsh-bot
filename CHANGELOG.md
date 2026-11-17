@@ -1,5 +1,15 @@
 # Changelog
 
+## 6.11.0 — 2026-11-17
+
+- ICVE: `course` returns a compact phase/media/revision; `watch --since <revision>` waits locally for a decision change. Playback seconds do not wake the model; a timeout distinguishes continuing playback from a stall.
+- Tokens: bank dry-runs omit known questions by default (`--verbose` restores the plan). The reproducible 20-question fixture drops from 1,082 to 28 cl100k_base tokens; this measures tool output, not provider billing. Stable course instructions move out of per-request runtime context.
+- Question bank: combine `--auto` with manual unresolved answers; retain option text to handle reordering; reject partial pages, ambiguous choices and legacy index-only entries until reviewed. `--learn` records selected answers, not a platform grade. Corrupt banks are no longer silently replaced.
+- Extension 1.2.0: compact dark panel, live media status, nested question extraction, iframe refresh, timestamp-independent deduplication, save retries, active-tab checks and no stale-frame fallback. Panel updates no longer trigger their own refresh loop.
+- Course actions: equal-length page changes are detected; failed keyboard/answer actions no longer claim success or submit. Course template paths work outside the plugin directory.
+- State recovery: skip corrupt backup snapshots and preserve recoverable backups when the primary state is corrupt.
+- Validation: 16 Python regressions, 5 extension regressions, 2 state recovery regressions, activation/version/path guards, and a synthetic browser test in CI. Live ICVE completion and DSH model billing were not exercised.
+
 ## 6.10.0 — 2026-11-16
 
 - Speed/tokens: add a local ICVE question bank (seeded with 63 questions from previously completed quizzes) and `--auto` lookup in `icve_quiz.py`. Known questions are clicked without model-generated answers; only `unresolved` questions are returned compactly.

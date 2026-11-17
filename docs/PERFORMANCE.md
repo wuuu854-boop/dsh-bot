@@ -148,3 +148,37 @@ node scripts/bench-api.mjs
 $env:DSH_BOT_BENCH_SAMPLES='20'
 $env:DSH_BOT_RUNTIME='D:\path\to\runtime.json'
 ```
+
+## ICVE 课程与输出（2026-11-17）
+
+对比 6.10.0（`4756ae3`）与 6.11.0。固定 20 道合成中文选择题，全部命中本地题库，测量 `--auto --dry-run` 的标准输出（去掉末尾换行）。
+
+| 指标 | 6.10.0 | 6.11.0 |
+|---|---:|---:|
+| 字符数 | 2,198 | 91 |
+| UTF-8 字节 | 3,198 | 91 |
+| cl100k_base token | 1,082 | 28 |
+
+该样例工具输出 token 减少 **97.41%**。实际模型使用不同 tokenizer、缓存和对话上下文，不能把这个比例当作总账单降幅。未命中题仍需要输出题面和选项。
+
+```powershell
+# 无附加依赖，测量字符和字节
+python scripts/bench-icve.py
+# 可选：临时安装 tokenizer，测量样例 token
+uv run --with tiktoken python scripts/bench-icve.py --tokens
+```
+
+`watch` 本地每秒检查快照，最长等待 60 秒；播放秒数推进不改变 revision，暂停、结束、题目或页面变化才提前返回。正常播放超时会报告 progressed=true，停滞则为 false。浏览器周期采集与本地读文件不消耗模型 token。稳定的课程工具说明放到 persona 中，避免在每次动态运行上下文中重复注入；缓存收益取决于宿主。
+
+验证命令：
+
+```powershell
+node scripts/check-client.cjs
+node --test scripts/test-state-recovery.mjs scripts/test-icve-extension.mjs
+python -m unittest discover -s scripts -p test_icve.py
+uv run --with playwright python scripts/test-icve-browser.py --browser "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --artifacts <目录>
+```
+
+本机通过：16 条 Python、5 条扩展、2 条恢复用例，版本/模块激活/含空格路径检查。Edge 157.0.4341.60 合成页面通过嵌套题目、面板不自循环、iframe 媒体事件、保存错误与重试、文本去面板、收起状态、280px 命中测试及超量题目标记。CI 使用独立 Chromium 并保存截图和探针结果。
+
+未进行真实账号课程提交、平台计时/判分验收、DSH 宿主模型调用或费用测量。
