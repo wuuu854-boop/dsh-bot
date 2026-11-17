@@ -125,9 +125,11 @@ class IcveTests(unittest.TestCase):
     def test_wait_timeout_distinguishes_playback_progress_from_a_stall(self):
         revision = snapshot.course_view(page())["revision"]
         for current, expected in ((40, True), (1, False)):
-            with patch.object(snapshot, "read_latest", side_effect=[page(), page(current=current)]), \
-                    patch.object(snapshot.time, "monotonic", side_effect=[0, 0, 60]), patch.object(snapshot.time, "sleep"):
-                result = snapshot.wait_for_change(revision)
+            clock = [0]
+            with patch.object(snapshot, "read_latest", side_effect=lambda: page(current=min(current, 1 + clock[0]))), \
+                    patch.object(snapshot.time, "monotonic", side_effect=lambda: clock[0]), \
+                    patch.object(snapshot.time, "sleep", side_effect=lambda seconds: clock.__setitem__(0, clock[0] + seconds)):
+                result = snapshot.wait_for_change(revision, timeout=60)
             self.assertFalse(result["changed"])
             self.assertEqual(result["progressed"], expected)
 
@@ -149,6 +151,73 @@ class IcveTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     bank.load_bank()
             self.assertEqual(path.read_text(encoding="utf-8"), "{")
+
+    def test_transient_download_read_is_retried_locally(self):
+        data = page()
+        for temporary in ("{", PermissionError("file is being replaced")):
+            with patch.object(snapshot, "find_download_snapshot", return_value=Path("fixture.json")), \
+                    patch.object(Path, "read_text", side_effect=[temporary, json.dumps(data)]), patch.object(snapshot.time, "sleep") as sleep:
+                self.assertEqual(snapshot.read_latest()["tab"], data["tab"])
+                self.assertEqual(sleep.call_count, 1)
+
+    def test_document_or_media_replacement_changes_revision_but_buffer_ticks_do_not(self):
+        first = page()
+        first["frames"][0]["documentId"] = "document-1"
+        first["frames"][0]["media"][0]["id"] = 1
+        initial = snapshot.course_view(first)["revision"]
+        first["frames"][0]["media"][0]["readyState"] = 3
+        self.assertEqual(snapshot.course_view(first)["revision"], initial)
+        first["frames"][0]["media"][0]["id"] = 2
+        self.assertNotEqual(snapshot.course_view(first)["revision"], initial)
+        first["frames"][0]["media"][0]["id"] = 1
+        first["frames"][0]["documentId"] = "document-2"
+        self.assertNotEqual(snapshot.course_view(first)["revision"], initial)
+
+    def test_incomplete_frames_are_loading_not_playing(self):
+        data = page()
+        data["missingFrames"] = 1
+        self.assertEqual(snapshot.course_view(data)["phase"], "loading")
+
+    def test_five_minutes_of_playback_need_one_wait_result(self):
+        clock = [0]
+        revision = snapshot.course_view(page())["revision"]
+        with patch.object(snapshot, "read_latest", side_effect=lambda: page(current=1 + clock[0])), \
+                patch.object(snapshot.time, "monotonic", side_effect=lambda: clock[0]), \
+                patch.object(snapshot.time, "sleep", side_effect=lambda seconds: clock.__setitem__(0, clock[0] + seconds)):
+            result = snapshot.wait_for_change(revision)
+        self.assertEqual(clock[0], 300)
+        self.assertFalse(result["changed"])
+        self.assertTrue(result["progressed"])
+
+    def test_stalled_playback_returns_before_long_wait_deadline(self):
+        clock = [0]
+        revision = snapshot.course_view(page())["revision"]
+        with patch.object(snapshot, "read_latest", side_effect=lambda: page(current=1 + min(clock[0], 20))), \
+                patch.object(snapshot.time, "monotonic", side_effect=lambda: clock[0]), \
+                patch.object(snapshot.time, "sleep", side_effect=lambda seconds: clock.__setitem__(0, clock[0] + seconds)):
+            result = snapshot.wait_for_change(revision, timeout=300)
+        self.assertEqual(clock[0], 65)
+        self.assertTrue(result["stalled"])
+        self.assertFalse(result["progressed"])
+
+    def test_backward_seek_followed_by_playback_still_counts_as_progress(self):
+        clock = [0]
+        revision = snapshot.course_view(page(current=100))["revision"]
+        with patch.object(snapshot, "read_latest", side_effect=lambda: page(current=100 if clock[0] == 0 else clock[0] - 1)), \
+                patch.object(snapshot.time, "monotonic", side_effect=lambda: clock[0]), \
+                patch.object(snapshot.time, "sleep", side_effect=lambda seconds: clock.__setitem__(0, clock[0] + seconds)):
+            result = snapshot.wait_for_change(revision, timeout=60)
+        self.assertTrue(result["progressed"])
+        self.assertFalse(result["stalled"])
+
+    def test_cli_accepts_long_local_wait(self):
+        with patch.object(snapshot, "wait_for_change", return_value={"ok": True}) as wait, \
+                patch("sys.argv", ["icve_snapshot.py", "watch", "--since", "abc", "--timeout", "300"]), \
+                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit) as exit:
+                snapshot.main()
+            self.assertEqual(exit.exception.code, 0)
+            wait.assert_called_once_with("abc", 300)
 
 
 class CourseTests(unittest.TestCase):

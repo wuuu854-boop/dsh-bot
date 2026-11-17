@@ -1,10 +1,17 @@
-# DSH Bot v6.11.0
+# DSH Bot v6.12.0
 
 **An open-source GrokBot alternative that runs a real bot team on your own Windows machine, inside DeepSeek Harness.**
 
 You talk to one **Boss**. It decides what to do, hires a specialist when nobody fits, delegates real work to bots that each keep their own DSH session, workspace and memory, then reviews the receipts and reports back. Every morning it runs a stand-up where the whole team reports what it did.
 
 ![Architecture](architecture.svg)
+
+## Course sessions and local waiting (v6.12.0)
+
+- Extension 1.3.0 confirms files are saved before reporting sync, isolates the last focused browser window, and rejects stale document/late capture results.
+- Local waits default to five minutes and return early after 45 seconds without observed progress. Video or document replacement wakes the Bot; transient buffer readiness changes stay local.
+- A virtual-clock comparison against 6.11.0 reduces five-minute wait results from 5 to 1; output tokens drop 470 → 102 with cl100k_base. Real provider billing and live-course completion are untested.
+- Reload the plugin and extension and refresh course pages. Use one browser instance for the shared snapshot file.
 
 ## ICVE efficiency and reliability (v6.11.0)
 
