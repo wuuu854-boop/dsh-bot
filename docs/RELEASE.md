@@ -118,4 +118,4 @@ No new feature surfaces. v6 consolidates what already existed: reliability, secu
 
 ## Install
 
-Download `dsh-bot-6.0.0.zip`, install it in DSH, then reload the plugin. The first install still creates only the Boss; specialists are added on demand.
+Download and extract the ZIP from the [latest release](https://github.com/wuuu854-boop/dsh-bot/releases/latest), install the folder in DSH, then reload the plugin. The first install creates only the Boss. Add specialists as needed.

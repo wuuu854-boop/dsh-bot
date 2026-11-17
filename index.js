@@ -366,15 +366,16 @@ export function apply(ctx) {
 
   /* ── state ─────────────────────────────────────────────────────────── */
 
-  function latestStateBackup() {
-    try {
-      const files = fs.readdirSync(stateDir)
-        .filter((name) => /^state-backup-\d+\.json$/.test(name))
-        .sort()
-      return files.length ? path.join(stateDir, files[files.length - 1]) : null
-    } catch {
-      return null
-    }
+  function stateBackupNames() {
+    return fs.readdirSync(stateDir)
+      .filter((name) => /^state-backup-\d+\.json$/.test(name))
+      .sort()
+  }
+
+  function parseStoredState(contents) {
+    const raw = JSON.parse(contents)
+    if (!Array.isArray(raw?.threads)) throw new Error('Stored state is missing the threads array')
+    return raw
   }
 
   function loadState() {
@@ -397,14 +398,20 @@ export function apply(ctx) {
     try {
       let raw
       try {
-        raw = JSON.parse(fs.readFileSync(stateFile, 'utf8'))
+        raw = parseStoredState(fs.readFileSync(stateFile, 'utf8'))
       } catch (primaryError) {
-        const backup = latestStateBackup()
-        if (!backup) throw primaryError
-        raw = JSON.parse(fs.readFileSync(backup, 'utf8'))
-        console.warn('[dsh-bot] state.json unreadable; restored from', backup)
+        for (const name of stateBackupNames().reverse()) {
+          const backup = path.join(stateDir, name)
+          try {
+            raw = parseStoredState(fs.readFileSync(backup, 'utf8'))
+            console.warn('[dsh-bot] state.json unreadable; restored from', backup)
+            break
+          } catch {
+            // A bad backup can coexist with an older usable copy.
+          }
+        }
+        if (!raw) throw primaryError
       }
-      if (!raw || typeof raw !== 'object' || !Array.isArray(raw.threads)) return fallback
 
       const bots = []
       const seen = new Set()
@@ -577,7 +584,8 @@ export function apply(ctx) {
         activeBotId: botIds.has(raw.activeBotId) ? raw.activeBotId : fallbackBotId,
         lastThreadId: typeof raw.lastThreadId === 'string' ? raw.lastThreadId : null,
       }
-    } catch {
+    } catch (error) {
+      if (error?.code !== 'ENOENT') console.error('[dsh-bot] cannot load state', messageOf(error))
       return fallback
     }
   }
@@ -1020,10 +1028,10 @@ export function apply(ctx) {
     try {
       fs.mkdirSync(stateDir, { recursive: true })
       const backup = path.join(stateDir, `state-backup-${lastStateBackupAt}.json`)
-      fs.copyFileSync(stateFile, backup)
-      const backups = fs.readdirSync(stateDir)
-        .filter((name) => /^state-backup-\d+\.json$/.test(name))
-        .sort()
+      const contents = fs.readFileSync(stateFile, 'utf8')
+      parseStoredState(contents)
+      fs.writeFileSync(backup, contents, { encoding: 'utf8', flag: 'wx' })
+      const backups = stateBackupNames()
       while (backups.length > MAX_STATE_BACKUPS) {
         fs.rmSync(path.join(stateDir, backups.shift()), { force: true })
       }
