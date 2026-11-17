@@ -16,7 +16,30 @@ jobs:
         run: node scripts/check-client.cjs
       - name: State recovery regression tests
         run: node --test scripts/test-state-recovery.mjs
+      - name: ICVE snapshot and course regressions
+        run: |
+          node --test scripts/test-icve-extension.mjs
+          python3 -m unittest discover -s scripts -p test_icve.py
       - name: CLI syntax
         run: node --check scripts/bot_cli.mjs
       - name: Python syntax
         run: python3 -m compileall -q scripts
+
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install browser test tools
+        run: |
+          python -m pip install playwright==1.65.2
+          python -m playwright install --with-deps chromium
+      - name: ICVE panel and iframe regressions
+        run: python scripts/test-icve-browser.py --artifacts browser-artifacts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: icve-browser-evidence
+          path: browser-artifacts/

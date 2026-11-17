@@ -1,10 +1,18 @@
-# DSH Bot v6.10.0
+# DSH Bot v6.11.0
 
 **An open-source GrokBot alternative that runs a real bot team on your own Windows machine, inside DeepSeek Harness.**
 
 You talk to one **Boss**. It decides what to do, hires a specialist when nobody fits, delegates real work to bots that each keep their own DSH session, workspace and memory, then reviews the receipts and reports back. Every morning it runs a stand-up where the whole team reports what it did.
 
 ![Architecture](architecture.svg)
+
+## ICVE efficiency and reliability (v6.11.0)
+
+- Compact course state and local `watch` avoid model calls for every playback tick. The panel shows media and sync status; iframe changes propagate without refreshing the panel in a loop.
+- Bank-first dry-run returns only unresolved questions. A reproducible 20-question fixture measures **1,082 → 28 cl100k_base tokens** in tool output (97.4% smaller); provider billing is not measured.
+- Manual answers combine with bank matches. Option text handles shuffled choices; incomplete/ambiguous pages cannot submit. Legacy index-only entries need one review before reuse.
+- Course actions report unverified keyboard actions as stalled. Fresh snapshots, failed download retries, template paths and recoverable state backups are checked.
+- Reload both the DSH plugin and extension, then refresh course tabs. Live-course completion and host model calls remain unverified. See [validation and reproduction](PERFORMANCE.md#icve-课程与输出2026-11-17).
 
 ## Speed/tokens (v6.10.0)
 

@@ -112,3 +112,14 @@ QQ 通知与远程控制、安全快照、预算、验收、技能库。所以 v
 - **已有能力确认**：语音输入（Web Speech API）、浏览器通知、附件、响应式布局此前已在客户端存在；这一轮补齐回放入口和状态诊断。
 - **没有照搬**：dsh-Go 的手机本机 Ubuntu/Node 运行时、远程 SSH 通道、插件市场/事务安装器属于另一个产品边界，不塞进 DSH Bot；远程仍由 QQ 通知/远程控制覆盖。
 
+
+
+## 6.11.0 课程执行参考（2026-11-17）
+
+本轮沿用 GrokBot 风格的简洁深色任务面板和可见状态，聚焦课程执行与输出成本。参考实现均独立编写。
+
+- [BotHarness/DeepSeekBot](https://github.com/BotHarness/DeepSeekBot)：参考 Bot 身份、任务状态和可审阅执行结果，课程面板直接呈现媒体与同步状态。
+- [vercel-labs/agent-browser](https://github.com/vercel-labs/agent-browser)：参考紧凑页面信息与本地浏览器等待，落实为 course/watch、状态 revision 和结果复用。
+- [browser-use/browser-use](https://github.com/browser-use/browser-use)：参考明确的任务结果和用量记录；本轮提供可复现输出基准，真实模型费用暂未测量。
+
+没有逐像素复刻 GrokBot，也没有引入上述项目的运行依赖。具体实现与验证见 [ICVE 使用说明](ICVE_EXTENSION.md) 和 [性能记录](PERFORMANCE.md#icve-课程与输出2026-11-17)。

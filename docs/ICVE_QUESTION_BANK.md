@@ -1,83 +1,51 @@
 # ICVE 题库对照与批量作答
 
-## 目标
+6.11.0 先查本地题库，只把 `unresolved` 交给模型。题库位于 `%DSH_HOME%\storages\dsh-bot\icve\question-bank.json`，未设置 `DSH_HOME` 时使用 `~/.dsh`。个人题库不随插件发布。
 
-让 Bot 做智慧职教选择题时先查本地题库，只把没命中的题交给模型，减少 token 和点击等待。
+## 匹配与旧题库
 
-## 本地题库
-
-位置：
-
-```text
-storages\dsh-bot\icve\question-bank.json
-```
-
-格式：
+新条目保留题干、选项文字和答案索引。题干去掉序号与选项尾部，保留大小写、数学符号；唯一题干和相同选项集合才能复用答案，选项重排后按文字重新定位。
 
 ```json
 {
   "version": 1,
-  "items": [
-    {
-      "q": "Matplotlib中用于...的函数是（）。",
-      "normalized": "matplotlib中用于...的函数是",
-      "answers": [3],
-      "type": "单选",
-      "source": "py_quiz/answers.md"
-    }
-  ]
+  "items": [{
+    "q": "哪一个选项是有效颜色？",
+    "questionKey": "哪一个选项是有效颜色？",
+    "options": ["A. 红色", "B. 半径"],
+    "answers": [0],
+    "source": "model"
+  }]
 }
 ```
 
-- `answers` 是选项索引，0 开始；
-- 题库只在本机，不随插件发布；
-- 本次从已做过的两个 ICVE 测验答案表导入 **63 道**。
+旧版仅有索引的条目继续保留，但需要核对一次当前选项并用 `--learn` 保存，之后才会自动复用。题干短于 6 字、存在多条匹配或重复选项文字时返回未解决。损坏题库会报错，避免覆盖原数据。
 
-## 导入题库
+## 使用
+
+```powershell
+python scripts/icve_quiz.py --auto --dry-run
+# 只为 unresolved 写答案文件
+python scripts/icve_quiz.py --auto --answers answers.json --dry-run
+# 核对后批量点击；按任务需要增加 --submit
+python scripts/icve_quiz.py --auto --answers answers.json --learn
+```
+
+```json
+{"answers":[{"question":"1","choice":"A"},{"question":"2","choices":["A","C"]}]}
+```
+
+`question` 可用本次快照的完整题干、唯一片段或题号；多选使用 `choices` 数组。`--auto --answers` 会合并题库与补充答案，补充答案优先。仅传 `--answers` 时文件必须覆盖全部待提交题目。
+
+默认 dry-run 只给出计数、`readyToSubmit` 和 `unresolved`；`--verbose` 加入已匹配计划。执行时已有正确选择不再点击，有冲突选择或同名选项不能唯一定位时报告失败。所有题目完整且点击成功才可提交。`--learn` 记录本次成功选择的答案，不表示平台已判分正确。
+
+## 导入
 
 ```powershell
 python scripts/icve_bank.py seed --file <answers.md>
 python scripts/icve_bank.py stats
 ```
 
-`answers.md` 支持之前任务生成的表格：
+支持表格 `| # | 类型 | 分值 | 我的答案 | 依据 | 题干 |`，答案沿用从 0 开始的索引。导入表没有完整选项文字，因此导入或覆盖的条目也需要上述一次核对。
 
-```text
-| # | 类型 | 分值 | 我的答案 | 依据 | 题干 |
-```
-
-## Bot 快路径
-
-```powershell
-# 1. 读取扩展自动快照
-python scripts/icve_snapshot.py latest
-
-# 2. 题库先匹配；全部命中时直接提交
-python scripts/icve_quiz.py --auto --dry-run
-python scripts/icve_quiz.py --auto --submit
-
-# 3. 有未命中时，只为这些题生成 answers.json
-python scripts/icve_quiz.py --answers answers.json --learn --submit
-```
-
-`--auto` 的输出只包含：
-
-- `resolved`：题库命中并点击的题数；
-- `unresolved`：未命中的题面 + 选项，供模型最小化作答；
-- `failed`：点击失败的题。
-
-不会把整份快照或全部题干重新交给模型。
-
-## Token 控制
-
-- 全命中：模型只看到一条命令结果，不生成答案；
-- 部分命中：只把 `unresolved` 的题面发给模型；
-- 提交前先 `--dry-run` 或 `--auto --dry-run`，不把失败当成功；
-- `--learn` 把本次成功答案回填题库，下次直接命中。
-
-## 边界
-
-- 题库按题干归一键匹配，题干重复或选项顺序变化时会跳过，不硬套答案；
-- 只支持选项题（单选/多选/判断），填空题仍走普通 UIA；
-- 考试/监考/交卷页面仍然硬停止；
-- 题库答案来自本人已完成的测验记录，提交前应人工复核。
+只支持有选项的普通练习；填空题使用其他页面工具。考试/监考/交卷页保持停止。题库命中率、平台接受结果及真实模型费用须在实际课程中另行验证。

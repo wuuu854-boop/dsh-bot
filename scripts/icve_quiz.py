@@ -24,15 +24,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
 
-import edge  # noqa: E402
-try:
-    import uia_client  # noqa: E402
-except Exception:
-    uia_client = None
-try:
-    import uia_fast  # noqa: E402
-except Exception:
-    uia_fast = None
+from icve_bank import load_bank, normalize, save_bank  # noqa: E402
 
 STATE_DIR = os.path.join(
     os.environ.get("DSH_HOME", os.path.join(os.path.expanduser("~"), ".dsh")),
@@ -40,7 +32,6 @@ STATE_DIR = os.path.join(
     "dsh-bot",
 )
 SNAPSHOT_FILE = os.path.join(STATE_DIR, "icve", "latest.json")
-BANK_FILE = os.path.join(STATE_DIR, "icve", "question-bank.json")
 EXAM_MARKERS = ("考试", "监考", "闭卷", "交卷", "答题卡")
 SUBMIT_NAMES = ("提交作业", "提交", "交卷", "保存并提交", "确认提交")
 
@@ -49,41 +40,12 @@ def clean(value, limit=2_000):
     return str(value or "").replace("\r\n", "\n").strip()[:limit]
 
 
-def normalize(text):
-    value = str(text or "").lower()
-    value = re.sub(r"<[^>]+>", " ", value)
-    value = re.sub(r"[\s\u3000]+", "", value)
-    value = re.sub(r"[（）()【】\[\]<>《》\"'`，。,.、：:；;!！?？]", "", value)
-    return value
-
-
 def load_snapshot(path):
     with open(path, "r", encoding="utf-8-sig") as handle:
         data = json.load(handle)
     if data.get("schema") != "dsh.icve.snapshot.v1":
         raise ValueError("不是 ICVE 快照")
     return data
-
-
-def load_bank():
-    try:
-        with open(BANK_FILE, "r", encoding="utf-8") as handle:
-            data = json.load(handle)
-        if isinstance(data, dict) and isinstance(data.get("items"), list):
-            return data
-    except Exception:
-        pass
-    return {"version": 1, "items": []}
-
-
-def save_bank(data):
-    os.makedirs(os.path.dirname(BANK_FILE), exist_ok=True)
-    data["version"] = 1
-    data["updatedAt"] = int(time.time() * 1000)
-    temp = BANK_FILE + ".tmp"
-    with open(temp, "w", encoding="utf-8") as handle:
-        json.dump(data, handle, ensure_ascii=False, indent=2)
-    os.replace(temp, BANK_FILE)
 
 
 def all_questions(data):
@@ -105,10 +67,12 @@ def match_question(questions, value):
     needle = clean(value)
     if not needle:
         return None
-    for question in questions:
-        if needle in question["text"] or question["text"] in needle:
-            return question
-    number = re.match(r"\s*(?:第\s*)?(\d+)", needle)
+    matches = [q for q in questions if needle == q["text"]]
+    if not matches:
+        matches = [q for q in questions if needle in q["text"] or q["text"] in needle]
+    if matches:
+        return matches[0] if len(matches) == 1 else None
+    number = re.fullmatch(r"\s*(?:第\s*)?(\d+)(?:题)?\s*", needle)
     if number:
         index = int(number.group(1)) - 1
         if 0 <= index < len(questions):
@@ -131,29 +95,32 @@ def option_by_choice(question, choice):
         index = ord(bare) - ord("A")
         if 0 <= index < len(options):
             return options[index]
-    for option in options:
-        text = option["text"]
-        if value and (value in text or text in value):
-            return option
-    return None
+    matches = [option for option in options if value == option["text"]]
+    return matches[0] if len(matches) == 1 else None
+
+
+def option_key(text):
+    return re.sub(r"^[A-Za-z][.、:：)）]\s*", "", clean(text)).strip()
+
+
+def question_key(question):
+    text = re.sub(r"\s+", " ", question.get("text", "")).strip()
+    option_text = " ".join(option["text"] for option in question.get("options", []))
+    if option_text and text.endswith(option_text):
+        text = text[:-len(option_text)].rstrip()
+    return re.sub(r"^\s*(?:第\s*)?\d+[.、)）题]\s*", "", text)
 
 
 def bank_match(question, bank):
-    normalized = normalize(question.get("text"))
+    normalized = question_key(question)
     if len(normalized) < 6:
         return None
-    best = None
-    best_score = 0
+    matches = []
     for item in bank.get("items", []):
-        key = item.get("normalized") or normalize(item.get("q"))
-        if len(key) < 6:
-            continue
-        if key in normalized or normalized in key:
-            score = len(key)
-            if score > best_score:
-                best = item
-                best_score = score
-    return best
+        key = item.get("questionKey") or normalize(item.get("q"))
+        if key == normalized:
+            matches.append(item)
+    return matches[0] if len(matches) == 1 else None
 
 
 def bank_options(question, item):
@@ -161,32 +128,29 @@ def bank_options(question, item):
     if not isinstance(indexes, list) or not indexes:
         return []
     options = question.get("options") or []
-    selected = []
-    for index in indexes:
-        try:
-            value = int(index)
-        except Exception:
-            continue
-        if 0 <= value < len(options):
-            selected.append(options[value])
-    return selected if len(selected) == len(indexes) else []
+    stored = item.get("options")
+    if not isinstance(stored, list) or not stored:
+        return []
+    current_keys = [option_key(option["text"]) for option in options]
+    stored_keys = [option_key(text) for text in stored]
+    if len(set(current_keys)) != len(current_keys) or sorted(current_keys) != sorted(stored_keys):
+        return []
+    if any(type(index) is not int or not 0 <= index < len(stored) for index in indexes):
+        return []
+    return [options[current_keys.index(stored_keys[index])] for index in indexes]
 
 
 def click_option(text):
-    if uia_client is not None:
+    for module_name in ("uia_client", "uia_fast"):
         try:
-            result = uia_client.click(text, "", True)
+            module = __import__(module_name)
+            result = module.click(text, "", True)
             if result.get("ok"):
                 return result
         except Exception:
             pass
-    if uia_fast is not None:
-        try:
-            result = uia_fast.click(text, "", True)
-            if result.get("ok"):
-                return result
-        except Exception:
-            pass
+    import edge
+
     return edge.uia_run("click", name=text, role="", index=None, all=True)
 
 
@@ -202,9 +166,13 @@ def add_bank_entry(bank, question, option_indexes, source="model"):
     normalized = normalize(question.get("text"))
     if not normalized or not option_indexes:
         return
+    identity = {"questionKey": question_key(question), "options": [option["text"] for option in question["options"]]}
     for item in bank.setdefault("items", []):
-        if (item.get("normalized") or normalize(item.get("q"))) == normalized:
+        if item.get("questionKey") == identity["questionKey"] or (
+            not item.get("questionKey") and (item.get("normalized") or normalize(item.get("q"))) == normalized
+        ):
             item["answers"] = sorted(set(option_indexes))
+            item.update(identity)
             item["updatedAt"] = int(time.time() * 1000)
             return
     bank["items"].append(
@@ -215,6 +183,7 @@ def add_bank_entry(bank, question, option_indexes, source="model"):
             "type": "model",
             "source": source,
             "updatedAt": int(time.time() * 1000),
+            **identity,
         }
     )
 
@@ -226,6 +195,37 @@ def compact_question(question):
     }
 
 
+def build_plan(questions, bank, answers, auto):
+    supplied = {}
+    unresolved = []
+    for answer in answers:
+        if not isinstance(answer, dict):
+            unresolved.append({"error": "答案必须是对象"})
+            continue
+        question = match_question(questions, answer.get("question") or answer.get("q"))
+        if question is None or id(question) in supplied:
+            unresolved.append({"question": clean(answer.get("question"), 200), "error": "题目未唯一匹配或答案重复"})
+        else:
+            supplied[id(question)] = answer
+    plan = []
+    for question in questions:
+        answer = supplied.get(id(question))
+        item = bank_match(question, bank) if auto else None
+        options = bank_options(question, item) if item else []
+        if answer:
+            choices = answer.get("choices", answer.get("choice", answer.get("answer", answer.get("option", ""))))
+            if not isinstance(choices, list):
+                choices = [choices]
+            options = [option_by_choice(question, choice) for choice in choices]
+        if not options or any(option is None for option in options):
+            unresolved.append(compact_question(question))
+            continue
+        indexes = sorted(set(question["options"].index(option) for option in options))
+        plan.append({"question": question, "options": [question["options"][i] for i in indexes], "indexes": indexes,
+                     "source": "model" if answer else item.get("source", "bank")})
+    return plan, unresolved
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--auto", action="store_true", help="answer from local bank")
@@ -235,79 +235,65 @@ def main():
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--learn", action="store_true")
     parser.add_argument("--force", action="store_true")
+    parser.add_argument("--brief", action="store_true", help="compact output (default)")
+    parser.add_argument("--verbose", action="store_true", help="include the matched answer plan")
     args = parser.parse_args()
     if not args.auto and not args.answers:
         raise SystemExit("需要 --auto 或 --answers")
 
-    data = load_snapshot(args.snapshot)
-    text = "\n".join(clean(frame.get("text")) for frame in data.get("frames") or [])
+    if args.snapshot == SNAPSHOT_FILE:
+        from icve_snapshot import read_latest, save_snapshot
+        data = read_latest()
+        save_snapshot(data)
+    else:
+        data = load_snapshot(args.snapshot)
+    text = "\n".join(str(frame.get("text") or "") for frame in data.get("frames") or [])
     if any(marker in text for marker in EXAM_MARKERS) and not args.force:
         print(json.dumps({"ok": False, "blocked": True, "error": "检测到考试/监考/交卷页面，拒绝批量作答"}, ensure_ascii=False))
         return 2
 
     questions = all_questions(data)
+    if not questions or data.get("missingFrames") or any(frame.get("questionsTruncated") for frame in data.get("frames", [])):
+        print(json.dumps({"ok": False, "error": "题目为空、题目过多或有未加载的框架，请分批加载并刷新快照"}, ensure_ascii=False))
+        return 2
     bank = load_bank()
-    plan = []
-    unresolved = []
-
-    if args.auto:
-        for question in questions:
-            item = bank_match(question, bank)
-            options = bank_options(question, item) if item else []
-            if options:
-                plan.append(
-                    {
-                        "question": question,
-                        "options": options,
-                        "indexes": [question["options"].index(option) for option in options],
-                        "source": item.get("source") or "bank",
-                    }
-                )
-            else:
-                unresolved.append(compact_question(question))
-    else:
+    answers = []
+    if args.answers:
         with open(args.answers, "r", encoding="utf-8-sig") as handle:
             answer_data = json.load(handle)
         answers = answer_data.get("answers") if isinstance(answer_data, dict) else answer_data
         if not isinstance(answers, list):
             raise ValueError("answers 必须是数组")
-        for item in answers:
-            if not isinstance(item, dict):
-                continue
-            question = match_question(questions, item.get("question") or item.get("q") or "")
-            choice = item.get("choice") or item.get("answer") or item.get("option") or ""
-            option = option_by_choice(question, choice) if question else None
-            if not question or not option:
-                unresolved.append({"question": clean(item.get("question"), 400), "error": "题目/选项未匹配"})
-                continue
-            index = question["options"].index(option)
-            plan.append({"question": question, "options": [option], "indexes": [index], "source": "model"})
+    plan, unresolved = build_plan(questions, bank, answers, args.auto)
 
     if args.dry_run:
-        print(
-            json.dumps(
-                {
-                    "ok": True,
-                    "dryRun": True,
-                    "questions": len(questions),
-                    "resolved": len(plan),
-                    "unresolved": unresolved,
-                    "plan": [
-                        {"question": clean(item["question"]["text"], 200), "options": [option["text"] for option in item["options"]]}
-                        for item in plan
-                    ],
-                },
-                ensure_ascii=False,
-                indent=2,
-            )
-        )
+        output = {"ok": True, "dryRun": True, "questions": len(questions), "resolved": len(plan),
+                  "readyToSubmit": not unresolved, "unresolved": unresolved}
+        if args.verbose:
+            output["plan"] = [{"question": clean(item["question"]["text"], 200), "options": [option["text"] for option in item["options"]]} for item in plan]
+        print(json.dumps(output, ensure_ascii=False, separators=(",", ":")))
         return 0
 
+    if args.submit and unresolved:
+        print(json.dumps({"ok": False, "unresolved": unresolved, "error": "仍有未确定答案，补齐后再提交"}, ensure_ascii=False))
+        return 1
+
+    from collections import Counter
+    labels = Counter(option["text"] for question in questions for option in question["options"])
     results = []
     for item in plan:
         clicks = []
+        if any(option["checked"] and option not in item["options"] for option in item["question"]["options"]):
+            clicks.append({"ok": False, "error": "已有选择与答案不同，请先核对当前题目"})
         for option in item["options"]:
-            clicks.append(click_option(option["text"]))
+            if clicks and not clicks[-1].get("ok"):
+                break
+            if option["checked"]:
+                clicks.append({"ok": True, "alreadySelected": True})
+            elif labels[option["text"]] > 1:
+                clicks.append({"ok": False, "error": "不同题目有同名选项，无法唯一定位"})
+            else:
+                clicks.append(click_option(option["text"]))
         item["clicks"] = clicks
         item["ok"] = bool(clicks) and all(click.get("ok") for click in clicks)
         results.append(item)
@@ -336,7 +322,7 @@ def main():
         ],
         "submitted": submitted,
     }
-    print(json.dumps(output, ensure_ascii=False, indent=2))
+    print(json.dumps(output, ensure_ascii=False, separators=(",", ":")))
     return 0 if output["ok"] else 1
 
 
