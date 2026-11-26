@@ -19,9 +19,15 @@ assert.match(rule('.gb-jump'), /bottom:\s*14px/)
 assert.doesNotMatch(rule('.gb-jump'), /bottom:\s*134px/)
 assert.match(rule('.gb-toast'), /bottom:\s*96px/)
 assert.match(source, /useEffect\(\(\) => \{[\s\S]*?setStick\(true\)[\s\S]*?\}, \[threadId, booted\]\)/)
+assert.match(source, /setPending\([\s\S]{0,220}setStick\(true\)/, 'sending must return to the live edge')
+assert.match(source, /className: 'gb-deck-backdrop'/, 'narrow Deck must expose a backdrop close target')
 
 const deck1500 = source.indexOf('@media (max-width: 1500px)')
 const deck1280 = source.indexOf('@media (max-width: 1280px)')
 assert.ok(deck1500 >= 0 && deck1280 > deck1500, '1500px deck rules must precede 1280px overrides')
+
+const deck760 = source.indexOf('@media (max-width: 760px)')
+const mobileDeck = source.slice(deck760)
+assert.match(mobileDeck, /\.gb-deck-backdrop\s*\{[^}]*display:\s*block/)
 
 console.log('PASS: UX layout guards (latest-jump, toast clearance, deck breakpoint order)')

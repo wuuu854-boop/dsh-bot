@@ -7649,6 +7649,7 @@ window.__ModuleLoader__.load({
           setDraft('')
           setPending({ text: text || '请查看附件。', at: Date.now(), difficulty: level })
           stickRef.current = true
+          setStick(true)
           try {
             await apiPost('/send', { threadId, text: messageText, replyTo: quoteTarget?.id || null, difficulty: level })
             setAttachments([])
@@ -8380,6 +8381,14 @@ window.__ModuleLoader__.load({
             onReset: resetTask,
           }),
         ),
+        rightOpen
+          ? h('button', {
+              type: 'button',
+              className: 'gb-deck-backdrop',
+              'aria-label': t('close'),
+              onClick: () => setRightOpen(false),
+            })
+          : null,
         rightOpen
           ? h(ComputerPanel, {
               snap,
@@ -9675,6 +9684,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 }
 @media (max-width: 760px) {
   .gb-deck { position: fixed; top: 0; right: 0; bottom: 0; width: 92vw; z-index: 120; box-shadow: -20px 0 60px rgba(0,0,0,.45); }
+  .gb-deck-backdrop { display: block; position: fixed; inset: 0; z-index: 119; border: 0; padding: 0; background: rgba(0,0,0,.42); }
   .gb-topbar-meta .gb-topbar-pill:last-child { display: none; }
 }
 @media (max-width: 620px) {
@@ -9865,7 +9875,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '6.16.0',
+              version: '6.17.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -9886,7 +9896,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '6.16.0',
+                version: '6.17.0',
               },
               null,
               2,

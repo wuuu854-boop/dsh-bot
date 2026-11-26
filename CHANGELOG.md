@@ -1,5 +1,12 @@
 # Changelog
 
+## 6.17.0 — 2026-11-26
+
+- UX: sending a message now resets the jump state immediately, so a previously scrolled-up view returns to the live edge instead of keeping “回到最新”.
+- UX: below 760px the fixed right Deck now has a clickable backdrop; tapping outside closes it, not only the X button.
+- UX guards now cover the send-edge reset and narrow Deck backdrop.
+- No QQ changes.
+
 ## 6.16.0 — 2026-11-26
 
 - UX: Toast moved above the composer (`bottom: 96px`) so feedback no longer covers the input area, including narrow screens.
