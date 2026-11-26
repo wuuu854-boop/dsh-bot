@@ -1,5 +1,10 @@
 # Changelog
 
+## 6.27.0 — 2026-11-26
+
+- UX close-out: add `docs/UX_REPORT.md` with the full fix list, automated evidence and the remaining laptop-only visual checks.
+- No runtime behavior changes; no QQ changes.
+
 ## 6.26.0 — 2026-11-26
 
 - UX: Deck empty states now explain what will appear after a task runs instead of showing only “no history/activity”.
