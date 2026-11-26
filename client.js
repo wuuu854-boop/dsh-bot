@@ -6838,7 +6838,24 @@ window.__ModuleLoader__.load({
         const element = scrollRef.current
         if (!element) return
         if (stickRef.current) element.scrollTop = element.scrollHeight
-      }, [snap?.items?.length, snap?.stream?.text, snap?.approval?.id, snap?.question?.id, pending])
+      }, [threadId, snap?.thread?.id, snap?.items?.length, snap?.stream?.text, snap?.approval?.id, snap?.question?.id, pending])
+
+      useEffect(() => {
+        if (!booted) return
+        jumpLockRef.current = false
+        stickRef.current = true
+        setStick(true)
+        const element = scrollRef.current
+        if (!element) return
+        const previousBehavior = element.style.scrollBehavior
+        element.style.scrollBehavior = 'auto'
+        element.scrollTop = element.scrollHeight
+        requestAnimationFrame(() => {
+          if (!scrollRef.current) return
+          scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+          scrollRef.current.style.scrollBehavior = previousBehavior
+        })
+      }, [threadId, booted])
 
       useEffect(() => {
         const element = scrollRef.current
@@ -9849,7 +9866,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '6.14.0',
+              version: '6.15.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -9870,7 +9887,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '6.14.0',
+                version: '6.15.0',
               },
               null,
               2,

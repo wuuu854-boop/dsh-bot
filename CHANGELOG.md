@@ -1,5 +1,10 @@
 # Changelog
 
+## 6.15.0 — 2026-11-26
+
+- UX: entering any conversation now resets to the latest message automatically. Thread switches clear the previous scroll lock, restore the jump button state, and scroll after the new snapshot arrives.
+- No QQ changes.
+
 ## 6.14.0 — 2026-11-26
 
 - Fix: “回到最新/ Jump to latest” is now scoped to the chat view instead of the whole app, so it no longer overlaps member tabs or the composer.
