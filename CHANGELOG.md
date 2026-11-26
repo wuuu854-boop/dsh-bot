@@ -1,5 +1,11 @@
 # Changelog
 
+## 6.24.0 — 2026-11-26
+
+- UX: search failures now show an explicit “search failed” state instead of pretending there were no results.
+- UX guards cover the search-failure copy and state transition.
+- No QQ changes.
+
 ## 6.23.0 — 2026-11-26
 
 - UX: notification/budget load failures now show an actionable error with Reload instead of spinning forever.

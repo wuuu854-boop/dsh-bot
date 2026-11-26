@@ -31,6 +31,8 @@ assert.match(source, /const requestCloseEditor = \(\) => \{/, 'routine editor mu
 assert.match(source, /gb-routine-form', onChange: \(\) => setRoutineDirty\(true\)/)
 assert.match(source, /settingsLoadFailed:|settingsRetry:/, 'settings load failure must be actionable')
 assert.match(source, /memoryLoadFailed:|memoryRetry:/, 'memory load failure must be actionable')
+assert.match(source, /searchFailed:/, 'search failure copy must exist')
+assert.match(source, /setSearchError\(/, 'search failure must not masquerade as empty results')
 assert.match(source, /disabled: busy \|\| !dirty/, 'settings save must require a pending edit')
 assert.doesNotMatch(source, /max-width:\s*1020px/, 'rail breakpoint must use the 1100px value')
 

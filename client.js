@@ -241,6 +241,7 @@ window.__ModuleLoader__.load({
         searchTitle: '搜索消息',
         searchPlaceholder: '搜索会话、记忆，或输入命令…',
         searchEmpty: '没有匹配的消息或记忆',
+  searchFailed: '搜索失败',
         searchHint: 'Ctrl K 打开命令中心；输入关键词搜索全部会话与记忆',
         commandTitle: '命令中心',
         searchNotLoaded: '这条消息在更早的历史里，请先加载更早',
@@ -900,6 +901,7 @@ window.__ModuleLoader__.load({
         searchTitle: 'Search messages',
         searchPlaceholder: 'Search chats, memory, or type a command…',
         searchEmpty: 'No matching messages or memories',
+  searchFailed: 'Search failed',
         searchHint: 'Ctrl K opens the command center; type to search all chats and memory',
         commandTitle: 'Command center',
         searchNotLoaded: 'That message is in earlier history; load earlier first',
@@ -6682,6 +6684,7 @@ window.__ModuleLoader__.load({
       const [searchScope, setSearchScope] = useState('thread')
       const [searchResults, setSearchResults] = useState([])
       const [searchBusy, setSearchBusy] = useState(false)
+      const [searchError, setSearchError] = useState('')
       const [pinnedOpen, setPinnedOpen] = useState(false)
       const [pinsOpen, setPinsOpen] = useState(false)
       const [replayOpen, setReplayOpen] = useState(false)
@@ -7608,6 +7611,7 @@ window.__ModuleLoader__.load({
           return undefined
         }
         let alive = true
+        setSearchError('')
         const timer = setTimeout(async () => {
           setSearchBusy(true)
           try {
@@ -7616,8 +7620,11 @@ window.__ModuleLoader__.load({
             else if (threadId) params.set('threadId', threadId)
             const data = await apiGet(`/search?${params.toString()}`)
             if (alive) setSearchResults(Array.isArray(data.results) ? data.results : [])
-          } catch {
-            if (alive) setSearchResults([])
+          } catch (error) {
+            if (alive) {
+              setSearchResults([])
+              setSearchError(String(error?.message || error))
+            }
           } finally {
             if (alive) setSearchBusy(false)
           }
@@ -8637,7 +8644,14 @@ window.__ModuleLoader__.load({
                   { className: 'gb-search-results' },
                   searchBusy
                     ? h('div', { className: 'gb-search-empty' }, h(Spinner, { size: 14 }))
-                    : !searchQuery.trim()
+                    : searchError
+                      ? h(
+                          'div',
+                          { className: 'gb-search-empty', role: 'alert' },
+                          h(Icon, { name: 'alert', size: 14 }),
+                          `${t('searchFailed')}: ${searchError}`,
+                        )
+                      : !searchQuery.trim()
                       ? h(
                           'div',
                           { className: 'gb-command-list' },
@@ -10004,7 +10018,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '6.23.0',
+              version: '6.24.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -10025,7 +10039,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '6.23.0',
+                version: '6.24.0',
               },
               null,
               2,
