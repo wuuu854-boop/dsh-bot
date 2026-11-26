@@ -1,5 +1,13 @@
 # Changelog
 
+## 6.28.0 — 2026-11-26
+
+- Budget: count reasoning tokens in the run quota, thread token display and assignment stats; previously they were omitted.
+- Budget: add a 50% token warning with remaining amount, keep the 80% warning, and use one shared warning path for time/tools/token.
+- Settings: add Economy / Standard / Deep budget profiles and show this thread’s cumulative tokens against the per-run cap.
+- Add `docs/AUTOMATION_OPTIMIZATION.md` and `scripts/check-budget.cjs`; CI now guards token accounting and quota UI.
+- No QQ changes.
+
 ## 6.27.0 — 2026-11-26
 
 - UX close-out: add `docs/UX_REPORT.md` with the full fix list, automated evidence and the remaining laptop-only visual checks.

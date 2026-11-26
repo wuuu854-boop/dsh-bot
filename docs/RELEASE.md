@@ -1,10 +1,17 @@
-# DSH Bot v6.27.0
+# DSH Bot v6.28.0
 
 **An open-source GrokBot alternative that runs a real bot team on your own Windows machine, inside DeepSeek Harness.**
 
 You talk to one **Boss**. It decides what to do, hires a specialist when nobody fits, delegates real work to bots that each keep their own DSH session, workspace and memory, then reviews the receipts and reports back. Every morning it runs a stand-up where the whole team reports what it did.
 
 ![Architecture](architecture.svg)
+
+## Token quota (v6.28.0)
+
+- Reasoning tokens now count toward the run budget, thread token totals and assignment stats.
+- Token usage warns at 50% (with remaining amount) and 80%; time/tool warnings share the same path.
+- Settings expose Economy / Standard / Deep profiles and show this thread’s cumulative token usage against the per-run cap.
+- Added `docs/AUTOMATION_OPTIMIZATION.md` and `scripts/check-budget.cjs`; CI guards the quota path.
 
 ## UX close-out (v6.27.0)
 

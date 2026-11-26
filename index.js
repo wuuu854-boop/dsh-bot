@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '6.27.0'
+const VERSION = '6.28.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -1172,6 +1172,7 @@ export function apply(ctx) {
       evidenceCount: (run.evidence || []).length,
       inputTokens: run.inputTokens || 0,
       outputTokens: run.outputTokens || 0,
+      reasoningTokens: run.reasoningTokens || 0,
       budgetExceeded: Boolean(run.budgetExceeded),
       budgetReason: run.budgetReason || '',
     }
@@ -2039,7 +2040,9 @@ export function apply(ctx) {
       tools: [],
       inputTokens: 0,
       outputTokens: 0,
+      reasoningTokens: 0,
       budget: { ...(state.budget || defaultBudget()) },
+      budgetWarned50: false,
       budgetWarned: false,
       budgetExceeded: false,
       budgetReason: '',
@@ -2283,7 +2286,7 @@ export function apply(ctx) {
     if (!run || run.budgetExceeded) return
     const limits = run.budget || { maxMs: RUN_MAX_MS, maxTools: RUN_MAX_TOOLS, maxTokens: RUN_MAX_TOKENS }
     const elapsed = now() - (run.startedAt || now())
-    const tokens = (run.inputTokens || 0) + (run.outputTokens || 0)
+    const tokens = (run.inputTokens || 0) + (run.outputTokens || 0) + (run.reasoningTokens || 0)
     const ratios = [
       { name: '时间', value: elapsed, max: limits.maxMs, text: `${Math.round(elapsed / 60_000)} 分钟` },
       { name: '工具', value: run.toolCalls || 0, max: limits.maxTools, text: `${run.toolCalls || 0} 次` },
@@ -2291,7 +2294,15 @@ export function apply(ctx) {
     ]
     const worst = ratios.reduce((best, item) => (item.value / item.max > best.value / best.max ? item : best), ratios[0])
     const ratio = worst.value / worst.max
-    if (ratio >= 0.8 && !run.budgetWarned) {
+    const tokenRatio = ratios[2].value / ratios[2].max
+    if (tokenRatio >= 0.5 && !run.budgetWarned50) {
+      run.budgetWarned50 = true
+      pushNotice(rec, `预算提醒：token 已用 ${tokens} / ${limits.maxTokens}，剩余 ${Math.max(0, limits.maxTokens - tokens)}`, 'warn', rec.transcript.lastSeq || 0, now())
+    }
+    if (tokenRatio >= 0.8 && !run.budgetWarned) {
+      run.budgetWarned = true
+      pushNotice(rec, `预算预警：token 已用 ${tokens} / ${limits.maxTokens}，接近上限`, 'warn', rec.transcript.lastSeq || 0, now())
+    } else if (ratio >= 0.8 && !run.budgetWarned) {
       run.budgetWarned = true
       pushNotice(rec, `预算预警：${worst.name} ${worst.text} / ${worst.max}，接近上限`, 'warn', rec.transcript.lastSeq || 0, now())
     }
@@ -3545,7 +3556,7 @@ export function apply(ctx) {
     assignment.error = textValue(rec.lastError?.message || run.reason, 1_000)
     assignment.steps = Number(run.toolCalls) || 0
     assignment.durationMs = Math.max(0, (run.endedAt || now()) - (assignment.createdAt || run.startedAt))
-    assignment.tokens = (Number(run.inputTokens) || 0) + (Number(run.outputTokens) || 0)
+    assignment.tokens = (Number(run.inputTokens) || 0) + (Number(run.outputTokens) || 0) + (Number(run.reasoningTokens) || 0)
     assignment.reported = false
     saveStateNow()
     const label = assignment.status === 'success' ? '已完成' : assignment.status === 'aborted' ? '已中断' : '失败'

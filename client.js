@@ -293,6 +293,12 @@ window.__ModuleLoader__.load({
         notifyInterval: '最小发送间隔（秒）',
         budgetTitle: '运行预算',
         budgetHint: '单任务超过任一上限会自动写 checkpoint 并停止，避免无人值守时跑飞。',
+        budgetPreset: '预算档位',
+        budgetEconomy: '经济（80k token）',
+        budgetStandard: '标准（200k token）',
+        budgetDeep: '深度（400k token）',
+        budgetCustom: '自定义',
+        budgetUsage: '本线程累计 {used} token · 单任务上限 {max}',
         budgetMinutes: '最长分钟',
         budgetTools: '最多工具调用',
         budgetTokens: '最多 token',
@@ -955,6 +961,12 @@ window.__ModuleLoader__.load({
         notifyInterval: 'Minimum interval (seconds)',
         budgetTitle: 'Run budget',
         budgetHint: 'A run that exceeds any limit is checkpointed and stopped instead of running away unattended.',
+        budgetPreset: 'Budget profile',
+        budgetEconomy: 'Economy (80k tokens)',
+        budgetStandard: 'Standard (200k tokens)',
+        budgetDeep: 'Deep (400k tokens)',
+        budgetCustom: 'Custom',
+        budgetUsage: 'This thread: {used} tokens · per-run cap {max}',
         budgetMinutes: 'Max minutes',
         budgetTools: 'Max tool calls',
         budgetTokens: 'Max tokens',
@@ -4918,7 +4930,7 @@ window.__ModuleLoader__.load({
             { className: 'gb-stat-grid' },
             h('div', null, h('b', null, stats?.turns || 0), h('span', null, t('turns'))),
             h('div', null, h('b', null, stats?.toolCalls || 0), h('span', null, t('tools'))),
-            h('div', null, h('b', null, formatTokens((stats?.inputTokens || 0) + (stats?.outputTokens || 0))), h('span', null, t('tokens'))),
+            h('div', null, h('b', null, formatTokens((stats?.inputTokens || 0) + (stats?.outputTokens || 0) + (stats?.reasoningTokens || 0))), h('span', null, t('tokens'))),
             h('div', null, h('b', null, formatDuration(stats?.elapsedMs || 0)), h('span', null, t('elapsed'))),
           ),
         ),
@@ -6025,7 +6037,7 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function NotificationsTab({ t, onToast, onOpenThread }) {
+    function NotificationsTab({ t, onToast, onOpenThread, stats }) {
       const [config, setConfig] = useState(null)
       const [budget, setBudget] = useState(null)
       const [meeting, setMeeting] = useState(null)
@@ -6089,6 +6101,15 @@ window.__ModuleLoader__.load({
         setDirty(true)
         setBudget((current) => ({ ...current, ...patch }))
       }
+      const budgetProfiles = [
+        { id: 'economy', label: t('budgetEconomy'), maxMs: 20 * 60 * 1000, maxTools: 80, maxTokens: 80_000 },
+        { id: 'standard', label: t('budgetStandard'), maxMs: 40 * 60 * 1000, maxTools: 160, maxTokens: 200_000 },
+        { id: 'deep', label: t('budgetDeep'), maxMs: 60 * 60 * 1000, maxTools: 300, maxTokens: 400_000 },
+      ]
+      const budgetPreset = budgetProfiles.find((profile) =>
+        profile.maxMs === budget.maxMs && profile.maxTools === budget.maxTools && profile.maxTokens === budget.maxTokens,
+      )?.id || 'custom'
+      const usedTokens = (Number(stats?.inputTokens) || 0) + (Number(stats?.outputTokens) || 0) + (Number(stats?.reasoningTokens) || 0)
       const save = async () => {
         if (!dirty || busy) return
         setBusy(true)
@@ -6367,6 +6388,24 @@ window.__ModuleLoader__.load({
           h('div', { className: 'gb-deck-section-head' }, h('span', null, t('budgetTitle'))),
           h('p', { className: 'gb-deck-copy' }, t('budgetHint')),
           h(
+            'label',
+            { className: 'gb-field' },
+            h('span', null, t('budgetPreset')),
+            h(
+              'select',
+              {
+                value: budgetPreset,
+                onChange: (event) => {
+                  const profile = budgetProfiles.find((item) => item.id === event.target.value)
+                  if (profile) updateBudget({ maxMs: profile.maxMs, maxTools: profile.maxTools, maxTokens: profile.maxTokens })
+                },
+              },
+              budgetPreset === 'custom' ? h('option', { value: 'custom', disabled: true }, t('budgetCustom')) : null,
+              budgetProfiles.map((profile) => h('option', { key: profile.id, value: profile.id }, profile.label)),
+            ),
+          ),
+          h('p', { className: 'gb-deck-copy' }, t('budgetUsage', { used: formatTokens(usedTokens), max: formatTokens(budget.maxTokens) })),
+          h(
             'div',
             { className: 'gb-field-row' },
             h('label', { className: 'gb-field' }, h('span', null, t('budgetMinutes')), h('input', { type: 'number', min: 1, max: 1440, value: Math.round((budget.maxMs || 0) / 60000), onChange: (event) => updateBudget({ maxMs: (Number(event.target.value) || 1) * 60000 }) })),
@@ -6481,7 +6520,7 @@ window.__ModuleLoader__.load({
                       captureBusy,
                     })
                   : tab === 'notify'
-                    ? h(NotificationsTab, { t, onToast, onOpenThread })
+                    ? h(NotificationsTab, { t, onToast, onOpenThread, stats: snap?.stats })
                     : h(MemoryTab, { t, onToast, botId }),
       )
     }
@@ -10070,7 +10109,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '6.27.0',
+              version: '6.28.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -10091,7 +10130,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '6.27.0',
+                version: '6.28.0',
               },
               null,
               2,
