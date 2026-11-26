@@ -14,6 +14,8 @@ jobs:
           node-version: '22'
       - name: Syntax and client activation guard
         run: node scripts/check-client.cjs
+      - name: UX layout guards
+        run: node scripts/check-ux.cjs
       - name: State recovery regression tests
         run: node --test scripts/test-state-recovery.mjs
       - name: CLI syntax

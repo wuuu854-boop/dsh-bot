@@ -1,5 +1,12 @@
 # Changelog
 
+## 6.16.0 — 2026-11-26
+
+- UX: Toast moved above the composer (`bottom: 96px`) so feedback no longer covers the input area, including narrow screens.
+- UX: corrected responsive declaration order so the 1280px Deck width is not overwritten by the 1500px rule.
+- Add `scripts/check-ux.cjs` static guards for the latest-jump placement, Toast clearance, thread-entry scroll reset and Deck breakpoint order.
+- No QQ changes.
+
 ## 6.15.0 — 2026-11-26
 
 - UX: entering any conversation now resets to the latest message automatically. Thread switches clear the previous scroll lock, restore the jump button state, and scroll after the new snapshot arrives.

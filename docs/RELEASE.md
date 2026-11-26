@@ -1,10 +1,16 @@
-# DSH Bot v6.15.0
+# DSH Bot v6.16.0
 
 **An open-source GrokBot alternative that runs a real bot team on your own Windows machine, inside DeepSeek Harness.**
 
 You talk to one **Boss**. It decides what to do, hires a specialist when nobody fits, delegates real work to bots that each keep their own DSH session, workspace and memory, then reviews the receipts and reports back. Every morning it runs a stand-up where the whole team reports what it did.
 
 ![Architecture](architecture.svg)
+
+## UX (v6.16.0)
+
+- Toast is positioned above the composer instead of over the input area.
+- Corrected the 1500px/1280px breakpoint order so the Deck width at 1280px is actually applied.
+- Added static UX guards for jump placement, Toast clearance, scroll reset and breakpoint order.
 
 ## UX (v6.15.0)
 
