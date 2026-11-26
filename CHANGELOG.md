@@ -1,5 +1,14 @@
 # Changelog
 
+## 6.33.0 — 2026-11-26
+
+- Bug: `browser_driver.py` was missing the `os` import used by automatic profile detection; auto profile would crash.
+- Browser driver: add `setup` for optional Playwright/browser installation, `--profile auto` for Edge/Chrome/Firefox profiles, and captcha/blocker detection.
+- Browser driver: WebKit verified 60/60 with scrollDelta 0 (1.96s).
+- Quota: daily cap is configurable in settings and resets at local midnight; per-run/thread/daily labels clarified.
+- CI: add browser-driver and configurable daily-cap guards.
+- No QQ changes.
+
 ## 6.32.0 — 2026-11-26
 
 - Bug: daily token quota now resets at local midnight instead of UTC midnight.

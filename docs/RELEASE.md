@@ -1,10 +1,18 @@
-# DSH Bot v6.32.0
+# DSH Bot v6.33.0
 
 **An open-source GrokBot alternative that runs a real bot team on your own Windows machine, inside DeepSeek Harness.**
 
 You talk to one **Boss**. It decides what to do, hires a specialist when nobody fits, delegates real work to bots that each keep their own DSH session, workspace and memory, then reviews the receipts and reports back. Every morning it runs a stand-up where the whole team reports what it did.
 
 ![Architecture](architecture.svg)
+
+## Cross-browser fixes (v6.33.0)
+
+- Fixed automatic profile detection (`os` import) and added `--profile auto`.
+- Added `browser_driver.py setup` for Playwright/browser installation.
+- Verified WebKit 60/60 with scrollDelta 0.
+- Added captcha/blocker detection; blocked pages return `blocked:true` instead of success.
+- Daily token cap is editable and resets at local midnight.
 
 ## Bug audit and UX (v6.32.0)
 

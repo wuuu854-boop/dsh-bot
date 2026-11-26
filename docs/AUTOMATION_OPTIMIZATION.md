@@ -85,7 +85,9 @@ python scripts/web_batch.py fill --answers answers.json
 | Chrome | 60/60 | 0 | 1.29s |
 | Firefox | 60/60 | 0 | 2.51s |
 
-Playwright 是可选依赖：`pip install playwright`；Firefox 另需 `python -m playwright install firefox`。详见 [BROWSER_DRIVER.md](BROWSER_DRIVER.md)。
+| WebKit | 60/60 | 0 | 1.96s |
+
+Playwright 是可选依赖：`browser_driver.py setup` 可安装；Firefox/WebKit 另需 `setup --browsers firefox webkit`。详见 [BROWSER_DRIVER.md](BROWSER_DRIVER.md)。
 
 已实现：
 
@@ -95,7 +97,7 @@ Playwright 是可选依赖：`pip install playwright`；Firefox 另需 `python -
 - 90% “下一步后可能停止”预警；
 - 经济/标准/深度/自定义档位；
 - 设置页显示本线程累计 token、当前任务 token、今日累计 token 和单任务上限；
-- 每日 token 额度（默认 2,000,000，可用 `DSH_BOT_DAILY_TOKENS` 调整），当日 80% 提醒、100% 硬停止。
+- 每日 token 额度可在设置中修改，默认 2,000,000；当日 80% 提醒、100% 硬停止，按本地零点重置。
 
 ## 待完成
 

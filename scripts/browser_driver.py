@@ -11,7 +11,8 @@ Chromium browser download is normally needed.
 Commands:
   status
   fill --answers PATH --url URL [--browser auto|edge|chrome|firefox|webkit]
-       [--profile PATH] [--cdp-url URL] [--headless]
+       [--profile PATH|auto] [--cdp-url URL] [--headless]
+  setup [--browsers firefox webkit] [--skip-pip]
 
 The fill command only fills; it never submits. Output is a compact JSON object.
 """
@@ -20,7 +21,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import re
 import shutil
+import subprocess
 import sys
 import tempfile
 import time
@@ -128,6 +132,45 @@ def system_browser_path(name: str) -> str:
         if Path(candidate).exists():
             return candidate
     return ""
+
+
+def detect_profile(browser: str) -> str:
+    local = os.environ.get("LOCALAPPDATA", "")
+    roaming = os.environ.get("APPDATA", "")
+    if browser == "edge" and local:
+        candidate = Path(local) / "Microsoft" / "Edge" / "User Data"
+        if candidate.exists():
+            return str(candidate)
+    if browser == "chrome" and local:
+        candidate = Path(local) / "Google" / "Chrome" / "User Data"
+        if candidate.exists():
+            return str(candidate)
+    if browser == "firefox" and roaming:
+        root = Path(roaming) / "Mozilla" / "Firefox" / "Profiles"
+        if root.exists():
+            matches = sorted(root.glob("*.default*"), key=lambda item: item.stat().st_mtime, reverse=True)
+            if matches:
+                return str(matches[0])
+    return ""
+
+
+def setup_playwright(browsers: list[str], skip_pip: bool = False) -> dict:
+    commands = []
+    if not skip_pip:
+        module, _ = playwright_module()
+        if not module:
+            commands.append([sys.executable, "-m", "pip", "install", "playwright"])
+    if browsers:
+        commands.append([sys.executable, "-m", "playwright", "install", *browsers])
+    results = []
+    for command in commands:
+        completed = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace")
+        results.append({
+            "command": " ".join(command),
+            "ok": completed.returncode == 0,
+            "output": (completed.stdout or completed.stderr or "")[-400:],
+        })
+    return {"ok": all(item["ok"] for item in results) if results else True, "commands": results, "status": status()}
 
 
 def choice_browser(requested: str, playwright) -> str:
@@ -243,6 +286,10 @@ def fill(args) -> dict:
             page = context.pages[0] if context.pages else context.new_page()
         else:
             profile = args.profile
+            if profile.lower() == "auto":
+                profile = detect_profile(args.browser)
+                if not profile:
+                    return {"ok": False, "error": f"no auto-detected profile for {args.browser}"}
             if profile:
                 temp_profile = copy_profile(profile, args.browser)
                 user_data_dir = temp_profile
@@ -272,10 +319,17 @@ def fill(args) -> dict:
             page.wait_for_timeout(500)
         if not page.url or page.url == "about:blank":
             return {"ok": False, "error": "no page URL; pass --url or --cdp-url"}
+        body_text = ""
+        try:
+            body_text = page.locator("body").inner_text(timeout=2_000)[:6_000]
+        except Exception:
+            pass
+        blocked = bool(re.search(r"验证码|captcha|人机验证|unusual traffic|访问异常", body_text, re.I))
         result = page.evaluate(FILL_FUNCTION, answers)
-        result["ok"] = not result.get("failed")
+        result["ok"] = not result.get("failed") and not blocked
         result["mode"] = "playwright"
         result["browser"] = args.browser
+        result["blocked"] = blocked
         result["elapsedMs"] = int((time.time() - started) * 1000)
         return result
     except Exception as caught:
@@ -303,6 +357,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("status")
+    setup_parser = sub.add_parser("setup")
+    setup_parser.add_argument("--browsers", nargs="*", default=[])
+    setup_parser.add_argument("--skip-pip", action="store_true")
     p = sub.add_parser("fill")
     p.add_argument("--answers", required=True)
     p.add_argument("--url", default="")
@@ -314,6 +371,10 @@ def main() -> int:
     if args.command == "status":
         print(json.dumps(status(), ensure_ascii=False))
         return 0
+    if args.command == "setup":
+        result = setup_playwright(args.browsers, args.skip_pip)
+        print(json.dumps(result, ensure_ascii=False))
+        return 0 if result.get("ok") else 1
     if args.browser == "auto":
         args.browser = "edge"
     result = fill(args)

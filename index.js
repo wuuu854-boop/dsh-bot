@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '6.32.0'
+const VERSION = '6.33.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -4278,7 +4278,7 @@ export function apply(ctx) {
       `- 浏览器先用 python "${edgeScript}" read 读文本和控件，click/type 操作后复用返回状态。仅 canvas/PDF 或无文本时截图。`,
       `- 智慧职教 / ICVE：先用 \`course.py progress\` 看已完成/未完成（fast，缓存命中会返回 cached:true），再用 \`course.py status\` 判断 phase；动作命令返回的 page/phase/progress 直接复用，不要每个动作重新 full read。只有页面变化/缓存过期/卡住时才 \`status --full\`。点击用 \`edge.py click --all --verify\`。返回 \`changed:false\` / \`stalled:true\` 时禁止重复点击，先检查新 frame、滚动、等待；仍无变化就停下并报告卡点，不能循环。`,
       `- 批量网页表单优先用 python "${path.join(packageDir, 'scripts', 'web_batch.py')}" fill --answers <answers.json>：它把整页选择/填值合并成一次 DOM 批处理，保持 scrollY 不变，不逐题 UIA 滚动；结果只返回 filled/failed/scrollDelta。提交仍用一次 edge.py click --name 提交 --verify。`,
-      `- 需要跨浏览器时先用 python "${path.join(packageDir, 'scripts', 'browser_driver.py')}" status；已安装 Playwright 时用 browser_driver.py fill --answers <answers.json> --url <URL> --browser auto。Edge/Chrome 走本机 channel，Firefox 需要 python -m playwright install firefox；没有 Playwright 就回退 web_batch（仅 Chromium），不要声称全浏览器支持。`,
+      `- 需要跨浏览器时先用 python "${path.join(packageDir, 'scripts', 'browser_driver.py')}" status；没安装 Playwright 就用 setup 安装（Edge/Chrome 无需下载浏览器，Firefox/WebKit 需 setup --browsers firefox webkit）。已安装后用 browser_driver.py fill --answers <answers.json> --url <URL> --browser auto；已有登录态加 --profile auto 或 --cdp-url。没有 Playwright 就回退 web_batch（仅 Chromium），不要声称全浏览器支持。`,
       own,
     ].join('\n')
   }

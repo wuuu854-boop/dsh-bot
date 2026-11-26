@@ -17,6 +17,12 @@
 ## 安装
 
 ```powershell
+python scripts/browser_driver.py setup
+```
+
+或手动：
+
+```powershell
 python -m pip install playwright
 ```
 
@@ -26,10 +32,10 @@ Edge / Chrome 使用本机浏览器，不需要下载 Chromium：
 python scripts/browser_driver.py status
 ```
 
-Firefox 需要下载 Playwright 版 Firefox：
+Firefox / WebKit 需要 Playwright 浏览器：
 
 ```powershell
-python -m playwright install firefox
+python scripts/browser_driver.py setup --browsers firefox webkit
 ```
 
 ## 用法
@@ -43,6 +49,7 @@ python scripts/browser_driver.py fill `
 
 - `--browser auto`：优先本机 Edge，其次 Chrome，再 Firefox；
 - `--browser firefox`：指定 Firefox；
+- `--profile auto`：自动检测 Edge / Chrome / Firefox 的 profile 并复制；
 - `--profile "C:\Users\...\Edge\User Data"`：复制 Chromium user data；也可传 `...\User Data\Default`；
 - `--profile "C:\Users\...\AppData\Roaming\Mozilla\Firefox\Profiles\xxx"`：Firefox profile 目录；
 - `--cdp-url http://127.0.0.1:9222`：连接已经开着远程调试的浏览器；
@@ -58,12 +65,14 @@ python scripts/browser_driver.py fill `
 | Edge | 60/60 | 0 | 1.28s |
 | Chrome | 60/60 | 0 | 1.29s |
 | Firefox | 60/60 | 0 | 2.51s |
+| WebKit | 60/60 | 0 | 1.48s |
 
 测试使用 `--headless`，没有消耗作业提交次数。
 
 ## 限制
 
-- Playwright 是可选依赖，不随插件强制安装；
-- 默认启动新 profile，已有登录态需要 `--profile` 或 `--cdp-url`；
+- Playwright 是可选依赖；`setup` 可以在客户机器上安装，但不随插件强制打包；
+- 默认启动新 profile，已有登录态用 `--profile auto` / 指定 profile 或 `--cdp-url`；
 - 复制正在运行的浏览器 profile 可能遇到锁文件，脚本会忽略缓存/锁，但不保证所有站点登录态完整；
+- 页面出现验证码/人机验证时返回 `blocked:true`，不会声称填写成功；
 - `browser_driver.py` 不负责提交，避免误交。
