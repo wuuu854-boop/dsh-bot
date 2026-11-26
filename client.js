@@ -6649,6 +6649,8 @@ window.__ModuleLoader__.load({
       const inputRef = useRef(null)
       const scrollRef = useRef(null)
       const stickRef = useRef(true)
+      const jumpLockRef = useRef(false)
+      const [stick, setStick] = useState(true)
       const prevRunningRef = useRef(false)
       const lastQuestionNotifiedRef = useRef(null)
       const lastSpokenSeqRef = useRef(0)
@@ -6842,7 +6844,12 @@ window.__ModuleLoader__.load({
         const element = scrollRef.current
         if (!element) return undefined
         const onScroll = () => {
-          stickRef.current = element.scrollHeight - element.scrollTop - element.clientHeight < 90
+          if (jumpLockRef.current) return
+          const next = element.scrollHeight - element.scrollTop - element.clientHeight < 90
+          if (stickRef.current !== next) {
+            stickRef.current = next
+            setStick(next)
+          }
         }
         element.addEventListener('scroll', onScroll, { passive: true })
         return () => element.removeEventListener('scroll', onScroll)
@@ -7754,8 +7761,21 @@ window.__ModuleLoader__.load({
 
       const jumpToLatest = useCallback(() => {
         const element = scrollRef.current
-        if (element) element.scrollTop = element.scrollHeight
+        if (!element) return
+        jumpLockRef.current = true
         stickRef.current = true
+        setStick(true)
+        const previousBehavior = element.style.scrollBehavior
+        element.style.scrollBehavior = 'auto'
+        element.scrollTop = element.scrollHeight
+        requestAnimationFrame(() => {
+          if (!scrollRef.current) return
+          scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+          scrollRef.current.style.scrollBehavior = previousBehavior
+          window.setTimeout(() => {
+            jumpLockRef.current = false
+          }, 350)
+        })
       }, [])
 
       if (!booted) return h(LoadingScreen, { t, error: bootError, onRetry: () => setBootNonce((value) => value + 1) })
@@ -8216,41 +8236,45 @@ window.__ModuleLoader__.load({
             : null,
           h(
             'div',
-            { className: 'gb-chat-scroll', ref: scrollRef },
+            { className: 'gb-chat-view' },
             h(
               'div',
-              { className: `gb-chat-inner${empty ? ' is-empty' : ''}` },
-              channel && (historyHasMore || olderItems.length > 0)
-                ? h(
-                    'div',
-                    { className: 'gb-history-load' },
-                    historyHasMore
-                      ? h(
-                          'button',
-                          {
-                            type: 'button',
-                            className: 'gb-small-btn',
-                            disabled: historyBusy,
-                            onClick: loadEarlier,
-                          },
-                          historyBusy ? h(Spinner, { size: 11 }) : h(Icon, { name: 'arrowUp', size: 12 }),
-                          t('loadEarlier'),
-                        )
-                      : h('span', { className: 'gb-history-end' }, t('noMoreHistory')),
-                  )
-                : null,
-              empty ? h(Welcome, { t, onSend: send, onCreateTeam: addSpecialist, showTeamCta: (snap.bots || []).length <= 1 }) : content,
-              !empty && running ? h('div', { className: 'gb-chat-spacer' }) : null,
+              { className: 'gb-chat-scroll', ref: scrollRef },
+              h(
+                'div',
+                { className: `gb-chat-inner${empty ? ' is-empty' : ''}` },
+                channel && (historyHasMore || olderItems.length > 0)
+                  ? h(
+                      'div',
+                      { className: 'gb-history-load' },
+                      historyHasMore
+                        ? h(
+                            'button',
+                            {
+                              type: 'button',
+                              className: 'gb-small-btn',
+                              disabled: historyBusy,
+                              onClick: loadEarlier,
+                            },
+                            historyBusy ? h(Spinner, { size: 11 }) : h(Icon, { name: 'arrowUp', size: 12 }),
+                            t('loadEarlier'),
+                          )
+                        : h('span', { className: 'gb-history-end' }, t('noMoreHistory')),
+                    )
+                  : null,
+                empty ? h(Welcome, { t, onSend: send, onCreateTeam: addSpecialist, showTeamCta: (snap.bots || []).length <= 1 }) : content,
+                !empty && running ? h('div', { className: 'gb-chat-spacer' }) : null,
+              ),
             ),
+            !stick
+              ? h(
+                  'button',
+                  { type: 'button', className: 'gb-jump', onClick: jumpToLatest },
+                  h(Icon, { name: 'arrowDown', size: 14 }),
+                  t('scrollBottom'),
+                )
+              : null,
           ),
-          !stickRef.current
-            ? h(
-                'button',
-                { type: 'button', className: 'gb-jump', onClick: jumpToLatest },
-                h(Icon, { name: 'arrowDown', size: 14 }),
-                t('scrollBottom'),
-              )
-            : null,
           !running && snap.checkpoint
             ? h(CheckpointCard, { checkpoint: snap.checkpoint, t, onResume: resumeCheckpoint, busy: resuming })
             : null,
@@ -9009,6 +9033,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 .gb-offline-sub { color: var(--gb-muted); }
 
 /* chat */
+.gb-chat-view { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .gb-chat-scroll { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; scroll-behavior: smooth; }
 .gb-pinned-wrap { position: relative; width: calc(100% - 76px); max-width: 880px; margin: 0 auto 6px; }
 .gb-guide-backdrop { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(0,0,0,.55); backdrop-filter: blur(3px); }
@@ -9141,7 +9166,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 .gb-meeting-history-item { padding: 4px 0; border-top: 1px solid var(--gb-line); }
 .gb-meeting-history-item summary { display: flex; justify-content: space-between; gap: 6px; color: var(--gb-muted); font-size: 9px; cursor: pointer; }
 .gb-meeting-history-item p { max-height: 160px; margin: 4px 0 0; overflow: auto; color: var(--gb-faint); font-size: 8.5px; line-height: 1.5; white-space: pre-wrap; }
-.gb-jump { position: absolute; left: 50%; bottom: 134px; z-index: 5; display: flex; align-items: center; gap: 6px; transform: translateX(-50%); height: 28px; padding: 0 11px; border: 1px solid var(--gb-line-strong); border-radius: 999px; background: color-mix(in srgb, var(--gb-overlay) 92%, transparent); color: var(--gb-muted); font-size: 10.5px; box-shadow: 0 8px 30px rgba(0,0,0,.35); }
+.gb-jump { position: absolute; left: 50%; bottom: 14px; z-index: 8; display: flex; align-items: center; gap: 6px; transform: translateX(-50%); height: 28px; padding: 0 11px; border: 1px solid var(--gb-line-strong); border-radius: 999px; background: color-mix(in srgb, var(--gb-overlay) 92%, transparent); color: var(--gb-muted); font-size: 10.5px; box-shadow: 0 8px 30px rgba(0,0,0,.35); }
 .gb-jump:hover { color: var(--gb-text); }
 
 /* welcome */
@@ -9824,7 +9849,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '6.13.0',
+              version: '6.14.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -9845,7 +9870,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '6.13.0',
+                version: '6.14.0',
               },
               null,
               2,

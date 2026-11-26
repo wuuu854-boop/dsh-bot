@@ -1,5 +1,11 @@
 # Changelog
 
+## 6.14.0 — 2026-11-26
+
+- Fix: “回到最新/ Jump to latest” is now scoped to the chat view instead of the whole app, so it no longer overlaps member tabs or the composer.
+- Fix: the button hides immediately and scrolls to the true bottom with a short lock, instead of relying on a ref that never re-rendered; clicking it now reliably returns to the latest message.
+- No QQ changes.
+
 ## 6.13.0 — 2026-11-26
 
 - Remove: ICVE/智慧职教 browser extension and auto-save/auto-download bridge removed after browser crashes. The unpacked extension was removed from the Edge profile.

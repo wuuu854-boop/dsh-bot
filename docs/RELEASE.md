@@ -1,10 +1,15 @@
-# DSH Bot v6.13.0
+# DSH Bot v6.14.0
 
 **An open-source GrokBot alternative that runs a real bot team on your own Windows machine, inside DeepSeek Harness.**
 
 You talk to one **Boss**. It decides what to do, hires a specialist when nobody fits, delegates real work to bots that each keep their own DSH session, workspace and memory, then reviews the receipts and reports back. Every morning it runs a stand-up where the whole team reports what it did.
 
 ![Architecture](architecture.svg)
+
+## UI fix (v6.14.0)
+
+- “回到最新 / Jump to latest” is scoped to the chat view, below the message area and above the composer; it no longer overlaps member tabs.
+- Clicking it hides the button immediately and scrolls to the true bottom with a short scroll-lock, so it reliably returns to the newest message.
 
 ## Browser extension removed
 
