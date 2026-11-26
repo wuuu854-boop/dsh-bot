@@ -1,5 +1,12 @@
 # Changelog
 
+## 6.20.0 — 2026-11-26
+
+- UX: Bot editor and group editor now warn before discarding unsaved changes and support Esc close with the same guard.
+- UX: close button, backdrop and cancel use the same guarded close path, so a stray click no longer silently loses a draft.
+- UX guards now cover unsaved-change copy and guarded editor close.
+- No QQ changes.
+
 ## 6.19.0 — 2026-11-26
 
 - UX/responsive: raise the sidebar drawer breakpoint from 1020px to 1100px, covering 1024px windows and 1280px at 125% zoom without squeezing the chat area.

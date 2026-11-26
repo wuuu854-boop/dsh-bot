@@ -1,10 +1,16 @@
-# DSH Bot v6.19.0
+# DSH Bot v6.20.0
 
 **An open-source GrokBot alternative that runs a real bot team on your own Windows machine, inside DeepSeek Harness.**
 
 You talk to one **Boss**. It decides what to do, hires a specialist when nobody fits, delegates real work to bots that each keep their own DSH session, workspace and memory, then reviews the receipts and reports back. Every morning it runs a stand-up where the whole team reports what it did.
 
 ![Architecture](architecture.svg)
+
+## UX (v6.20.0)
+
+- Bot and group editors warn before discarding unsaved changes; Esc uses the same guard.
+- Close, backdrop and cancel share one guarded close path.
+- UX guards cover the unsaved-change copy and editor close.
 
 ## UX (v6.19.0)
 

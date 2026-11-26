@@ -488,6 +488,7 @@ window.__ModuleLoader__.load({
         taskMenu: '任务菜单',
         confirm: '确认',
         cancel: '取消',
+        discardChanges: '有未保存的修改，确定关闭？',
         close: '关闭',
         open: '打开',
         collapse: '收起',
@@ -1139,6 +1140,7 @@ window.__ModuleLoader__.load({
         taskMenu: 'Task menu',
         confirm: 'Confirm',
         cancel: 'Cancel',
+        discardChanges: 'Discard unsaved changes?',
         close: 'Close',
         open: 'Open',
         collapse: 'Collapse',
@@ -2809,6 +2811,7 @@ window.__ModuleLoader__.load({
       const [role, setRole] = useState(bot?.role || 'member')
       const [busy, setBusy] = useState(false)
       const [error, setError] = useState('')
+      const [dirty, setDirty] = useState(false)
 
       useEffect(() => {
         setName(bot?.name || '')
@@ -2825,7 +2828,22 @@ window.__ModuleLoader__.load({
         setAutonomy(bot?.autonomy || 'interactive')
         setRole(bot?.role || 'member')
         setError('')
+        setDirty(false)
       }, [bot?.id])
+
+      const requestClose = () => {
+        if (busy) return
+        if (dirty && !window.confirm(t('discardChanges'))) return
+        onClose?.()
+      }
+
+      useEffect(() => {
+        const onKey = (event) => {
+          if (event.key === 'Escape') requestClose()
+        }
+        window.addEventListener('keydown', onKey)
+        return () => window.removeEventListener('keydown', onKey)
+      }, [dirty, busy, t, onClose])
 
       const presets = catalog?.presets || []
       const providers = catalog?.providers || []
@@ -2879,7 +2897,7 @@ window.__ModuleLoader__.load({
           className: 'gb-modal-backdrop',
           role: 'presentation',
           onMouseDown: (event) => {
-            if (event.target === event.currentTarget) onClose?.()
+            if (event.target === event.currentTarget) requestClose()
           },
         },
         h(
@@ -2891,13 +2909,13 @@ window.__ModuleLoader__.load({
             h('div', null, h('div', { className: 'gb-kicker-small' }, t('bots')), h('h2', null, isNew ? t('newBot') : t('editBot'))),
             h(
               'button',
-              { type: 'button', className: 'gb-icon-btn', onClick: onClose, 'aria-label': t('close') },
+              { type: 'button', className: 'gb-icon-btn', onClick: requestClose, 'aria-label': t('close') },
               h(Icon, { name: 'close', size: 16 }),
             ),
           ),
           h(
             'div',
-            { className: 'gb-modal-body' },
+            { className: 'gb-modal-body', onChange: () => setDirty(true) },
             h(
               'div',
               { className: 'gb-field-row' },
@@ -3087,7 +3105,7 @@ window.__ModuleLoader__.load({
             h(
               'div',
               { className: 'gb-modal-foot-right' },
-              h('button', { type: 'button', className: 'gb-ghost-btn', onClick: onClose, disabled: busy }, t('cancel')),
+              h('button', { type: 'button', className: 'gb-ghost-btn', onClick: requestClose, disabled: busy }, t('cancel')),
               h(
                 'button',
                 { type: 'button', className: 'gb-primary-btn', onClick: submit, disabled: busy },
@@ -3109,6 +3127,7 @@ window.__ModuleLoader__.load({
       const [routing, setRouting] = useState(group?.routing === 'leader' ? 'leader' : 'all')
       const [busy, setBusy] = useState(false)
       const [error, setError] = useState('')
+      const [dirty, setDirty] = useState(false)
 
       useEffect(() => {
         setName(group?.name || '')
@@ -3116,9 +3135,25 @@ window.__ModuleLoader__.load({
         setMemberIds(Array.isArray(group?.memberIds) ? [...group.memberIds] : [])
         setRouting(group?.routing === 'leader' ? 'leader' : 'all')
         setError('')
+        setDirty(false)
       }, [group?.id])
 
+      const requestClose = () => {
+        if (busy) return
+        if (dirty && !window.confirm(t('discardChanges'))) return
+        onClose?.()
+      }
+
+      useEffect(() => {
+        const onKey = (event) => {
+          if (event.key === 'Escape') requestClose()
+        }
+        window.addEventListener('keydown', onKey)
+        return () => window.removeEventListener('keydown', onKey)
+      }, [dirty, busy, t, onClose])
+
       const toggle = (id) => {
+        setDirty(true)
         setMemberIds((previous) =>
           previous.includes(id) ? previous.filter((item) => item !== id) : [...previous, id].slice(0, 8),
         )
@@ -3156,7 +3191,7 @@ window.__ModuleLoader__.load({
           className: 'gb-modal-backdrop',
           role: 'presentation',
           onMouseDown: (event) => {
-            if (event.target === event.currentTarget) onClose?.()
+            if (event.target === event.currentTarget) requestClose()
           },
         },
         h(
@@ -3173,13 +3208,13 @@ window.__ModuleLoader__.load({
             ),
             h(
               'button',
-              { type: 'button', className: 'gb-icon-btn', onClick: onClose, 'aria-label': t('close') },
+              { type: 'button', className: 'gb-icon-btn', onClick: requestClose, 'aria-label': t('close') },
               h(Icon, { name: 'close', size: 16 }),
             ),
           ),
           h(
             'div',
-            { className: 'gb-modal-body' },
+            { className: 'gb-modal-body', onChange: () => setDirty(true) },
             h(
               'div',
               { className: 'gb-field-row' },
@@ -3281,7 +3316,7 @@ window.__ModuleLoader__.load({
             h(
               'div',
               { className: 'gb-modal-foot-right' },
-              h('button', { type: 'button', className: 'gb-ghost-btn', onClick: onClose, disabled: busy }, t('cancel')),
+              h('button', { type: 'button', className: 'gb-ghost-btn', onClick: requestClose, disabled: busy }, t('cancel')),
               h(
                 'button',
                 { type: 'button', className: 'gb-primary-btn', onClick: submit, disabled: busy },
@@ -9880,7 +9915,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '6.19.0',
+              version: '6.20.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -9901,7 +9936,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '6.19.0',
+                version: '6.20.0',
               },
               null,
               2,
