@@ -1,5 +1,11 @@
 # Changelog
 
+## 6.26.0 — 2026-11-26
+
+- UX: Deck empty states now explain what will appear after a task runs instead of showing only “no history/activity”.
+- UX guards cover the empty-state hints.
+- No QQ changes.
+
 ## 6.25.0 — 2026-11-26
 
 - UX/a11y: Bot and group editor dialogs now trap keyboard focus inside the dialog, skip hidden/disabled controls, and restore focus to the opener on close.

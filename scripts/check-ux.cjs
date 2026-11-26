@@ -35,6 +35,8 @@ assert.match(source, /searchFailed:/, 'search failure copy must exist')
 assert.match(source, /setSearchError\(/, 'search failure must not masquerade as empty results')
 assert.match(source, /function useFocusTrap\(\)/, 'editors must trap keyboard focus')
 assert.match(source, /ref: modalRef/, 'editors must attach the focus trap')
+assert.match(source, /noRunsHint:|noActivityHint:/, 'deck empty states must explain the next step')
+assert.match(source, /gb-deck-empty-hint/, 'deck empty hints must render')
 assert.match(source, /disabled: busy \|\| !dirty/, 'settings save must require a pending edit')
 assert.doesNotMatch(source, /max-width:\s*1020px/, 'rail breakpoint must use the 1100px value')
 

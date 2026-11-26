@@ -140,6 +140,7 @@ window.__ModuleLoader__.load({
         daysAgo: '{n} 天前',
         ranSteps: '执行了 {n} 步',
         noActivity: '还没有动作',
+        noActivityHint: '工具调用、命令输出和证据会按时间显示在这里。',
         team: '团队',
         teamTitle: '团队',
         teamRosterTitle: '团队名册',
@@ -325,6 +326,7 @@ window.__ModuleLoader__.load({
         undoFailed: '撤销失败',
         steps: '步',
         noRuns: '还没有任务记录。',
+        noRunsHint: '任务开始运行后，这里会显示最近结果和验收状态。',
         checkpointTitle: '上次任务中断，可从断点继续',
         checkpointHint: '会带上目标、最后动作和错误，不再从头重做。',
         resume: '从断点继续',
@@ -800,6 +802,7 @@ window.__ModuleLoader__.load({
         daysAgo: '{n}d ago',
         ranSteps: 'Ran {n} steps',
         noActivity: 'No activity yet',
+        noActivityHint: 'Tool calls, command output and evidence appear here in order.',
         team: 'Team',
         teamTitle: 'Team',
         teamRosterTitle: 'Team roster',
@@ -985,6 +988,7 @@ window.__ModuleLoader__.load({
         undoFailed: 'Undo failed',
         steps: 'steps',
         noRuns: 'No task history yet.',
+        noRunsHint: 'Recent results and verification status appear here once a task runs.',
         checkpointTitle: 'Last run was interrupted — resume from checkpoint',
         checkpointHint: 'Carries the goal, last action and error; no restart from scratch.',
         resume: 'Resume from checkpoint',
@@ -4959,7 +4963,12 @@ window.__ModuleLoader__.load({
                   ),
                 ),
               )
-            : h('div', { className: 'gb-deck-empty' }, t('noRuns')),
+            : h(
+                'div',
+                { className: 'gb-deck-empty' },
+                h('span', null, t('noRuns')),
+                h('small', { className: 'gb-deck-empty-hint' }, t('noRunsHint')),
+              ),
         ),
         h(
           'div',
@@ -5012,7 +5021,12 @@ window.__ModuleLoader__.load({
           { className: 'gb-deck-section' },
           h('div', { className: 'gb-deck-section-head' }, h('span', null, t('runLog')), h('span', { className: 'gb-mono gb-muted' }, items.length)),
           items.length === 0
-            ? h('div', { className: 'gb-deck-empty' }, t('noActivity'))
+            ? h(
+                'div',
+                { className: 'gb-deck-empty' },
+                h('span', null, t('noActivity')),
+                h('small', { className: 'gb-deck-empty-hint' }, t('noActivityHint')),
+              )
             : h(
                 'div',
                 { className: 'gb-log-list' },
@@ -9711,6 +9725,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 .gb-more-btn { width: 100%; margin-top: 5px; padding: 5px 0; border: 0; border-radius: 5px; background: transparent; color: var(--gb-faint); font-size: 8.5px; }
 .gb-more-btn:hover { color: var(--gb-muted); background: var(--gb-panel-2); }
 .gb-deck-empty { padding: 8px 0; font-size: 9px; color: var(--gb-faint); }
+.gb-deck-empty-hint { display: block; margin-top: 3px; color: var(--gb-faint); font-size: 8.5px; line-height: 1.55; }
 .gb-path { display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 7px; border: 1px solid var(--gb-line); border-radius: 6px; background: transparent; color: var(--gb-muted); font-family: "Cascadia Code", Consolas, monospace; font-size: 8.5px; text-align: left; overflow: hidden; }
 .gb-path span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gb-path:hover { color: var(--gb-text); border-color: var(--gb-line-strong); }
@@ -10055,7 +10070,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '6.25.0',
+              version: '6.26.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -10076,7 +10091,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '6.25.0',
+                version: '6.26.0',
               },
               null,
               2,
