@@ -1,10 +1,17 @@
-# DSH Bot v6.30.0
+# DSH Bot v6.31.0
 
 **An open-source GrokBot alternative that runs a real bot team on your own Windows machine, inside DeepSeek Harness.**
 
 You talk to one **Boss**. It decides what to do, hires a specialist when nobody fits, delegates real work to bots that each keep their own DSH session, workspace and memory, then reviews the receipts and reports back. Every morning it runs a stand-up where the whole team reports what it did.
 
 ![Architecture](architecture.svg)
+
+## Cross-browser and quota (v6.31.0)
+
+- Optional Playwright driver for Edge, Chrome, Firefox and WebKit; persistent profiles and CDP attach supported.
+- 60-question verification: Edge 1.28s, Chrome 1.29s, Firefox 2.51s, all 60/60 with scrollDelta 0.
+- Daily token ledger with 80% warning and 100% hard stop; settings show current run, thread and daily usage.
+- Playwright is optional; Chromium-only `web_batch` remains the fallback.
 
 ## Compatibility and quota (v6.30.0)
 

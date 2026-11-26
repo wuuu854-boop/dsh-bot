@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '6.30.0'
+const VERSION = '6.31.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -31,6 +31,7 @@ const CHECKPOINT_MS = 5 * 60 * 1000
 const RUN_MAX_MS = Number(process.env.DSH_BOT_MAX_RUN_MS) || 60 * 60 * 1000
 const RUN_MAX_TOOLS = Number(process.env.DSH_BOT_MAX_TOOLS) || 300
 const RUN_MAX_TOKENS = Number(process.env.DSH_BOT_MAX_TOKENS) || 400_000
+const DAILY_MAX_TOKENS = Number(process.env.DSH_BOT_DAILY_TOKENS) || 2_000_000
 const MAX_LIVE_AGENTS = 6
 const OPEN_RETRY_MS = 12_000
 const BODY_LIMIT = 2_000_000
@@ -199,6 +200,7 @@ export function apply(ctx) {
     studio: studioScript,
     course: path.join(packageDir, 'scripts', 'course.py'),
     webBatch: path.join(packageDir, 'scripts', 'web_batch.py'),
+    browserDriver: path.join(packageDir, 'scripts', 'browser_driver.py'),
     ocr: ocrScript,
     sandbox: sandboxScript,
     memory: memorySearchScript,
@@ -388,6 +390,7 @@ export function apply(ctx) {
       audits: [],
       notify: defaultNotify(),
       budget: defaultBudget(),
+      quota: defaultQuota(),
       meeting: defaultMeeting(),
       activeBotId: DEFAULT_BOT_ID,
       lastThreadId: null,
@@ -577,6 +580,7 @@ export function apply(ctx) {
         audits,
         notify: normalizeNotify(raw.notify),
         budget: normalizeBudget(raw.budget),
+        quota: normalizeQuota(raw.quota),
         meeting: normalizeMeeting(raw.meeting),
         activeBotId: botIds.has(raw.activeBotId) ? raw.activeBotId : fallbackBotId,
         lastThreadId: typeof raw.lastThreadId === 'string' ? raw.lastThreadId : null,
@@ -674,6 +678,37 @@ export function apply(ctx) {
 
   function defaultBudget() {
     return { maxMs: RUN_MAX_MS, maxTools: RUN_MAX_TOOLS, maxTokens: RUN_MAX_TOKENS }
+  }
+
+  function currentQuotaDay() {
+    return new Date().toISOString().slice(0, 10)
+  }
+
+  function defaultQuota() {
+    return { day: currentQuotaDay(), tokens: 0 }
+  }
+
+  function normalizeQuota(raw) {
+    const base = defaultQuota()
+    if (!raw || typeof raw !== 'object') return base
+    return {
+      day: typeof raw.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw.day) ? raw.day : base.day,
+      tokens: Math.max(0, Number(raw.tokens) || 0),
+    }
+  }
+
+  function ensureQuotaDay() {
+    const day = currentQuotaDay()
+    if (!state.quota || state.quota.day !== day) {
+      state.quota = { day, tokens: 0 }
+      saveStateSoon()
+    }
+    return state.quota
+  }
+
+  function publicQuota() {
+    const quota = ensureQuotaDay()
+    return { day: quota.day, tokens: quota.tokens, limit: DAILY_MAX_TOKENS }
   }
 
   function normalizeBudget(raw) {
@@ -2046,6 +2081,8 @@ export function apply(ctx) {
       budgetWarned50: false,
       budgetWarned90: false,
       budgetWarned: false,
+      quotaTokens: 0,
+      dailyWarned: false,
       budgetExceeded: false,
       budgetReason: '',
     }
@@ -2289,6 +2326,33 @@ export function apply(ctx) {
     const limits = run.budget || { maxMs: RUN_MAX_MS, maxTools: RUN_MAX_TOOLS, maxTokens: RUN_MAX_TOKENS }
     const elapsed = now() - (run.startedAt || now())
     const tokens = (run.inputTokens || 0) + (run.outputTokens || 0) + (run.reasoningTokens || 0)
+    const quota = ensureQuotaDay()
+    const accounted = Number(run.quotaTokens) || 0
+    if (tokens > accounted) {
+      quota.tokens += tokens - accounted
+      run.quotaTokens = tokens
+      saveStateSoon()
+    }
+    const dailyRatio = DAILY_MAX_TOKENS > 0 ? quota.tokens / DAILY_MAX_TOKENS : 0
+    if (dailyRatio >= 0.8 && !run.dailyWarned) {
+      run.dailyWarned = true
+      pushNotice(rec, `每日额度提醒：今日已用 ${quota.tokens} / ${DAILY_MAX_TOKENS} token`, 'warn', rec.transcript.lastSeq || 0, now())
+    }
+    if (dailyRatio >= 1) {
+      run.budgetExceeded = true
+      run.budgetReason = `每日 token 额度用尽：${quota.tokens} / ${DAILY_MAX_TOKENS}`
+      pushNotice(rec, `每日额度硬停止：${run.budgetReason}，本轮将写入 checkpoint 后停止`, 'error', rec.transcript.lastSeq || 0, now())
+      setTimeout(() => {
+        if (rec.run !== run) return
+        try {
+          rec.agent.cancel({ kind: 'budget' })
+        } catch {
+          /* agent may be between steps */
+        }
+        closeRun(rec, 'budget', now(), run.budgetReason)
+      }, 0)
+      return
+    }
     const ratios = [
       { name: '时间', value: elapsed, max: limits.maxMs, text: `${Math.round(elapsed / 60_000)} 分钟` },
       { name: '工具', value: run.toolCalls || 0, max: limits.maxTools, text: `${run.toolCalls || 0} 次` },
@@ -4210,6 +4274,7 @@ export function apply(ctx) {
       `- 浏览器先用 python "${edgeScript}" read 读文本和控件，click/type 操作后复用返回状态。仅 canvas/PDF 或无文本时截图。`,
       `- 智慧职教 / ICVE：先用 \`course.py progress\` 看已完成/未完成（fast，缓存命中会返回 cached:true），再用 \`course.py status\` 判断 phase；动作命令返回的 page/phase/progress 直接复用，不要每个动作重新 full read。只有页面变化/缓存过期/卡住时才 \`status --full\`。点击用 \`edge.py click --all --verify\`。返回 \`changed:false\` / \`stalled:true\` 时禁止重复点击，先检查新 frame、滚动、等待；仍无变化就停下并报告卡点，不能循环。`,
       `- 批量网页表单优先用 python "${path.join(packageDir, 'scripts', 'web_batch.py')}" fill --answers <answers.json>：它把整页选择/填值合并成一次 DOM 批处理，保持 scrollY 不变，不逐题 UIA 滚动；结果只返回 filled/failed/scrollDelta。提交仍用一次 edge.py click --name 提交 --verify。`,
+      `- 需要跨浏览器时先用 python "${path.join(packageDir, 'scripts', 'browser_driver.py')}" status；已安装 Playwright 时用 browser_driver.py fill --answers <answers.json> --url <URL> --browser auto。Edge/Chrome 走本机 channel，Firefox 需要 python -m playwright install firefox；没有 Playwright 就回退 web_batch（仅 Chromium），不要声称全浏览器支持。`,
       own,
     ].join('\n')
   }
@@ -6060,6 +6125,7 @@ export function apply(ctx) {
       notify: publicNotify(),
       meeting: publicMeeting(),
       budget: state.budget,
+      quota: publicQuota(),
       safety: {
         snapshots: state.snapshots.slice(0, 3).map(publicSafetySnapshot),
         snapshotCount: state.snapshots.length,
@@ -6153,6 +6219,7 @@ export function apply(ctx) {
       notify: publicNotify(),
       meeting: publicMeeting(),
       budget: state.budget,
+      quota: publicQuota(),
       safety: {
         snapshots: state.snapshots.slice(0, 3).map(publicSafetySnapshot),
         snapshotCount: state.snapshots.length,

@@ -300,6 +300,7 @@ window.__ModuleLoader__.load({
         budgetCustom: '自定义',
         budgetUsage: '本线程累计 {used} token · 单任务上限 {max}',
         budgetRunUsage: '当前任务 {used} / {max} token',
+        budgetDailyUsage: '今日累计 {used} / {max} token',
         budgetRunIdle: '当前没有运行中的任务',
         budgetMinutes: '最长分钟',
         budgetTools: '最多工具调用',
@@ -970,6 +971,7 @@ window.__ModuleLoader__.load({
         budgetCustom: 'Custom',
         budgetUsage: 'This thread: {used} tokens · per-run cap {max}',
         budgetRunUsage: 'Current run: {used} / {max} tokens',
+        budgetDailyUsage: 'Today: {used} / {max} tokens',
         budgetRunIdle: 'No active run',
         budgetMinutes: 'Max minutes',
         budgetTools: 'Max tool calls',
@@ -6041,7 +6043,7 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function NotificationsTab({ t, onToast, onOpenThread, stats, run }) {
+    function NotificationsTab({ t, onToast, onOpenThread, stats, run, quota }) {
       const [config, setConfig] = useState(null)
       const [budget, setBudget] = useState(null)
       const [meeting, setMeeting] = useState(null)
@@ -6418,6 +6420,9 @@ window.__ModuleLoader__.load({
               ? t('budgetRunUsage', { used: formatTokens(runUsedTokens), max: formatTokens(runMaxTokens) })
               : t('budgetRunIdle'),
           ),
+          quota
+            ? h('p', { className: 'gb-deck-copy' }, t('budgetDailyUsage', { used: formatTokens(quota.tokens || 0), max: formatTokens(quota.limit || 0) }))
+            : null,
           h(
             'div',
             { className: 'gb-field-row' },
@@ -6533,7 +6538,7 @@ window.__ModuleLoader__.load({
                       captureBusy,
                     })
                   : tab === 'notify'
-                    ? h(NotificationsTab, { t, onToast, onOpenThread, stats: snap?.stats, run: snap?.run })
+                    ? h(NotificationsTab, { t, onToast, onOpenThread, stats: snap?.stats, run: snap?.run, quota: snap?.quota })
                     : h(MemoryTab, { t, onToast, botId }),
       )
     }
@@ -10122,7 +10127,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '6.30.0',
+              version: '6.31.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -10143,7 +10148,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '6.30.0',
+                version: '6.31.0',
               },
               null,
               2,

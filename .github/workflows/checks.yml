@@ -20,6 +20,8 @@ jobs:
         run: node scripts/check-budget.cjs
       - name: No-scroll batch guards
         run: node scripts/check-web-batch.cjs
+      - name: Cross-browser driver guards
+        run: node scripts/check-browser-driver.cjs
       - name: State recovery regression tests
         run: node --test scripts/test-state-recovery.mjs
       - name: CLI syntax

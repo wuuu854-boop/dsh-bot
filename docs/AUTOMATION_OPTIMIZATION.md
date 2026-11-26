@@ -66,9 +66,26 @@ python scripts/web_batch.py fill --answers answers.json
 | Edge | 60/60，scrollDelta 0 |
 | Chrome | 60/60，scrollDelta 0 |
 | Brave / Chromium | 同 Chromium 引擎，预期可用，未实机验证 |
-| Firefox | 当前 Firefox 不暴露 UIA 地址栏；批处理会明确报错，需回退 UIA |
+| Firefox | `web_batch` 不支持；改用 `browser_driver.py`，已验证 60/60 |
 
-Firefox 返回 `address bar not found` 时，不重试、不静默失败；继续用现有 UIA/人工路径。
+### Playwright 跨浏览器驱动（v6.31）
+
+新增 `scripts/browser_driver.py`：
+
+- Edge / Chrome 使用本机 channel，不下载 Chromium；
+- Firefox 使用 Playwright Firefox；
+- 支持 `--profile` 复制登录 profile、`--cdp-url` 连接已开调试的浏览器；
+- 页面脚本只填值，不提交。
+
+实测：
+
+| 浏览器 | 结果 | scrollDelta | 耗时 |
+|---|---|---|---|
+| Edge | 60/60 | 0 | 1.28s |
+| Chrome | 60/60 | 0 | 1.29s |
+| Firefox | 60/60 | 0 | 2.51s |
+
+Playwright 是可选依赖：`pip install playwright`；Firefox 另需 `python -m playwright install firefox`。详见 [BROWSER_DRIVER.md](BROWSER_DRIVER.md)。
 
 已实现：
 
@@ -77,7 +94,8 @@ Firefox 返回 `address bar not found` 时，不重试、不静默失败；继�
 - 80% 预警；
 - 90% “下一步后可能停止”预警；
 - 经济/标准/深度/自定义档位；
-- 设置页显示本线程累计 token、当前任务 token 和单任务上限。
+- 设置页显示本线程累计 token、当前任务 token、今日累计 token 和单任务上限；
+- 每日 token 额度（默认 2,000,000，可用 `DSH_BOT_DAILY_TOKENS` 调整），当日 80% 提醒、100% 硬停止。
 
 ## 待完成
 

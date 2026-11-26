@@ -1,5 +1,13 @@
 # Changelog
 
+## 6.31.0 — 2026-11-26
+
+- Cross-browser: add optional Playwright driver (`scripts/browser_driver.py`) for Edge, Chrome, Firefox and WebKit; supports persistent profiles and CDP attach.
+- Verified 60/60 with scrollDelta 0 on Edge (1.28s), Chrome (1.29s) and Firefox (2.51s); Playwright remains optional and falls back to Chromium-only `web_batch`.
+- Quota: add a persisted daily token ledger with an 80% warning, 100% hard stop and settings display; keep per-run 50/80/90 warnings, reasoning-token accounting and profiles.
+- Add driver/quota guards and documentation (`docs/BROWSER_DRIVER.md`, `docs/GITHUB_RESEARCH_BROWSER_QUOTA.md`).
+- No QQ changes.
+
 ## 6.30.0 — 2026-11-26
 
 - Compatibility: `web_batch.py` now accepts `--browser auto|edge|chrome|brave|chromium|firefox` and detects the address bar by geometry instead of hardcoded Edge AutomationId. Edge and Chrome both verified at 60/60 with scrollDelta 0.
