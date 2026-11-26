@@ -122,4 +122,4 @@ QQ 通知与远程控制、安全快照、预算、验收、技能库。所以 v
 - [vercel-labs/agent-browser](https://github.com/vercel-labs/agent-browser)：参考紧凑页面信息与本地浏览器等待，落实为 course/watch、状态 revision 和结果复用。
 - [browser-use/browser-use](https://github.com/browser-use/browser-use)：参考明确的任务结果和用量记录；本轮提供可复现输出基准，真实模型费用暂未测量。
 
-没有逐像素复刻 GrokBot，也没有引入上述项目的运行依赖。具体实现与验证见 [ICVE 使用说明](ICVE_EXTENSION.md) 和 [性能记录](PERFORMANCE.md#icve-课程与输出2026-11-17)。
+没有逐像素复刻 GrokBot，也没有引入上述项目的运行依赖。具体实现与验证见 [性能记录](PERFORMANCE.md)。

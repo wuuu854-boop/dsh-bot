@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '6.12.0'
+const VERSION = '6.13.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -191,8 +191,6 @@ export function apply(ctx) {
   const sandboxScript = path.join(packageDir, 'scripts', 'sandbox.py')
   const memorySearchScript = path.join(packageDir, 'scripts', 'memory_search.py')
   const studioScript = path.join(packageDir, 'scripts', 'studio.py')
-  const icveSnapshotScript = path.join(packageDir, 'scripts', 'icve_snapshot.py')
-  const icveQuizScript = path.join(packageDir, 'scripts', 'icve_quiz.py')
   const scriptPaths = {
     python: pythonExe,
     scripts: path.join(packageDir, 'scripts'),
@@ -200,8 +198,6 @@ export function apply(ctx) {
     computer: computerScript,
     studio: studioScript,
     course: path.join(packageDir, 'scripts', 'course.py'),
-    icveSnapshot: icveSnapshotScript,
-    icveQuiz: icveQuizScript,
     ocr: ocrScript,
     sandbox: sandboxScript,
     memory: memorySearchScript,
@@ -4195,11 +4191,7 @@ export function apply(ctx) {
         : '',
       '## 浏览器与课程工具',
       `- 浏览器先用 python "${edgeScript}" read 读文本和控件，click/type 操作后复用返回状态。仅 canvas/PDF 或无文本时截图。`,
-      `- ICVE 优先运行一次 "${pythonExe}" "${icveSnapshotScript}" course，返回 phase、媒体状态和 revision。它自动获取最新快照；过期就切回课程标签并刷新助手。`,
-      `- phase=playing 时运行 "${pythonExe}" "${icveSnapshotScript}" watch --since <revision> --timeout 300，在本地等待变化后再决定下一步；宿主转为后台任务后等完成通知，不要频繁轮询日志；changed:false 且 progressed:true 表示播放仍在推进，可继续等待；stalled:true 或 progressed:false 时检查卡点。复用输出，避免每几秒调用模型读整页。video-ended 只表示播放器结束，完成学习仍以课程页面记录为准。`,
-      `- 课程动作使用 "${pythonExe}" "${scriptPaths.course}" play/next/ppt；复用动作结果。changed:false 或 stalled:true 时检查一次页面并报告卡点。`,
-      `- 遇到题目运行 "${pythonExe}" "${icveQuizScript}" --auto --dry-run，默认只输出计数和 unresolved。只为 unresolved 写答案 JSON，支持 choices 数组；用 --auto --answers <file> --dry-run 合并题库与补充答案。需要逐题核对时才加 --verbose。`,
-      `- 确认答案后 --auto --answers <file> --learn 批量点击，按用户任务需要加 --submit。旧题库缺少选项文本时重新核对一次，保存后按文本匹配重排选项；题库命中不等于平台判分。考试/监考/交卷页面停止课程自动操作。`,
+      `- 智慧职教 / ICVE：先用 \`course.py progress\` 看已完成/未完成（fast，缓存命中会返回 cached:true），再用 \`course.py status\` 判断 phase；动作命令返回的 page/phase/progress 直接复用，不要每个动作重新 full read。只有页面变化/缓存过期/卡住时才 \`status --full\`。点击用 \`edge.py click --all --verify\`。返回 \`changed:false\` / \`stalled:true\` 时禁止重复点击，先检查新 frame、滚动、等待；仍无变化就停下并报告卡点，不能循环。`,
       own,
     ].join('\n')
   }

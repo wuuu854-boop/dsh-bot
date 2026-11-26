@@ -1,5 +1,12 @@
 # Changelog
 
+## 6.13.0 — 2026-11-26
+
+- Remove: ICVE/智慧职教 browser extension and auto-save/auto-download bridge removed after browser crashes. The unpacked extension was removed from the Edge profile.
+- Remove: `icve_snapshot.py`, `icve_quiz.py`, `icve_bank.py`, extension-only tests/benchmarks, extension docs, prompt/template paths and package entries.
+- Restore: 智慧职教/刷课 uses the normal `course.py` + UI Automation path; no local bridge or clipboard dependency.
+- No QQ changes.
+
 ## 6.12.0 — 2026-11-17
 
 - ICVE extension 1.3.0 saves only the last focused browser window's active tab. Frame document IDs reject snapshots from a same-URL reload; late older captures cannot replace newer data.

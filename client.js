@@ -542,7 +542,7 @@ window.__ModuleLoader__.load({
         templateMusic: '做音乐',
         templateMusicPrompt: '生成一段 <风格：lofi/upbeat/ambient> 的本地音乐：用 python scripts/studio.py music --out <路径.wav> --style <风格> --seconds <秒数> 生成 wav + mid；给出时长、BPM、文件路径。说明这是本地合成，不是云端模型；需要重新编曲就改参数重生成。',
         templateVocational: '智慧职教 / 刷课',
-        templateVocationalPrompt: '打开智慧职教课程页 <粘贴 URL>。运行 python scripts/icve_snapshot.py course 获取当前阶段和 revision；播放中用 python scripts/icve_snapshot.py watch --since <revision> --timeout 300 等待变化；后台任务等完成通知，直接复用结果。题目先用 python scripts/icve_quiz.py --auto --dry-run 查本地题库，只为 unresolved 写答案 JSON，用 --auto --answers <json> --dry-run 合并核对，确认后批量点击。按任务需要提交；changed:false 且 progressed:true 时继续等待，progressed:false 时检查卡点。视频用 course.py play，PPT 用 course.py ppt。按平台显示记录完成与未完成项。考试/监考/交卷页停止自动操作。',
+        templateVocationalPrompt: '打开智慧职教课程页 <粘贴 URL>。先 python scripts/course.py progress 看已完成/未完成（fast 缓存；cached:true 不要重复读），再用 course.py status 判断 phase。视频用 course.py play，PPT 用 course.py ppt，题目用 course.py question 读题干和选项，再用 course.py answer --choice N --submit 作答，完成后 course.py next 进入下一回合。动作命令会返回 page/phase/progress，直接采用它，不要每个动作再跑一次 full status；只有 page 缺失、缓存过期或卡住时才 course.py status --full。如果 click 返回 changed:false/stalled:true，禁止重复点击，先 read --all 检查 iframe、scroll、wait-change，仍无变化就停下说明卡点。检测到考试/监考/交卷页面必须停止，不自动作答。',
         attachment: '附件',
         attachmentCopy: '复制路径',
         attachmentCopied: '已复制',
@@ -1193,7 +1193,7 @@ window.__ModuleLoader__.load({
         templateMusic: 'Make music',
         templateMusicPrompt: 'Generate local <style: lofi/upbeat/ambient> music: run python scripts/studio.py music --out <theme.wav> --style <style> --seconds <seconds> to produce WAV + MIDI. Return duration, BPM and path. State that it is local synthesis, not a cloud model; regenerate with new parameters for another arrangement.',
         templateVocational: 'Vocational course',
-        templateVocationalPrompt: 'Open the ICVE course page <URL>. Run python scripts/icve_snapshot.py course for the phase and revision. During playback use python scripts/icve_snapshot.py watch --since <revision> --timeout 300 and reuse the result; if backgrounded, wait for the completion notification. For questions run python scripts/icve_quiz.py --auto --dry-run. Write answers for unresolved questions, combine with --auto --answers <json> --dry-run, then apply the checked batch. Submit when the task requires it. Keep waiting when changed:false and progressed:true; investigate progressed:false. Use course.py play for video and course.py ppt for slides. Report completion from the course page. Stop automated actions on exam or proctored pages.',
+        templateVocationalPrompt: 'Open the vocational course page <URL>. Run python scripts/course.py progress first for completed/pending counts (fast cache; if cached:true, do not re-read), then course.py status for the phase. Use course.py play for video, ppt for slides, question for quiz text/options, answer --choice N --submit to answer, and next to advance. Action commands return page/phase/progress — reuse that result instead of running full status after every click; only run status --full when the page is missing, cache is stale, or you are stuck. If a click returns changed:false/stalled:true, do not repeat it: read --all, check iframes, scroll, wait-change, then stop and report the blocker. Stop immediately on exam/proctored/submit-exam pages.',
         attachment: 'Attachment',
         attachmentCopy: 'Copy path',
         attachmentCopied: 'Copied',
@@ -4153,8 +4153,8 @@ window.__ModuleLoader__.load({
           text = text.replace(/\bpython\s+(?=scripts\/)/g, `"${paths.python}" `)
         }
         if (paths?.scripts) {
-          text = text.replace(/scripts\/(?=(?:course|studio|edge|computer|ocr|sandbox|memory_search|icve_snapshot|icve_quiz|icve_bank)\.py)/g, '')
-          text = text.replace(/\b(course|studio|edge|computer|ocr|sandbox|memory_search|icve_snapshot|icve_quiz|icve_bank)\.py\b/g, (name) => `"${paths.scripts}\\${name}"`)
+          text = text.replace(/scripts\/(?=(?:course|studio|edge|computer|ocr|sandbox|memory_search)\.py)/g, '')
+          text = text.replace(/\b(course|studio|edge|computer|ocr|sandbox|memory_search)\.py\b/g, (name) => `"${paths.scripts}\\${name}"`)
         }
         onChange(base ? `${base}\n${text}` : text)
         setTemplatesOpen(false)
@@ -9824,7 +9824,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '6.12.0',
+              version: '6.13.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -9845,7 +9845,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '6.12.0',
+                version: '6.13.0',
               },
               null,
               2,
