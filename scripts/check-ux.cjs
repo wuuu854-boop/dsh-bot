@@ -27,6 +27,8 @@ assert.match(source, /className: 'gb-rail-backdrop'/, 'narrow rail must expose a
 assert.match(source, /discardChanges:/, 'unsaved-change copy must exist')
 assert.match(source, /const requestClose = \(\) => \{/, 'editors must guard unsaved close')
 assert.match(source, /gb-modal-body', onChange: \(\) => setDirty\(true\)/)
+assert.match(source, /const requestCloseEditor = \(\) => \{/, 'routine editor must guard unsaved close')
+assert.match(source, /gb-routine-form', onChange: \(\) => setRoutineDirty\(true\)/)
 assert.doesNotMatch(source, /max-width:\s*1020px/, 'rail breakpoint must use the 1100px value')
 
 const rail1100 = source.indexOf('@media (max-width: 1100px)')

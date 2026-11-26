@@ -1,5 +1,11 @@
 # Changelog
 
+## 6.21.0 — 2026-11-26
+
+- UX: routine editor now warns before discarding unsaved changes when closing, starting a new routine, switching to another routine, or applying a template.
+- UX guards now cover the routine dirty-state path.
+- No QQ changes.
+
 ## 6.20.0 — 2026-11-26
 
 - UX: Bot editor and group editor now warn before discarding unsaved changes and support Esc close with the same guard.

@@ -5442,6 +5442,7 @@ window.__ModuleLoader__.load({
       const [expression, setExpression] = useState('0 9 * * *')
       const [busy, setBusy] = useState(false)
       const [error, setError] = useState('')
+      const [routineDirty, setRoutineDirty] = useState(false)
 
       const beginNew = () => {
         setEditing({ id: null })
@@ -5454,6 +5455,18 @@ window.__ModuleLoader__.load({
         setUnit('minutes')
         setExpression('0 9 * * *')
         setError('')
+        setRoutineDirty(false)
+      }
+
+      const requestCloseEditor = () => {
+        if (busy) return
+        if (routineDirty && !window.confirm(t('discardChanges'))) return
+        setEditing(null)
+      }
+
+      const startNew = () => {
+        if (editing && routineDirty && !window.confirm(t('discardChanges'))) return
+        beginNew()
       }
 
       const routinePresets = [
@@ -5486,6 +5499,7 @@ window.__ModuleLoader__.load({
       ]
 
       const applyRoutinePreset = (preset) => {
+        if (editing && routineDirty && !window.confirm(t('discardChanges'))) return
         beginNew()
         setTitle(preset.title)
         setPrompt(preset.prompt)
@@ -5497,6 +5511,7 @@ window.__ModuleLoader__.load({
       }
 
       const beginEdit = (routine) => {
+        if (editing && routineDirty && !window.confirm(t('discardChanges'))) return
         const schedule = routine.schedule || {}
         setEditing(routine)
         setTitle(routine.title || '')
@@ -5514,6 +5529,7 @@ window.__ModuleLoader__.load({
         }
         setExpression(schedule.expression || '0 9 * * *')
         setError('')
+        setRoutineDirty(false)
       }
 
       const buildSchedule = () => {
@@ -5621,7 +5637,7 @@ window.__ModuleLoader__.load({
             h('span', null, t('routineTitle')),
             h(
               'button',
-              { type: 'button', className: 'gb-small-btn', onClick: beginNew, disabled: busy },
+              { type: 'button', className: 'gb-small-btn', onClick: startNew, disabled: busy },
               h(Icon, { name: 'plus', size: 12 }),
               t('routineNew'),
             ),
@@ -5630,7 +5646,7 @@ window.__ModuleLoader__.load({
           editing
             ? h(
                 'div',
-                { className: 'gb-routine-form' },
+                { className: 'gb-routine-form', onChange: () => setRoutineDirty(true) },
                 h(
                   'label',
                   { className: 'gb-field' },
@@ -5685,10 +5701,12 @@ window.__ModuleLoader__.load({
                               key: day,
                               type: 'button',
                               className: `gb-weekday${weekdays.includes(day) ? ' is-active' : ''}`,
-                              onClick: () =>
+                              onClick: () => {
+                                setRoutineDirty(true)
                                 setWeekdays((current) =>
                                   current.includes(day) ? current.filter((item) => item !== day) : [...current, day].sort((a, b) => a - b),
-                                ),
+                                )
+                              },
                             },
                             t(`weekday${day}`),
                           ),
@@ -5736,7 +5754,7 @@ window.__ModuleLoader__.load({
                 h(
                   'div',
                   { className: 'gb-routine-form-actions' },
-                  h('button', { type: 'button', className: 'gb-ghost-btn', onClick: () => setEditing(null), disabled: busy }, t('cancel')),
+                  h('button', { type: 'button', className: 'gb-ghost-btn', onClick: requestCloseEditor, disabled: busy }, t('cancel')),
                   h(
                     'button',
                     { type: 'button', className: 'gb-ghost-btn', onClick: () => save(true), disabled: busy },
@@ -9915,7 +9933,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '6.20.0',
+              version: '6.21.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -9936,7 +9954,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '6.20.0',
+                version: '6.21.0',
               },
               null,
               2,
