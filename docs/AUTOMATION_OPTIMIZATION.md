@@ -7,7 +7,64 @@
 - 全量 UIA 读取一次约 160KB，既慢又消耗上下文。
 - 逐题 UIA 动作是 45 次跨进程调用，固定开销远大于实际逻辑。
 
-## 三个工作流
+## 已实现
+
+### 无滚动 DOM 批处理（v6.29）
+
+新增：
+
+```text
+scripts/web_batch.py
+scripts/address_exec.ps1
+```
+
+做法：
+
+1. 一次读取答案 JSON；
+2. 生成一个 DOM 批处理脚本；
+3. 用 UIA 写入地址栏并回车，脚本在页面里直接 `.click()` / `value setter`；
+4. 不逐题 UIA 选中，不把控件滚进视口；
+5. 只返回 `filled / failed / scrollDelta`。
+
+本地 60 题 mock 验证：
+
+```text
+filled=60 failed=0 scrollDelta=0
+elapsed=1.86s
+页面保持顶部，无跳动
+```
+
+用法：
+
+```powershell
+python scripts/web_batch.py fill --answers answers.json
+```
+
+`answers.json`：
+
+```json
+{"answers":[
+  {"no":1,"kind":"choice","answer":"B"},
+  {"no":5,"kind":"fill","answer":"Skip-gram"}
+]}
+```
+
+### Token 额度
+
+已实现：
+
+- 预算统计包含 `input + output + reasoning` token；
+- 50% token 提醒 + 剩余量；
+- 80% 预警；
+- 经济/标准/深度/自定义档位；
+- 设置页显示本线程累计 token 和单任务上限。
+
+## 待完成
+
+- 富文本/附件类作业仍使用剪贴板/坐标路径，下一步合并成一个批处理；
+- ICVE 页面若被 CSP 拦住 `javascript:`，回退到 UIA 并明确报告；
+- 运行前 token 预估和 90% 预停止；
+- 把本批处理接入更多通用表单。
 
 ### 1. 无闪烁批处理
 

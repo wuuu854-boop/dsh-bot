@@ -18,6 +18,8 @@ jobs:
         run: node scripts/check-ux.cjs
       - name: Token budget guards
         run: node scripts/check-budget.cjs
+      - name: No-scroll batch guards
+        run: node scripts/check-web-batch.cjs
       - name: State recovery regression tests
         run: node --test scripts/test-state-recovery.mjs
       - name: CLI syntax

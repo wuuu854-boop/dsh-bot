@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '6.28.0'
+const VERSION = '6.29.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -198,6 +198,7 @@ export function apply(ctx) {
     computer: computerScript,
     studio: studioScript,
     course: path.join(packageDir, 'scripts', 'course.py'),
+    webBatch: path.join(packageDir, 'scripts', 'web_batch.py'),
     ocr: ocrScript,
     sandbox: sandboxScript,
     memory: memorySearchScript,
@@ -4203,6 +4204,7 @@ export function apply(ctx) {
       '## 浏览器与课程工具',
       `- 浏览器先用 python "${edgeScript}" read 读文本和控件，click/type 操作后复用返回状态。仅 canvas/PDF 或无文本时截图。`,
       `- 智慧职教 / ICVE：先用 \`course.py progress\` 看已完成/未完成（fast，缓存命中会返回 cached:true），再用 \`course.py status\` 判断 phase；动作命令返回的 page/phase/progress 直接复用，不要每个动作重新 full read。只有页面变化/缓存过期/卡住时才 \`status --full\`。点击用 \`edge.py click --all --verify\`。返回 \`changed:false\` / \`stalled:true\` 时禁止重复点击，先检查新 frame、滚动、等待；仍无变化就停下并报告卡点，不能循环。`,
+      `- 批量网页表单优先用 python "${path.join(packageDir, 'scripts', 'web_batch.py')}" fill --answers <answers.json>：它把整页选择/填值合并成一次 DOM 批处理，保持 scrollY 不变，不逐题 UIA 滚动；结果只返回 filled/failed/scrollDelta。提交仍用一次 edge.py click --name 提交 --verify。`,
       own,
     ].join('\n')
   }

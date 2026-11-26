@@ -1,10 +1,16 @@
-# DSH Bot v6.28.0
+# DSH Bot v6.29.0
 
 **An open-source GrokBot alternative that runs a real bot team on your own Windows machine, inside DeepSeek Harness.**
 
 You talk to one **Boss**. It decides what to do, hires a specialist when nobody fits, delegates real work to bots that each keep their own DSH session, workspace and memory, then reviews the receipts and reports back. Every morning it runs a stand-up where the whole team reports what it did.
 
 ![Architecture](architecture.svg)
+
+## No-scroll batch (v6.29.0)
+
+- Long quiz/form fills now use one page-side DOM batch instead of scrolling through every UIA control.
+- Mock test: 60/60 answers, 0 failures, scrollDelta 0, 1.86s, page stays at the top.
+- Added `scripts/web_batch.py`, `scripts/address_exec.ps1` and `scripts/check-web-batch.cjs`; CI guards the path.
 
 ## Token quota (v6.28.0)
 

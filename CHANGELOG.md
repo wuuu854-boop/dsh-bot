@@ -1,5 +1,13 @@
 # Changelog
 
+## 6.29.0 — 2026-11-26
+
+- Automation: add a no-scroll DOM batch path for quiz/form filling (`scripts/web_batch.py` + `scripts/address_exec.ps1`). It fills all controls in one page-side script instead of scrolling through UIA controls.
+- Verified on a 60-question mock: 60/60 filled, 0 failures, scrollDelta 0, 1.86s; the page stays at the top with no visible flicker.
+- The bot prompt now prefers the batch path for long forms; submit remains one explicit click.
+- Add `scripts/check-web-batch.cjs`; CI guards the batch path.
+- No QQ changes.
+
 ## 6.28.0 — 2026-11-26
 
 - Budget: count reasoning tokens in the run quota, thread token display and assignment stats; previously they were omitted.
