@@ -1,5 +1,12 @@
 # Changelog
 
+## 6.19.0 — 2026-11-26
+
+- UX/responsive: raise the sidebar drawer breakpoint from 1020px to 1100px, covering 1024px windows and 1280px at 125% zoom without squeezing the chat area.
+- A11y: the narrow sidebar backdrop is now a real button with an accessible close label instead of a click-only div.
+- UX guards now enforce the 1100px drawer breakpoint and backdrop target.
+- No QQ changes.
+
 ## 6.18.0 — 2026-11-26
 
 - UX: Toast now passes pointer events through except its close button, so transient feedback cannot block pending question/approval buttons underneath.

@@ -8060,7 +8060,12 @@ window.__ModuleLoader__.load({
         h('style', null, CSS),
         h('div', { className: 'gb-stage', 'aria-hidden': true }),
         railOpen
-          ? h('div', { className: 'gb-rail-backdrop', onClick: () => setRailOpen(false) })
+          ? h('button', {
+              type: 'button',
+              className: 'gb-rail-backdrop',
+              'aria-label': t('close'),
+              onClick: () => setRailOpen(false),
+            })
           : null,
         h(Sidebar, {
           bot: snap.bot,
@@ -9669,10 +9674,10 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
   .gb-chat-inner { padding-left: 28px; padding-right: 28px; }
   .gb-composer-wrap, .gb-pending-wrap { padding-left: 28px; padding-right: 28px; }
 }
-@media (max-width: 1020px) {
+@media (max-width: 1100px) {
   .gb-rail { position: fixed; top: 0; left: 0; bottom: 0; z-index: 80; width: 258px; transform: translateX(-102%); transition: transform .24s ease; box-shadow: 28px 0 70px rgba(0,0,0,.42); }
   .gb-rail.is-open { transform: none; }
-  .gb-rail-backdrop { display: block; position: fixed; inset: 0; z-index: 75; background: rgba(0,0,0,.35); backdrop-filter: blur(2px); }
+  .gb-rail-backdrop { display: block; position: fixed; inset: 0; z-index: 75; border: 0; padding: 0; background: rgba(0,0,0,.35); backdrop-filter: blur(2px); cursor: pointer; }
   .gb-rail-close { display: grid !important; }
   .gb-mobile-only { display: grid; }
   .gb-rail-toggle { display: inline-flex !important; }
@@ -9875,7 +9880,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '6.18.0',
+              version: '6.19.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -9896,7 +9901,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '6.18.0',
+                version: '6.19.0',
               },
               null,
               2,

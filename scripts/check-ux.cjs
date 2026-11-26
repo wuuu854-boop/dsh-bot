@@ -23,6 +23,13 @@ assert.match(rule('.gb-toast-close'), /pointer-events:\s*auto/)
 assert.match(source, /useEffect\(\(\) => \{[\s\S]*?setStick\(true\)[\s\S]*?\}, \[threadId, booted\]\)/)
 assert.match(source, /setPending\([\s\S]{0,220}setStick\(true\)/, 'sending must return to the live edge')
 assert.match(source, /className: 'gb-deck-backdrop'/, 'narrow Deck must expose a backdrop close target')
+assert.match(source, /className: 'gb-rail-backdrop'/, 'narrow rail must expose a backdrop close target')
+assert.doesNotMatch(source, /max-width:\s*1020px/, 'rail breakpoint must use the 1100px value')
+
+const rail1100 = source.indexOf('@media (max-width: 1100px)')
+assert.ok(rail1100 >= 0, '1100px rail breakpoint must exist')
+const mobileRail = source.slice(rail1100)
+assert.match(mobileRail, /\.gb-rail\s*\{[^}]*position:\s*fixed/)
 
 const deck1500 = source.indexOf('@media (max-width: 1500px)')
 const deck1280 = source.indexOf('@media (max-width: 1280px)')
