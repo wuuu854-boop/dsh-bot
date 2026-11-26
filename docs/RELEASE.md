@@ -1,10 +1,16 @@
-# DSH Bot v6.21.0
+# DSH Bot v6.22.0
 
 **An open-source GrokBot alternative that runs a real bot team on your own Windows machine, inside DeepSeek Harness.**
 
 You talk to one **Boss**. It decides what to do, hires a specialist when nobody fits, delegates real work to bots that each keep their own DSH session, workspace and memory, then reviews the receipts and reports back. Every morning it runs a stand-up where the whole team reports what it did.
 
 ![Architecture](architecture.svg)
+
+## UX (v6.22.0)
+
+- Notification and budget settings share a dirty state; Save stays disabled until something changes.
+- Notification success plus budget failure now reports the partial result instead of one generic error.
+- UX guards cover the settings dirty state and partial-failure copy.
 
 ## UX (v6.21.0)
 

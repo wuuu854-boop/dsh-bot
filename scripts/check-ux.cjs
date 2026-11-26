@@ -29,6 +29,8 @@ assert.match(source, /const requestClose = \(\) => \{/, 'editors must guard unsa
 assert.match(source, /gb-modal-body', onChange: \(\) => setDirty\(true\)/)
 assert.match(source, /const requestCloseEditor = \(\) => \{/, 'routine editor must guard unsaved close')
 assert.match(source, /gb-routine-form', onChange: \(\) => setRoutineDirty\(true\)/)
+assert.match(source, /settingsSaveFailed:|budgetSaveFailed:/, 'settings save must distinguish partial failure')
+assert.match(source, /disabled: busy \|\| !dirty/, 'settings save must require a pending edit')
 assert.doesNotMatch(source, /max-width:\s*1020px/, 'rail breakpoint must use the 1100px value')
 
 const rail1100 = source.indexOf('@media (max-width: 1100px)')

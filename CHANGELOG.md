@@ -1,5 +1,12 @@
 # Changelog
 
+## 6.22.0 — 2026-11-26
+
+- UX: notification + budget settings now track dirty state; Save is disabled until something changes.
+- UX: partial failure is explicit — “notification saved, budget failed” instead of a generic save error.
+- UX guards cover the settings dirty state and partial-failure copy.
+- No QQ changes.
+
 ## 6.21.0 — 2026-11-26
 
 - UX: routine editor now warns before discarding unsaved changes when closing, starting a new routine, switching to another routine, or applying a template.

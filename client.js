@@ -304,6 +304,9 @@ window.__ModuleLoader__.load({
         notifySave: '保存',
         notifyTest: '发送测试',
         notifySaved: '通知设置已保存',
+  settingsSaved: '设置已保存',
+  settingsSaveFailed: '保存失败',
+  budgetSaveFailed: '通知已保存，但预算保存失败',
         notifyTested: '测试消息已发送',
         notifyFailed: '通知失败',
         notifyStatus: '通知状态',
@@ -956,6 +959,9 @@ window.__ModuleLoader__.load({
         notifySave: 'Save',
         notifyTest: 'Send test',
         notifySaved: 'Notification settings saved',
+  settingsSaved: 'Settings saved',
+  settingsSaveFailed: 'Save failed',
+  budgetSaveFailed: 'Notification saved, but budget save failed',
         notifyTested: 'Test message sent',
         notifyFailed: 'Notification failed',
         notifyStatus: 'Notification status',
@@ -5941,6 +5947,7 @@ window.__ModuleLoader__.load({
       const [meeting, setMeeting] = useState(null)
       const [historyQuery, setHistoryQuery] = useState('')
       const [busy, setBusy] = useState(false)
+      const [dirty, setDirty] = useState(false)
       useEffect(() => {
         let alive = true
         Promise.all([apiGet('/notify'), apiGet('/budget'), apiGet('/meeting')])
@@ -5968,17 +5975,28 @@ window.__ModuleLoader__.load({
       if (!config || !budget) {
         return h('div', { className: 'gb-deck-scroll' }, h('div', { className: 'gb-deck-empty' }, h(Spinner, { size: 16 })))
       }
-      const update = (patch) => setConfig((current) => ({ ...current, ...patch }))
+      const update = (patch) => {
+        setDirty(true)
+        setConfig((current) => ({ ...current, ...patch }))
+      }
+      const updateBudget = (patch) => {
+        setDirty(true)
+        setBudget((current) => ({ ...current, ...patch }))
+      }
       const save = async () => {
+        if (!dirty || busy) return
         setBusy(true)
+        let notifySaved = false
         try {
           const data = await apiPost('/notify', config)
-          const budgetData = await apiPost('/budget', budget)
+          notifySaved = true
           setConfig(data.config)
+          const budgetData = await apiPost('/budget', budget)
           setBudget(budgetData.budget)
-          onToast?.(t('notifySaved'))
+          setDirty(false)
+          onToast?.(t('settingsSaved'))
         } catch (error) {
-          onToast?.(`${t('notifyFailed')}: ${error.message}`)
+          onToast?.(`${notifySaved ? t('budgetSaveFailed') : t('settingsSaveFailed')}: ${error.message}`)
         } finally {
           setBusy(false)
         }
@@ -6107,7 +6125,7 @@ window.__ModuleLoader__.load({
             'div',
             { className: 'gb-modal-foot-right' },
             h('button', { type: 'button', className: 'gb-ghost-btn', onClick: test, disabled: busy }, t('notifyTest')),
-            h('button', { type: 'button', className: 'gb-primary-btn', onClick: save, disabled: busy }, busy ? h(Spinner, { size: 12 }) : h(Icon, { name: 'check', size: 12 }), t('notifySave')),
+            h('button', { type: 'button', className: 'gb-primary-btn', onClick: save, disabled: busy || !dirty }, busy ? h(Spinner, { size: 12 }) : h(Icon, { name: 'check', size: 12 }), t('notifySave')),
           ),
         ),
         h(
@@ -6245,10 +6263,10 @@ window.__ModuleLoader__.load({
           h(
             'div',
             { className: 'gb-field-row' },
-            h('label', { className: 'gb-field' }, h('span', null, t('budgetMinutes')), h('input', { type: 'number', min: 1, max: 1440, value: Math.round((budget.maxMs || 0) / 60000), onChange: (event) => setBudget({ ...budget, maxMs: (Number(event.target.value) || 1) * 60000 }) })),
-            h('label', { className: 'gb-field' }, h('span', null, t('budgetTools')), h('input', { type: 'number', min: 1, max: 10000, value: budget.maxTools || 1, onChange: (event) => setBudget({ ...budget, maxTools: Number(event.target.value) || 1 }) })),
+            h('label', { className: 'gb-field' }, h('span', null, t('budgetMinutes')), h('input', { type: 'number', min: 1, max: 1440, value: Math.round((budget.maxMs || 0) / 60000), onChange: (event) => updateBudget({ maxMs: (Number(event.target.value) || 1) * 60000 }) })),
+            h('label', { className: 'gb-field' }, h('span', null, t('budgetTools')), h('input', { type: 'number', min: 1, max: 10000, value: budget.maxTools || 1, onChange: (event) => updateBudget({ maxTools: Number(event.target.value) || 1 }) })),
           ),
-          h('label', { className: 'gb-field' }, h('span', null, t('budgetTokens')), h('input', { type: 'number', min: 1000, max: 50000000, step: 1000, value: budget.maxTokens || 1000, onChange: (event) => setBudget({ ...budget, maxTokens: Number(event.target.value) || 1000 }) })),
+          h('label', { className: 'gb-field' }, h('span', null, t('budgetTokens')), h('input', { type: 'number', min: 1000, max: 50000000, step: 1000, value: budget.maxTokens || 1000, onChange: (event) => updateBudget({ maxTokens: Number(event.target.value) || 1000 }) })),
         ),
       )
     }
@@ -9933,7 +9951,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '6.21.0',
+              version: '6.22.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -9954,7 +9972,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '6.21.0',
+                version: '6.22.0',
               },
               null,
               2,
