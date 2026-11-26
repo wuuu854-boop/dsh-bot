@@ -9644,9 +9644,9 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
 .gb-deck-error { display: flex; align-items: flex-start; gap: 7px; margin-top: 14px; padding: 9px; border: 1px solid color-mix(in srgb, var(--gb-error) 25%, var(--gb-line)); border-radius: 7px; color: var(--gb-error); font-size: 9px; line-height: 1.55; }
 
 /* misc */
-.gb-toast { position: fixed; left: 50%; bottom: 96px; z-index: 100; display: flex; align-items: center; gap: 8px; max-width: min(520px, 88vw); transform: translateX(-50%); padding: 9px 13px; border: 1px solid var(--gb-line-strong); border-radius: 9px; background: color-mix(in srgb, var(--gb-overlay) 94%, transparent); color: var(--gb-text); font-size: 10.5px; box-shadow: 0 18px 50px rgba(0,0,0,.4); animation: gb-fade .2s ease both; }
+.gb-toast { position: fixed; left: 50%; bottom: 96px; z-index: 100; pointer-events: none; display: flex; align-items: center; gap: 8px; max-width: min(520px, 88vw); transform: translateX(-50%); padding: 9px 13px; border: 1px solid var(--gb-line-strong); border-radius: 9px; background: color-mix(in srgb, var(--gb-overlay) 94%, transparent); color: var(--gb-text); font-size: 10.5px; box-shadow: 0 18px 50px rgba(0,0,0,.4); animation: gb-fade .2s ease both; }
 .gb-toast-text { min-width: 0; overflow-wrap: anywhere; }
-.gb-toast-close { display: grid; place-items: center; width: 20px; height: 20px; flex: none; padding: 0; border: 0; border-radius: 5px; background: transparent; color: var(--gb-faint); }
+.gb-toast-close { display: grid; place-items: center; width: 20px; height: 20px; flex: none; padding: 0; border: 0; border-radius: 5px; background: transparent; color: var(--gb-faint); pointer-events: auto; }
 .gb-toast-close:hover { background: color-mix(in srgb, var(--gb-line) 55%, transparent); color: var(--gb-text); }
 .gb-toast:focus-visible, .gb-toast button:focus-visible { outline: 2px solid var(--gb-signal); outline-offset: 2px; }
 .gb-rail-backdrop { display: none; }
@@ -9875,7 +9875,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '6.17.0',
+              version: '6.18.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -9896,7 +9896,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '6.17.0',
+                version: '6.18.0',
               },
               null,
               2,

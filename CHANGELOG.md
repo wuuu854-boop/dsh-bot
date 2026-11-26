@@ -1,5 +1,11 @@
 # Changelog
 
+## 6.18.0 — 2026-11-26
+
+- UX: Toast now passes pointer events through except its close button, so transient feedback cannot block pending question/approval buttons underneath.
+- UX: confirmed pending, approval and checkpoint cards are in the normal flex flow rather than absolute overlays; added a layout guard for Toast click-through.
+- No QQ changes.
+
 ## 6.17.0 — 2026-11-26
 
 - UX: sending a message now resets the jump state immediately, so a previously scrolled-up view returns to the live edge instead of keeping “回到最新”.
