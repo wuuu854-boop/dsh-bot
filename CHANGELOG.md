@@ -1,5 +1,11 @@
 # Changelog
 
+## 6.25.0 — 2026-11-26
+
+- UX/a11y: Bot and group editor dialogs now trap keyboard focus inside the dialog, skip hidden/disabled controls, and restore focus to the opener on close.
+- UX guards cover the focus trap.
+- No QQ changes.
+
 ## 6.24.0 — 2026-11-26
 
 - UX: search failures now show an explicit “search failed” state instead of pretending there were no results.

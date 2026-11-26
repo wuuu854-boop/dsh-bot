@@ -2810,6 +2810,41 @@ window.__ModuleLoader__.load({
       )
     }
 
+    function useFocusTrap() {
+      const ref = useRef(null)
+      useEffect(() => {
+        const node = ref.current
+        if (!node) return undefined
+        const previous = document.activeElement
+        const focusables = () =>
+          [...node.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])')]
+            .filter((element) => element.offsetParent !== null)
+        const first = focusables()[0]
+        if (first) first.focus()
+        const onKey = (event) => {
+          if (event.key !== 'Tab') return
+          const items = focusables()
+          if (!items.length) return
+          const firstItem = items[0]
+          const lastItem = items[items.length - 1]
+          const inside = node.contains(document.activeElement)
+          if (event.shiftKey && (!inside || document.activeElement === firstItem)) {
+            event.preventDefault()
+            lastItem.focus()
+          } else if (!event.shiftKey && (!inside || document.activeElement === lastItem)) {
+            event.preventDefault()
+            firstItem.focus()
+          }
+        }
+        node.addEventListener('keydown', onKey)
+        return () => {
+          node.removeEventListener('keydown', onKey)
+          if (previous instanceof HTMLElement && previous.isConnected) previous.focus()
+        }
+      }, [])
+      return ref
+    }
+
     function BotEditor({ bot, catalog, onClose, onSave, onDelete, t }) {
       const isNew = !bot?.id
       const [name, setName] = useState(bot?.name || '')
@@ -2828,6 +2863,7 @@ window.__ModuleLoader__.load({
       const [busy, setBusy] = useState(false)
       const [error, setError] = useState('')
       const [dirty, setDirty] = useState(false)
+      const modalRef = useFocusTrap()
 
       useEffect(() => {
         setName(bot?.name || '')
@@ -2918,7 +2954,7 @@ window.__ModuleLoader__.load({
         },
         h(
           'div',
-          { className: 'gb-modal', role: 'dialog', 'aria-modal': 'true', 'aria-label': t('editBot') },
+          { className: 'gb-modal', role: 'dialog', 'aria-modal': 'true', 'aria-label': t('editBot'), ref: modalRef },
           h(
             'div',
             { className: 'gb-modal-head' },
@@ -3144,6 +3180,7 @@ window.__ModuleLoader__.load({
       const [busy, setBusy] = useState(false)
       const [error, setError] = useState('')
       const [dirty, setDirty] = useState(false)
+      const modalRef = useFocusTrap()
 
       useEffect(() => {
         setName(group?.name || '')
@@ -3212,7 +3249,7 @@ window.__ModuleLoader__.load({
         },
         h(
           'div',
-          { className: 'gb-modal gb-modal-group', role: 'dialog', 'aria-modal': 'true', 'aria-label': t('editGroup') },
+          { className: 'gb-modal gb-modal-group', role: 'dialog', 'aria-modal': 'true', 'aria-label': t('editGroup'), ref: modalRef },
           h(
             'div',
             { className: 'gb-modal-head' },
@@ -10018,7 +10055,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '6.24.0',
+              version: '6.25.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -10039,7 +10076,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '6.24.0',
+                version: '6.25.0',
               },
               null,
               2,
