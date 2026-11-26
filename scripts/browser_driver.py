@@ -11,7 +11,7 @@ Chromium browser download is normally needed.
 Commands:
   status
   fill --answers PATH --url URL [--browser auto|edge|chrome|firefox|webkit]
-       [--profile PATH] [--cdp-url URL] [--headless] [--keep-open]
+       [--profile PATH] [--cdp-url URL] [--headless]
 
 The fill command only fills; it never submits. Output is a compact JSON object.
 """
@@ -175,21 +175,29 @@ def playwright_module():
     return sync_playwright, None
 
 
-def copy_profile(source: str) -> str:
-    target = tempfile.mkdtemp(prefix="dsh-browser-profile-")
+def copy_profile(source: str, browser: str) -> str:
+    src = Path(source)
+    target = Path(tempfile.mkdtemp(prefix="dsh-browser-profile-"))
     ignore = shutil.ignore_patterns(
         "Cache", "Code Cache", "GPUCache", "DawnGraphiteCache", "DawnWebGPUCache",
         "ShaderCache", "Service Worker", "Crashpad", "SingletonLock", "SingletonCookie",
         "SingletonSocket", "lockfile", "LOCK", "*.lock",
     )
-    shutil.copytree(source, target, dirs_exist_ok=True, ignore=ignore)
-    return target
+    if browser == "firefox":
+        shutil.copytree(src, target, dirs_exist_ok=True, ignore=ignore)
+    elif (src / "Default").exists() or (src / "Local State").exists():
+        # Playwright Chromium expects the user-data parent of Default.
+        shutil.copytree(src, target, dirs_exist_ok=True, ignore=ignore)
+    else:
+        # Common customer input: .../User Data/Default
+        shutil.copytree(src, target / "Default", dirs_exist_ok=True, ignore=ignore)
+    return str(target)
 
 
 def status() -> dict:
     sync_playwright, error = playwright_module()
     result = {
-        "ok": True,
+        "ok": bool(sync_playwright),
         "playwright": bool(sync_playwright),
         "browsers": {},
         "note": "Chromium channels use installed Edge/Chrome; Firefox needs 'python -m playwright install firefox'",
@@ -205,7 +213,7 @@ def status() -> dict:
                 bundled_path = browser_type.executable_path
                 result["browsers"][name] = {
                     "executable": system_path or bundled_path,
-                    "bundled": bool(Path(bundled_path).exists()) if bundled_path else False,
+                    "bundled": bool(not channel and bundled_path and Path(bundled_path).exists()),
                     "channel": channel,
                 }
             except Exception as caught:
@@ -236,7 +244,7 @@ def fill(args) -> dict:
         else:
             profile = args.profile
             if profile:
-                temp_profile = copy_profile(profile)
+                temp_profile = copy_profile(profile, args.browser)
                 user_data_dir = temp_profile
             else:
                 temp_profile = tempfile.mkdtemp(prefix="dsh-browser-profile-")
@@ -269,14 +277,12 @@ def fill(args) -> dict:
         result["mode"] = "playwright"
         result["browser"] = args.browser
         result["elapsedMs"] = int((time.time() - started) * 1000)
-        if args.keep_open and context:
-            context.close = lambda: None  # keep context alive until process exits? avoid unsupported
         return result
     except Exception as caught:
         return {"ok": False, "error": str(caught)[:500], "browser": args.browser}
     finally:
         try:
-            if context and not args.keep_open:
+            if context:
                 context.close()
             if browser:
                 browser.close()
@@ -304,7 +310,6 @@ def main() -> int:
     p.add_argument("--profile", default="")
     p.add_argument("--cdp-url", default="")
     p.add_argument("--headless", action="store_true")
-    p.add_argument("--keep-open", action="store_true")
     args = parser.parse_args()
     if args.command == "status":
         print(json.dumps(status(), ensure_ascii=False))

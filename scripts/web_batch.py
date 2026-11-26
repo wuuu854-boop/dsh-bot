@@ -177,6 +177,11 @@ BROWSER_PROCESSES = {
 def find_browser_window(browser: str = "auto") -> dict:
     windows = computer.list_windows()
     preferred = ["edge", "chrome", "brave", "chromium", "firefox"] if browser in ("", "auto") else [browser]
+    if browser in ("", "auto"):
+        active = next((window for window in windows if window.get("active")), {})
+        active_process = str(active.get("process", "")).lower()
+        if any(active_process == item for name in preferred for item in BROWSER_PROCESSES.get(name, ())):
+            return active
     for name in preferred:
         processes = BROWSER_PROCESSES.get(name, ())
         for window in windows:

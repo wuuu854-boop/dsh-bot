@@ -304,7 +304,9 @@ window.__ModuleLoader__.load({
         budgetRunIdle: '当前没有运行中的任务',
         budgetMinutes: '最长分钟',
         budgetTools: '最多工具调用',
-        budgetTokens: '最多 token',
+        budgetTokens: '单任务 token 上限',
+        budgetDailyTokens: '每日 token 上限',
+        budgetDailyHint: '每日累计超过上限会硬停止；默认 2,000,000。',
         notifyMethod: '发送方式',
         notifySmtp: 'QQ 邮箱 SMTP',
         notifyDesktop: 'QQ 桌面版',
@@ -975,7 +977,9 @@ window.__ModuleLoader__.load({
         budgetRunIdle: 'No active run',
         budgetMinutes: 'Max minutes',
         budgetTools: 'Max tool calls',
-        budgetTokens: 'Max tokens',
+        budgetTokens: 'Per-run token cap',
+        budgetDailyTokens: 'Daily token cap',
+        budgetDailyHint: 'The run stops when today’s total exceeds the cap; default 2,000,000.',
         notifyMethod: 'Transport',
         notifySmtp: 'QQ Mail SMTP',
         notifyDesktop: 'QQ desktop',
@@ -6430,6 +6434,7 @@ window.__ModuleLoader__.load({
             h('label', { className: 'gb-field' }, h('span', null, t('budgetTools')), h('input', { type: 'number', min: 1, max: 10000, value: budget.maxTools || 1, onChange: (event) => updateBudget({ maxTools: Number(event.target.value) || 1 }) })),
           ),
           h('label', { className: 'gb-field' }, h('span', null, t('budgetTokens')), h('input', { type: 'number', min: 1000, max: 50000000, step: 1000, value: budget.maxTokens || 1000, onChange: (event) => updateBudget({ maxTokens: Number(event.target.value) || 1000 }) })),
+          h('label', { className: 'gb-field' }, h('span', null, t('budgetDailyTokens')), h('input', { type: 'number', min: 1000, max: 50000000, step: 1000, value: budget.dailyTokens || 2000000, onChange: (event) => updateBudget({ dailyTokens: Number(event.target.value) || 2000000 }) }), h('small', null, t('budgetDailyHint'))),
         ),
       )
     }
@@ -10127,7 +10132,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '6.31.0',
+              version: '6.32.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -10148,7 +10153,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '6.31.0',
+                version: '6.32.0',
               },
               null,
               2,

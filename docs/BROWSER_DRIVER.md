@@ -43,7 +43,8 @@ python scripts/browser_driver.py fill `
 
 - `--browser auto`：优先本机 Edge，其次 Chrome，再 Firefox；
 - `--browser firefox`：指定 Firefox；
-- `--profile "C:\Users\...\Edge\User Data\Default"`：复制一份 profile 后启动；
+- `--profile "C:\Users\...\Edge\User Data"`：复制 Chromium user data；也可传 `...\User Data\Default`；
+- `--profile "C:\Users\...\AppData\Roaming\Mozilla\Firefox\Profiles\xxx"`：Firefox profile 目录；
 - `--cdp-url http://127.0.0.1:9222`：连接已经开着远程调试的浏览器；
 - `--headless`：无界面（验证用）；
 - 脚本只填值，不提交；提交仍由一次显式点击完成。

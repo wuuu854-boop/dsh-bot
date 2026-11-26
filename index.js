@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '6.31.0'
+const VERSION = '6.32.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -677,11 +677,12 @@ export function apply(ctx) {
   }
 
   function defaultBudget() {
-    return { maxMs: RUN_MAX_MS, maxTools: RUN_MAX_TOOLS, maxTokens: RUN_MAX_TOKENS }
+    return { maxMs: RUN_MAX_MS, maxTools: RUN_MAX_TOOLS, maxTokens: RUN_MAX_TOKENS, dailyTokens: DAILY_MAX_TOKENS }
   }
 
   function currentQuotaDay() {
-    return new Date().toISOString().slice(0, 10)
+    const date = new Date()
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
   }
 
   function defaultQuota() {
@@ -708,7 +709,8 @@ export function apply(ctx) {
 
   function publicQuota() {
     const quota = ensureQuotaDay()
-    return { day: quota.day, tokens: quota.tokens, limit: DAILY_MAX_TOKENS }
+    const limit = Number(state.budget?.dailyTokens) || DAILY_MAX_TOKENS
+    return { day: quota.day, tokens: quota.tokens, limit }
   }
 
   function normalizeBudget(raw) {
@@ -722,6 +724,7 @@ export function apply(ctx) {
       maxMs: clamp(raw.maxMs, 60_000, 24 * 60 * 60 * 1000, base.maxMs),
       maxTools: Math.round(clamp(raw.maxTools, 1, 10_000, base.maxTools)),
       maxTokens: Math.round(clamp(raw.maxTokens, 1_000, 50_000_000, base.maxTokens)),
+      dailyTokens: Math.round(clamp(raw.dailyTokens, 1_000, 50_000_000, base.dailyTokens)),
     }
   }
 
@@ -2333,14 +2336,15 @@ export function apply(ctx) {
       run.quotaTokens = tokens
       saveStateSoon()
     }
-    const dailyRatio = DAILY_MAX_TOKENS > 0 ? quota.tokens / DAILY_MAX_TOKENS : 0
+    const dailyLimit = Number(limits.dailyTokens) || Number(state.budget?.dailyTokens) || DAILY_MAX_TOKENS
+    const dailyRatio = dailyLimit > 0 ? quota.tokens / dailyLimit : 0
     if (dailyRatio >= 0.8 && !run.dailyWarned) {
       run.dailyWarned = true
-      pushNotice(rec, `每日额度提醒：今日已用 ${quota.tokens} / ${DAILY_MAX_TOKENS} token`, 'warn', rec.transcript.lastSeq || 0, now())
+      pushNotice(rec, `每日额度提醒：今日已用 ${quota.tokens} / ${dailyLimit} token`, 'warn', rec.transcript.lastSeq || 0, now())
     }
     if (dailyRatio >= 1) {
       run.budgetExceeded = true
-      run.budgetReason = `每日 token 额度用尽：${quota.tokens} / ${DAILY_MAX_TOKENS}`
+      run.budgetReason = `每日 token 额度用尽：${quota.tokens} / ${dailyLimit}`
       pushNotice(rec, `每日额度硬停止：${run.budgetReason}，本轮将写入 checkpoint 后停止`, 'error', rec.transcript.lastSeq || 0, now())
       setTimeout(() => {
         if (rec.run !== run) return

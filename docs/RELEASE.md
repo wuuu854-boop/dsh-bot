@@ -1,10 +1,18 @@
-# DSH Bot v6.31.0
+# DSH Bot v6.32.0
 
 **An open-source GrokBot alternative that runs a real bot team on your own Windows machine, inside DeepSeek Harness.**
 
 You talk to one **Boss**. It decides what to do, hires a specialist when nobody fits, delegates real work to bots that each keep their own DSH session, workspace and memory, then reviews the receipts and reports back. Every morning it runs a stand-up where the whole team reports what it did.
 
 ![Architecture](architecture.svg)
+
+## Bug audit and UX (v6.32.0)
+
+- Daily quota resets at local midnight; the cap is editable in settings.
+- Browser profile handling fixed for Chromium `Default` and Firefox profile directories; status reporting corrected.
+- `web_batch` prefers the active browser window instead of a fixed order.
+- Removed the misleading `--keep-open` option; clarified per-run vs daily quota labels.
+- CI guards updated.
 
 ## Cross-browser and quota (v6.31.0)
 

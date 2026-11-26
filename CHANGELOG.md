@@ -1,5 +1,15 @@
 # Changelog
 
+## 6.32.0 — 2026-11-26
+
+- Bug: daily token quota now resets at local midnight instead of UTC midnight.
+- Bug: Chromium profile copying accepts both `User Data` and `User Data/Default`; Firefox profile copying uses the Firefox profile directory.
+- Bug: `web_batch` now prefers the currently active browser window before falling back to a fixed browser order.
+- UX: daily token cap is configurable in settings, with a clear explanation; per-run and daily labels no longer use ambiguous “max token” wording.
+- Cleanup: removed the non-functional browser-driver `--keep-open` option and fixed its status reporting.
+- Added/updated checks for the daily cap and browser driver paths.
+- No QQ changes.
+
 ## 6.31.0 — 2026-11-26
 
 - Cross-browser: add optional Playwright driver (`scripts/browser_driver.py`) for Edge, Chrome, Firefox and WebKit; supports persistent profiles and CDP attach.
