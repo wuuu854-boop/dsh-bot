@@ -36,7 +36,8 @@
     "scripts/*.cjs",
     "docs/REAL_PROJECT_VALIDATION.md",
     "docs/PERFORMANCE.md",
-    "scripts/bench-api.mjs"
+    "scripts/bench-api.mjs",
+    "docs/UX_PLAN.md"
   ],
   "dsh": {
     "bundle": {
