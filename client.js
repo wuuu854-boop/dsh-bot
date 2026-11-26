@@ -304,9 +304,11 @@ window.__ModuleLoader__.load({
         notifySave: '保存',
         notifyTest: '发送测试',
         notifySaved: '通知设置已保存',
-  settingsSaved: '设置已保存',
-  settingsSaveFailed: '保存失败',
-  budgetSaveFailed: '通知已保存，但预算保存失败',
+        settingsSaved: '设置已保存',
+        settingsSaveFailed: '保存失败',
+        budgetSaveFailed: '通知已保存，但预算保存失败',
+        settingsLoadFailed: '设置读取失败',
+        settingsRetry: '重新读取',
         notifyTested: '测试消息已发送',
         notifyFailed: '通知失败',
         notifyStatus: '通知状态',
@@ -467,6 +469,8 @@ window.__ModuleLoader__.load({
         openComputer: '电脑',
         closeComputer: '收起',
         memorySaveFailed: '保存失败',
+        memoryLoadFailed: '记忆读取失败',
+        memoryRetry: '重新读取',
         sendFailed: '发送失败',
         newTaskFailed: '新建任务失败',
         resetFailed: '重建失败',
@@ -959,9 +963,11 @@ window.__ModuleLoader__.load({
         notifySave: 'Save',
         notifyTest: 'Send test',
         notifySaved: 'Notification settings saved',
-  settingsSaved: 'Settings saved',
-  settingsSaveFailed: 'Save failed',
-  budgetSaveFailed: 'Notification saved, but budget save failed',
+        settingsSaved: 'Settings saved',
+        settingsSaveFailed: 'Save failed',
+        budgetSaveFailed: 'Notification saved, but budget save failed',
+        settingsLoadFailed: 'Could not load settings',
+        settingsRetry: 'Reload',
         notifyTested: 'Test message sent',
         notifyFailed: 'Notification failed',
         notifyStatus: 'Notification status',
@@ -1122,6 +1128,8 @@ window.__ModuleLoader__.load({
         openComputer: 'Computer',
         closeComputer: 'Hide',
         memorySaveFailed: 'Save failed',
+        memoryLoadFailed: 'Could not load memory',
+        memoryRetry: 'Reload',
         sendFailed: 'Send failed',
         newTaskFailed: 'Could not create task',
         resetFailed: 'Rebuild failed',
@@ -5011,10 +5019,13 @@ window.__ModuleLoader__.load({
       const [diff, setDiff] = useState('')
       const [diffBusy, setDiffBusy] = useState(false)
       const [restoring, setRestoring] = useState(false)
+      const [loadError, setLoadError] = useState('')
+      const [reloadKey, setReloadKey] = useState(0)
 
       useEffect(() => {
         let alive = true
         setLoaded(false)
+        setLoadError('')
         setSelected(null)
         setDiff('')
         apiGet(`/memory${botId ? `?botId=${encodeURIComponent(botId)}` : ''}`)
@@ -5025,13 +5036,16 @@ window.__ModuleLoader__.load({
             setHistory(data.history || null)
             setLoaded(true)
           })
-          .catch(() => {
-            if (alive) setLoaded(true)
+          .catch((error) => {
+            if (alive) {
+              setLoadError(String(error?.message || error || t('memoryLoadFailed')))
+              setLoaded(false)
+            }
           })
         return () => {
           alive = false
         }
-      }, [botId])
+      }, [botId, reloadKey, t])
 
       const save = async () => {
         setSaving(true)
@@ -5082,6 +5096,23 @@ window.__ModuleLoader__.load({
       }
 
       const commits = history?.commits || []
+      if (loadError) {
+        return h(
+          'div',
+          { className: 'gb-deck-scroll' },
+          h(
+            'div',
+            { className: 'gb-deck-error' },
+            h(Icon, { name: 'alert', size: 13 }),
+            h('span', null, `${t('memoryLoadFailed')}: ${loadError}`),
+            h(
+              'button',
+              { type: 'button', className: 'gb-small-btn', onClick: () => setReloadKey((value) => value + 1) },
+              t('memoryRetry'),
+            ),
+          ),
+        )
+      }
       return h(
         'div',
         { className: 'gb-deck-scroll' },
@@ -5948,8 +5979,11 @@ window.__ModuleLoader__.load({
       const [historyQuery, setHistoryQuery] = useState('')
       const [busy, setBusy] = useState(false)
       const [dirty, setDirty] = useState(false)
+      const [loadError, setLoadError] = useState('')
+      const [reloadKey, setReloadKey] = useState(0)
       useEffect(() => {
         let alive = true
+        setLoadError('')
         Promise.all([apiGet('/notify'), apiGet('/budget'), apiGet('/meeting')])
           .then(([notifyData, budgetData, meetingData]) => {
             if (!alive) return
@@ -5966,13 +6000,32 @@ window.__ModuleLoader__.load({
               history: Array.isArray(meetingData.history) ? meetingData.history : [],
             })
           })
-          .catch((error) => onToast?.(error.message))
+          .catch((error) => {
+            if (alive) setLoadError(String(error?.message || error))
+          })
         return () => {
           alive = false
         }
-      }, [onToast])
+      }, [onToast, reloadKey])
 
       if (!config || !budget) {
+        if (loadError) {
+          return h(
+            'div',
+            { className: 'gb-deck-scroll' },
+            h(
+              'div',
+              { className: 'gb-deck-error' },
+              h(Icon, { name: 'alert', size: 13 }),
+              h('span', null, `${t('settingsLoadFailed')}: ${loadError}`),
+              h(
+                'button',
+                { type: 'button', className: 'gb-small-btn', onClick: () => setReloadKey((value) => value + 1) },
+                t('settingsRetry'),
+              ),
+            ),
+          )
+        }
         return h('div', { className: 'gb-deck-scroll' }, h('div', { className: 'gb-deck-empty' }, h(Spinner, { size: 16 })))
       }
       const update = (patch) => {
@@ -9951,7 +10004,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
               stack: String(error?.stack || '').slice(0, 4000),
               componentStack: String(info?.componentStack || '').slice(0, 4000),
               at: Date.now(),
-              version: '6.22.0',
+              version: '6.23.0',
             }
             try {
               localStorage.setItem('dsh-bot-last-error', JSON.stringify(payload))
@@ -9972,7 +10025,7 @@ body:has(.gb-root) #hax-log { opacity: .18 !important; }
                 message: String(error?.message || error || ''),
                 stack: String(error?.stack || ''),
                 at: new Date().toISOString(),
-                version: '6.22.0',
+                version: '6.23.0',
               },
               null,
               2,

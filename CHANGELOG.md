@@ -1,5 +1,12 @@
 # Changelog
 
+## 6.23.0 — 2026-11-26
+
+- UX: notification/budget load failures now show an actionable error with Reload instead of spinning forever.
+- UX: memory load failures no longer expose an empty editable memory that could overwrite real data; they show an error and Reload.
+- UX guards cover the actionable load-failure copy.
+- No QQ changes.
+
 ## 6.22.0 — 2026-11-26
 
 - UX: notification + budget settings now track dirty state; Save is disabled until something changes.
