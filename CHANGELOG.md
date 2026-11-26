@@ -1,5 +1,13 @@
 # Changelog
 
+## 6.30.0 — 2026-11-26
+
+- Compatibility: `web_batch.py` now accepts `--browser auto|edge|chrome|brave|chromium|firefox` and detects the address bar by geometry instead of hardcoded Edge AutomationId. Edge and Chrome both verified at 60/60 with scrollDelta 0.
+- Compatibility: Firefox has no usable UIA address bar in the current profile; the batch path now fails explicitly instead of silently guessing.
+- Quota: add a 90% token warning and show current-run token usage alongside thread usage.
+- CI guards cover browser option, address helper and the 90% warning.
+- No QQ changes.
+
 ## 6.29.0 — 2026-11-26
 
 - Automation: add a no-scroll DOM batch path for quiz/form filling (`scripts/web_batch.py` + `scripts/address_exec.ps1`). It fills all controls in one page-side script instead of scrolling through UIA controls.

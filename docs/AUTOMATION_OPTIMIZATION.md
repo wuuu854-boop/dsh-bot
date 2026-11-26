@@ -49,15 +49,35 @@ python scripts/web_batch.py fill --answers answers.json
 ]}
 ```
 
-### Token 额度
+### 跨浏览器兼容
+
+`web_batch.py` 不再写死 Edge 窗口和地址栏 AutomationId：
+
+- 支持 `--browser auto|edge|chrome|brave|chromium|firefox`；
+- 通过进程名找到浏览器窗口；
+- 地址栏按顶部位置和宽度查找，兼容 Chromium 系不同语言/版本；
+- 用 `Ctrl+L` + 地址栏 ValuePattern 注入，不依赖固定控件 ID；
+- 结果只返回摘要。
+
+实测矩阵：
+
+| 浏览器 | 结果 |
+|---|---|
+| Edge | 60/60，scrollDelta 0 |
+| Chrome | 60/60，scrollDelta 0 |
+| Brave / Chromium | 同 Chromium 引擎，预期可用，未实机验证 |
+| Firefox | 当前 Firefox 不暴露 UIA 地址栏；批处理会明确报错，需回退 UIA |
+
+Firefox 返回 `address bar not found` 时，不重试、不静默失败；继续用现有 UIA/人工路径。
 
 已实现：
 
 - 预算统计包含 `input + output + reasoning` token；
 - 50% token 提醒 + 剩余量；
 - 80% 预警；
+- 90% “下一步后可能停止”预警；
 - 经济/标准/深度/自定义档位；
-- 设置页显示本线程累计 token 和单任务上限。
+- 设置页显示本线程累计 token、当前任务 token 和单任务上限。
 
 ## 待完成
 

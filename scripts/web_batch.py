@@ -15,7 +15,7 @@ Answers JSON:
 
 Commands:
   build --answers PATH [--out PATH]   write the JavaScript without running it
-  fill  --answers PATH [--window NAME] [--timeout 3]
+  fill  --answers PATH [--browser auto|edge|chrome|brave|chromium|firefox] [--timeout 3]
 """
 
 from __future__ import annotations
@@ -165,23 +165,57 @@ def active_window() -> dict:
     return {}
 
 
-def activate_browser(needle: str) -> None:
+BROWSER_PROCESSES = {
+    "edge": ("msedge.exe",),
+    "chrome": ("chrome.exe",),
+    "brave": ("brave.exe",),
+    "chromium": ("chromium.exe",),
+    "firefox": ("firefox.exe",),
+}
+
+
+def find_browser_window(browser: str = "auto") -> dict:
+    windows = computer.list_windows()
+    preferred = ["edge", "chrome", "brave", "chromium", "firefox"] if browser in ("", "auto") else [browser]
+    for name in preferred:
+        processes = BROWSER_PROCESSES.get(name, ())
+        for window in windows:
+            process = str(window.get("process", "")).lower()
+            if any(process == item or process.endswith("\\" + item) for item in processes):
+                return window
+    return {}
+
+
+def activate_browser(browser: str = "auto") -> bool:
+    target = find_browser_window(browser)
+    if not target:
+        return False
     try:
-        computer.activate_window(needle)
+        # Reuse computer.py's foreground-lock-safe minimize/restore path.
+        computer.activate_window(str(target.get("title") or ""))
     except Exception:
-        pass
+        try:
+            computer.user32.SetForegroundWindow(int(target["handle"]))
+        except Exception:
+            pass
     time.sleep(0.25)
+    return True
 
 
-def execute_script(script: str, timeout: float = 3.0, window: str = "Edge") -> dict:
+def execute_script(script: str, timeout: float = 3.0, browser: str = "auto") -> dict:
     """Run one script through the address bar without per-control UIA scrolling."""
-    activate_browser(window)
+    if not activate_browser(browser):
+        return {"ok": False, "error": f"no supported browser window for {browser}"}
     current = active_window()
-    if current and "edge" not in str(current.get("process", "")).lower():
-        return {"ok": False, "error": f"active window is not Edge: {current.get('process')}"}
+    if not current or not any(
+        str(current.get("process", "")).lower().endswith(item)
+        for name in BROWSER_PROCESSES.values()
+        for item in name
+    ):
+        return {"ok": False, "error": f"active window is not a supported browser: {current.get('process')}"}
     handle = current.get("handle")
     if not handle:
-        return {"ok": False, "error": "no active Edge window"}
+        return {"ok": False, "error": "no active browser window"}
     if not ADDRESS_HELPER.exists():
         return {"ok": False, "error": f"missing helper: {ADDRESS_HELPER}"}
     payload = encode_script(script)
@@ -246,8 +280,8 @@ def execute_script(script: str, timeout: float = 3.0, window: str = "Edge") -> d
     }
 
 
-def run_batch(script: str, timeout: float = 3.0, window: str = "Edge") -> dict:
-    return execute_script(script, timeout=timeout, window=window)
+def run_batch(script: str, timeout: float = 3.0, browser: str = "auto") -> dict:
+    return execute_script(script, timeout=timeout, browser=browser)
 
 
 def main() -> int:
@@ -257,7 +291,7 @@ def main() -> int:
         p = sub.add_parser(name)
         p.add_argument("--answers", required=True)
         p.add_argument("--out", default="")
-        p.add_argument("--window", default="Edge")
+        p.add_argument("--browser", default="auto", choices=["auto", "edge", "chrome", "brave", "chromium", "firefox"])
         p.add_argument("--timeout", type=float, default=3.0)
     args = parser.parse_args()
     answers = load_answers(Path(args.answers))
@@ -269,7 +303,7 @@ def main() -> int:
         else:
             print(script)
         return 0
-    result = run_batch(script, timeout=args.timeout, window=args.window)
+    result = run_batch(script, timeout=args.timeout, browser=args.browser)
     print(json.dumps(result, ensure_ascii=False))
     return 0 if result.get("ok") else 1
 

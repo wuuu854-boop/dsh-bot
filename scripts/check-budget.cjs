@@ -12,8 +12,11 @@ assert.match(
   'run budget must count input, output and reasoning tokens',
 )
 assert.match(server, /budgetWarned50/, 'budget must have a 50% warning flag')
+assert.match(server, /budgetWarned90/, 'budget must have a 90% warning flag')
 assert.match(server, /tokenRatio\s*>=\s*0\.5/, 'budget must warn at 50% token usage')
 assert.match(server, /tokenRatio\s*>=\s*0\.8/, 'budget must warn at 80% token usage')
+assert.match(server, /tokenRatio\s*>=\s*0\.9/, 'budget must warn at 90% token usage')
+assert.match(client, /budgetRunUsage/, 'settings must show current run usage')
 assert.match(client, /budgetPreset/, 'settings must expose budget profiles')
 assert.match(client, /budgetUsage/, 'settings must show token usage against the cap')
 assert.match(client, /reasoningTokens/, 'thread token display must include reasoning tokens')

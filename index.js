@@ -7,7 +7,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const PACKAGE_NAME = '@local/dsh-bot'
-const VERSION = '6.29.0'
+const VERSION = '6.30.0'
 const API_PREFIX = '/dsh-bot/api'
 const STATE_VERSION = 2
 const DEFAULT_BOT_ID = 'bot-default'
@@ -2044,6 +2044,7 @@ export function apply(ctx) {
       reasoningTokens: 0,
       budget: { ...(state.budget || defaultBudget()) },
       budgetWarned50: false,
+      budgetWarned90: false,
       budgetWarned: false,
       budgetExceeded: false,
       budgetReason: '',
@@ -2306,6 +2307,10 @@ export function apply(ctx) {
     } else if (ratio >= 0.8 && !run.budgetWarned) {
       run.budgetWarned = true
       pushNotice(rec, `预算预警：${worst.name} ${worst.text} / ${worst.max}，接近上限`, 'warn', rec.transcript.lastSeq || 0, now())
+    }
+    if (tokenRatio >= 0.9 && !run.budgetWarned90) {
+      run.budgetWarned90 = true
+      pushNotice(rec, `预算预警：token 已用 ${tokens} / ${limits.maxTokens}，仅剩 ${Math.max(0, limits.maxTokens - tokens)}，下一步后可能停止`, 'warn', rec.transcript.lastSeq || 0, now())
     }
     if (ratio < 1) return
     run.budgetExceeded = true
@@ -6172,6 +6177,7 @@ export function apply(ctx) {
       approval: rec?.pendingApproval ? publicApproval(rec.pendingApproval, rec) : null,
       checkpoint: thread.checkpoint || null,
       quality: qualityForBot(bot.id),
+      run: rec?.run ? publicRun(rec.run) : null,
       skills: skillsForBot(bot.id).slice(0, 40).map(publicSkill),
       team: teamOf(rec),
       stats: stats

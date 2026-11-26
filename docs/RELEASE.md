@@ -1,10 +1,17 @@
-# DSH Bot v6.29.0
+# DSH Bot v6.30.0
 
 **An open-source GrokBot alternative that runs a real bot team on your own Windows machine, inside DeepSeek Harness.**
 
 You talk to one **Boss**. It decides what to do, hires a specialist when nobody fits, delegates real work to bots that each keep their own DSH session, workspace and memory, then reviews the receipts and reports back. Every morning it runs a stand-up where the whole team reports what it did.
 
 ![Architecture](architecture.svg)
+
+## Compatibility and quota (v6.30.0)
+
+- `web_batch.py` supports Edge / Chrome / Brave / Chromium / Firefox selection; address-bar detection is geometry-based, not Edge-ID-specific.
+- Edge and Chrome verified at 60/60, scrollDelta 0; Firefox reports a clear unsupported address-bar error and falls back.
+- Quota adds a 90% warning and current-run token display.
+- CI guards cover the browser path and 90% warning.
 
 ## No-scroll batch (v6.29.0)
 
