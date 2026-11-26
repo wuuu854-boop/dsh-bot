@@ -39,7 +39,8 @@
     "scripts/bench-api.mjs",
     "docs/UX_PLAN.md",
     "docs/UX_REPORT.md",
-    "docs/AUTOMATION_OPTIMIZATION.md"
+    "docs/AUTOMATION_OPTIMIZATION.md",
+    "docs/GITHUB_RESEARCH_BROWSER_QUOTA.md"
   ],
   "dsh": {
     "bundle": {
